@@ -1745,7 +1745,7 @@ def test_long_upload_is_parsed_once_and_publishes_exact_original_only_once(
         assert len(raw) == 1 and raw[0]["content"] == expected
         assert not any("arrow" in str(item).lower() for item in raw)
         assert (root / "raw.json").stat().st_size < 2048
-        verify_bundle(root)
+        verify_bundle(root, dataset.manifest)
 
 
 def test_retry_rejects_changed_transport_before_fetch_or_checkpoint_reuse(
