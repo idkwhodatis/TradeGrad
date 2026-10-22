@@ -26,7 +26,14 @@ Keep phase commits separate. No merge, deployment, paid model call, new credenti
 
 ## Evidence status
 
-M0 is locally validated at `933d95da035939c7cef7577f0ca41c3c98c7f7e2` (32 tests).
-M1 is a prepared initial vertical slice, not yet runtime-gated. See
+M0 and M1 passed their hosted gates on exact head
+`f66736a1da516f6a2650318bfa4c72992ad37951` in
+[run 39801546496](https://github.com/idkwhodatis/TradeGrad/actions/runs/39801546496).
+This includes the actual four-task engine, PostgreSQL/Procrastinate, Docker
+isolation, two-worker SIGKILL/recovery and nine real Chromium scenarios.
+Downloaded outcome artifacts were hash-verified. See
 [staged evidence](M1_VALIDATION.md) and [development operations](M1_OPERATIONS.md).
-M2–M6 have not started. An absent or pending report means the phase has not passed.
+
+M2 data integration is in progress. M3–M6 have not started. Live provider
+verification is separate from deterministic recorded-provider fixtures. An
+absent or pending report means the relevant phase has not passed.

@@ -11,7 +11,34 @@
 - Focused Ruff, Python compilation, shell syntax and staged whitespace checks
   passed. See `baseline.md` for semantic differences and frozen versions.
 
-## M1: hosted application gates passed; actual worker-crash gate pending
+## M1: passed on the real hosted stack
+
+The [complete M1 gate](https://github.com/idkwhodatis/TradeGrad/actions/runs/39801546496)
+**succeeded on attempt 2** at exact head `f66736a1da516f6a2650318bfa4c72992ad37951`,
+tree `06b8acad8e3f990e23384d4262ed2110419d4810`:
+
+- Actual four-task AKQuant baseline: **32 passed**.
+- Backend/supervisor/hygiene: **55 passed in 1.13 seconds**.
+- Actual PostgreSQL/Procrastinate: **77 passed in 17.81 seconds**.
+- Actual Docker kernel isolation: **11 passed in 25.50 seconds**.
+- Actual concurrent queue-worker SIGKILL/reconciliation/resume: **1 passed in 50.16 seconds**.
+- Frontend: **25 passed**, generated contracts/type/build/format checks passed.
+- Real Chromium against the actual API, queue and evaluator: **9 passed in 1.0 minute**.
+
+Downloaded artifacts match GitHub's SHA256 digests: M0
+`7e406de62740245673a3586034c52237f416b3a3170c6700cd5e216f748cc7e6`; M1
+`872ce74c661b9273c818dd9950e572b05075bce61f6b78fb927fd8ac98351bef`.
+All parsed cases passed, with zero failures, errors or skips. The first attempt
+failed before application setup because Docker Hub returned HTTP 500 while
+pulling the official PostgreSQL image; only the failed job was retried on the
+same commit. No settings, credentials or image source were changed to pass it.
+
+This closes M1's gate and permits M2 development. It remains a synthetic,
+seed-backtest application, not a finished optimizer, live-data workbench or
+complete V1 release. Actual worker-crash coverage is active-attempt recovery;
+stalled-queue redelivery remains covered by the separate real PostgreSQL tests.
+
+### Earlier browser-fix run, before the additional process-crash gate
 
 The [browser-fix hosted run](https://github.com/idkwhodatis/TradeGrad/actions/runs/39798232377)
 **succeeded** on exact head `a231738f769031b4072b7bca9e8d55892dfc0555`, tree
@@ -32,14 +59,14 @@ Their parsed case counts match the logs, with no failures, errors or skips.
 The plan's M1 gate also explicitly requires two concurrent runs without crossed
 namespaces and forced-worker-crash recovery. SQL fault-injection tests plus
 container cancellation tests are not equivalent to killing actual queue workers.
-A new opt-in `tests/system/test_worker_recovery.py` gate therefore creates its own
+The additional opt-in `tests/system/test_worker_recovery.py` gate therefore creates its own
 disposable database, storage and processes, submits two real HTTP runs, observes
 two running evaluator containers, SIGKILLs only the two owned worker process
 groups, and requires reconciler-confirmed removal before resuming through HTTP.
 It verifies separate retry namespaces, unchanged original-attempt history,
 artifact hashes and cross-user denial. It uses real PostgreSQL, Procrastinate,
 Docker and AKQuant, without mocks or direct business-state mutation. This new
-check must pass in hosted CI before advancing M2; it has not passed yet.
+check was still pending at that earlier point; its later passing result is recorded above.
 
 ### Earlier first hosted run and corrected browser assertion
 
