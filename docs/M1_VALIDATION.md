@@ -11,7 +11,37 @@
 - Focused Ruff, Python compilation, shell syntax and staged whitespace checks
   passed. See `baseline.md` for semantic differences and frozen versions.
 
-## M1: hosted database/isolation passed, browser gate NOT passed
+## M1: hosted application gates passed; actual worker-crash gate pending
+
+The [browser-fix hosted run](https://github.com/idkwhodatis/TradeGrad/actions/runs/39798232377)
+**succeeded** on exact head `a231738f769031b4072b7bca9e8d55892dfc0555`, tree
+`45d1d9e914204e836abf9b911827d1a577dcd947`:
+
+- Actual four-task engine baseline: **32 passed**.
+- Backend/supervisor/hygiene: **55 passed in 1.64 seconds**.
+- Actual PostgreSQL/Procrastinate: **77 passed in 28.03 seconds**, no skips.
+- Actual Docker kernel isolation: **11 passed in 37.88 seconds**, no skips.
+- Frontend: **25 passed**, generated contract, type, build and format checks passed.
+- Real Chromium against the actual API, queue and evaluator: **9 passed in 1.2 minutes**.
+
+Downloaded and verified artifact SHA256s: M0
+`4e175f0c05495e7396cf79787f8c5f8c2921d22ab8de43d4f7b706a8f91616c6`; M1
+`10856e96ab5254845a780f9f4638e8cb9bee6e6d82671526dc393159c866407a`.
+Their parsed case counts match the logs, with no failures, errors or skips.
+
+The plan's M1 gate also explicitly requires two concurrent runs without crossed
+namespaces and forced-worker-crash recovery. SQL fault-injection tests plus
+container cancellation tests are not equivalent to killing actual queue workers.
+A new opt-in `tests/system/test_worker_recovery.py` gate therefore creates its own
+disposable database, storage and processes, submits two real HTTP runs, observes
+two running evaluator containers, SIGKILLs only the two owned worker process
+groups, and requires reconciler-confirmed removal before resuming through HTTP.
+It verifies separate retry namespaces, unchanged original-attempt history,
+artifact hashes and cross-user denial. It uses real PostgreSQL, Procrastinate,
+Docker and AKQuant, without mocks or direct business-state mutation. This new
+check must pass in hosted CI before advancing M2; it has not passed yet.
+
+### Earlier first hosted run and corrected browser assertion
 
 The [first hosted gate](https://github.com/idkwhodatis/TradeGrad/actions/runs/39796648672)
 ran on exact head `e5eb72e3cd234d4e4f383ba2c0dd50a8768805b3`, tree

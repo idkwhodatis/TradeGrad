@@ -99,6 +99,9 @@ mid-run recovery are M3 work.
 .venv-api/bin/python -m pytest tests/runner -q
 TEST_DATABASE_URL="$DATABASE_URL" .venv-api/bin/python -m pytest tests/integration -q
 TRADEGRAD_REQUIRE_DOCKER=1 .venv-api/bin/python -m pytest tests/isolation -q
+# Requires a disposable PostgreSQL role with CREATEDB and the local evaluator image.
+TRADEGRAD_REQUIRE_PROCESS_RECOVERY=1 TEST_DATABASE_URL="$DATABASE_URL" \
+  .venv-api/bin/python -m pytest tests/system -q
 .venv-api/bin/python -m backend.app.export_openapi
 cd frontend && npm run generate-client && npm run typecheck && npm run build
 npm run test:e2e
@@ -106,7 +109,12 @@ npm run test:e2e
 
 Use a dedicated disposable PostgreSQL database for tests. Database tests create
 and drop only their generated schema, never an arbitrary existing schema. The
-browser suite needs the actual HTTP API, queue roles, database and Docker engine.
+opt-in process-recovery test creates and drops a uniquely named temporary database
+using the existing test role; it does not create roles or alter permissions. It
+SIGKILLs only its own worker process groups and removes only its own evaluator
+containers. Its API, dispatcher, reconciler, accounts and storage are isolated
+from any separately running browser-test stack. Never target a production server.
+The browser suite needs the actual HTTP API, queue roles, database and Docker engine.
 It does not route-mock API success. Browser traces and videos are disabled so
 authentication traffic is not uploaded in test artifacts.
 

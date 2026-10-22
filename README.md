@@ -1,9 +1,10 @@
 # TradeGrad
 
 > **WebUI V1 branch status:** M0's four-task engine baseline is validated. The M1
-> synthetic, seed-only web application passed real PostgreSQL and Docker isolation
-> gates; its Playwright gate is still pending a fixture-selection fix. This is not complete
-> V1 and has no live trading. See [staged validation](docs/M1_VALIDATION.md),
+> synthetic, seed-only web application passed real PostgreSQL, Docker isolation and
+> all nine real-browser gates. An additional two-worker SIGKILL/recovery gate is pending.
+> This is not complete V1 and has no live trading. See
+> [staged validation](docs/M1_VALIDATION.md),
 > [development setup](docs/M1_OPERATIONS.md) and [remaining gates](docs/V1_IMPLEMENTATION.md).
 
 This is the implementation of our paper *Trading Strategy Optimization via Textual Gradient*.
