@@ -493,6 +493,24 @@ export type CheckpointPublic = {
 };
 
 /**
+ * ComparisonDifference
+ */
+export type ComparisonDifference = {
+    /**
+     * Affects Comparability
+     */
+    affects_comparability: boolean;
+    /**
+     * Field
+     */
+    field: string;
+    /**
+     * Values
+     */
+    values: Array<DifferenceValue>;
+};
+
+/**
  * CoveragePublic
  */
 export type CoveragePublic = {
@@ -588,6 +606,17 @@ export type DateWindow = {
      * Start
      */
     start: string;
+};
+
+/**
+ * DifferenceValue
+ */
+export type DifferenceValue = {
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    value: JsonValue;
 };
 
 /**
@@ -776,6 +805,24 @@ export type EvaluationPublic = {
      * Window Sha256
      */
     window_sha256: string;
+};
+
+/**
+ * EvaluationWindow
+ */
+export type EvaluationWindow = {
+    /**
+     * End
+     */
+    end: string;
+    /**
+     * Split
+     */
+    split: 'train' | 'validation';
+    /**
+     * Start
+     */
+    start: string;
 };
 
 /**
@@ -1041,6 +1088,8 @@ export type ImportPublic = {
         [key: string]: unknown;
     }>;
 };
+
+export type JsonValue = unknown;
 
 /**
  * ListingPublic
@@ -1779,6 +1828,22 @@ export type PriceSemantics = {
 };
 
 /**
+ * ProfileDefault
+ */
+export type ProfileDefault = {
+    market_profile: MarketConfig;
+    /**
+     * Profile
+     */
+    profile: 'source_compat' | 'corrected_explicit_config';
+    /**
+     * Task
+     */
+    task: 'cn_time' | 'us_time' | 'cn_cross' | 'us_cross';
+    warmup: WarmupConfig;
+};
+
+/**
  * ProviderPublic
  */
 export type ProviderPublic = {
@@ -1814,6 +1879,149 @@ export type ProviderPublic = {
      * Upstream
      */
     upstream: string;
+};
+
+/**
+ * ResearchCapabilities
+ */
+export type ResearchCapabilities = {
+    /**
+     * Checkpoint Resume
+     */
+    checkpoint_resume?: true;
+    /**
+     * Compare Max Evaluations
+     */
+    compare_max_evaluations?: 4;
+    defaults?: ResearchDefaults;
+    /**
+     * Environment Digest
+     */
+    environment_digest: string;
+    /**
+     * Execution Modes
+     */
+    execution_modes?: Array<'optimization'>;
+    /**
+     * Holdout Execution
+     */
+    holdout_execution?: false;
+    limits: ResearchLimits;
+    /**
+     * Live Model Calls
+     */
+    live_model_calls?: false;
+    /**
+     * Model Providers
+     */
+    model_providers?: Array<'fixture'>;
+    /**
+     * Models
+     */
+    models?: Array<'deterministic-fixture-v1'>;
+    /**
+     * Portable Execution
+     */
+    portable_execution?: false;
+    /**
+     * Preflight
+     */
+    preflight?: true;
+    /**
+     * Profile Defaults
+     */
+    profile_defaults: Array<ProfileDefault>;
+    /**
+     * Profiles
+     */
+    profiles?: Array<'source_compat' | 'corrected_explicit_config'>;
+    /**
+     * Prompt Versions
+     */
+    prompt_versions?: Array<'source_prompts.v1'>;
+    /**
+     * Report Download
+     */
+    report_download?: true;
+    /**
+     * Result Query
+     */
+    result_query?: true;
+    /**
+     * Sample Methods
+     */
+    sample_methods?: Array<'power_law' | 'uniform' | 'top_k'>;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.run.v1';
+    seed_only_research?: SeedOnlyResearch;
+    /**
+     * Tasks
+     */
+    tasks?: Array<'cn_time' | 'us_time' | 'cn_cross' | 'us_cross'>;
+};
+
+/**
+ * ResearchDefaults
+ */
+export type ResearchDefaults = {
+    budgets?: BudgetConfig;
+    model?: ModelConfig;
+    objective?: ObjectiveConfig;
+    optimizer?: OptimizerConfig;
+};
+
+/**
+ * ResearchLimits
+ */
+export type ResearchLimits = {
+    /**
+     * Max Active Imports Per User
+     */
+    max_active_imports_per_user: number;
+    /**
+     * Max Active Runs Per User
+     */
+    max_active_runs_per_user: number;
+    /**
+     * Max Artifact Bytes
+     */
+    max_artifact_bytes: number;
+    /**
+     * Max Upload Bytes
+     */
+    max_upload_bytes: number;
+};
+
+/**
+ * ResearchPreflightPublic
+ */
+export type ResearchPreflightPublic = {
+    /**
+     * Config Sha256
+     */
+    config_sha256: string;
+    /**
+     * Evaluation Windows
+     */
+    evaluation_windows: Array<EvaluationWindow>;
+    /**
+     * Holdout Execution
+     */
+    holdout_execution?: false;
+    /**
+     * Is Synthetic
+     */
+    is_synthetic: boolean;
+    /**
+     * Valid
+     */
+    valid?: true;
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
 };
 
 /**
@@ -2009,6 +2217,60 @@ export type ResearchRunPublic = {
 };
 
 /**
+ * ResearchUsagePublic
+ */
+export type ResearchUsagePublic = {
+    /**
+     * Adopted Calls
+     */
+    adopted_calls: number;
+    /**
+     * Calls
+     */
+    calls: number;
+    /**
+     * Charged Tokens
+     */
+    charged_tokens: number;
+    /**
+     * Cost
+     */
+    cost?: null;
+    /**
+     * Cost Status
+     */
+    cost_status?: 'unavailable';
+    /**
+     * Input Tokens
+     */
+    input_tokens: number | null;
+    /**
+     * Known Usage Calls
+     */
+    known_usage_calls: number;
+    /**
+     * Output Tokens
+     */
+    output_tokens: number | null;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Scope
+     */
+    scope?: 'persisted_logical_model_calls';
+    /**
+     * Unknown Usage Calls
+     */
+    unknown_usage_calls: number;
+    /**
+     * Usage Sources
+     */
+    usage_sources: Array<string>;
+};
+
+/**
  * ResolveCreate
  */
 export type ResolveCreate = {
@@ -2024,6 +2286,266 @@ export type ResolveCreate = {
      * Symbols
      */
     symbols: Array<string>;
+};
+
+/**
+ * ResultBenchmark
+ */
+export type ResultBenchmark = {
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Series
+     */
+    series?: null;
+    /**
+     * Status
+     */
+    status: 'not_configured';
+};
+
+/**
+ * ResultCapabilities
+ */
+export type ResultCapabilities = {
+    /**
+     * Benchmark
+     */
+    benchmark: false;
+    /**
+     * Closed Trades
+     */
+    closed_trades: boolean;
+    /**
+     * Drawdown
+     */
+    drawdown: boolean;
+    /**
+     * Equity
+     */
+    equity: boolean;
+    /**
+     * Fee Component Breakdown
+     */
+    fee_component_breakdown: false;
+    /**
+     * Fees Aggregate
+     */
+    fees_aggregate: boolean;
+    /**
+     * Fills
+     */
+    fills: boolean;
+    /**
+     * Internal Decisions
+     */
+    internal_decisions: false;
+    /**
+     * Observable Order Trace
+     */
+    observable_order_trace: boolean;
+    /**
+     * Orders
+     */
+    orders: boolean;
+    /**
+     * Positions
+     */
+    positions: boolean;
+    /**
+     * Trusted Ledger
+     */
+    trusted_ledger: false;
+};
+
+/**
+ * ResultColumn
+ */
+export type ResultColumn = {
+    /**
+     * Dtype
+     */
+    dtype: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Unit
+     */
+    unit: string;
+};
+
+/**
+ * ResultCompareCreate
+ */
+export type ResultCompareCreate = {
+    /**
+     * Evaluation Ids
+     */
+    evaluation_ids: Array<string>;
+};
+
+/**
+ * ResultComparePublic
+ */
+export type ResultComparePublic = {
+    /**
+     * Comparable
+     */
+    comparable: boolean;
+    /**
+     * Differences
+     */
+    differences: Array<ComparisonDifference>;
+    /**
+     * Evaluations
+     */
+    evaluations: Array<ResultComparisonItem>;
+    /**
+     * Ranking
+     */
+    ranking?: null;
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+};
+
+/**
+ * ResultComparisonItem
+ */
+export type ResultComparisonItem = {
+    /**
+     * Artifact Sha256
+     */
+    artifact_sha256: string;
+    /**
+     * Candidate Key
+     */
+    candidate_key: string;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    config: RunConfig;
+    /**
+     * Config Sha256
+     */
+    config_sha256: string;
+    /**
+     * Currency
+     */
+    currency: 'CNY' | 'USD';
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    /**
+     * Is Synthetic
+     */
+    is_synthetic: boolean;
+    /**
+     * Metrics
+     */
+    metrics: Array<ResultMetric>;
+    /**
+     * Price Definition
+     */
+    price_definition: {
+        [key: string]: JsonValue;
+    };
+    /**
+     * Result Trust
+     */
+    result_trust: 'native_strategy_and_engine_share_process';
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Split
+     */
+    split: 'train' | 'validation';
+    /**
+     * Status
+     */
+    status?: 'succeeded';
+    window: EvaluationWindow;
+};
+
+/**
+ * ResultFees
+ */
+export type ResultFees = {
+    /**
+     * Breakdown Status
+     */
+    breakdown_status: 'unsupported_by_execution_report';
+    /**
+     * Calculation Basis
+     */
+    calculation_basis: string;
+    /**
+     * Commission Stamp Transfer Breakdown
+     */
+    commission_stamp_transfer_breakdown?: null;
+    /**
+     * Definition Version
+     */
+    definition_version: string;
+    /**
+     * Native Total Commission
+     */
+    native_total_commission: number | number;
+    /**
+     * Slippage Cost
+     */
+    slippage_cost?: null;
+    /**
+     * Slippage Cost Status
+     */
+    slippage_cost_status: 'not_separately_reported_by_native_engine';
+    /**
+     * Total From Fills
+     */
+    total_from_fills: number | number;
+    /**
+     * Unit
+     */
+    unit: 'CNY' | 'USD';
+};
+
+/**
+ * ResultMetric
+ */
+export type ResultMetric = {
+    /**
+     * Calculation Basis
+     */
+    calculation_basis: string;
+    /**
+     * Definition Version
+     */
+    definition_version: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Unavailable Reason
+     */
+    unavailable_reason: string | null;
+    /**
+     * Unit
+     */
+    unit: string;
+    /**
+     * Value
+     */
+    value: number | number | null;
 };
 
 /**
@@ -2063,6 +2585,143 @@ export type ResultPublic = {
 };
 
 /**
+ * ResultQueryPublic
+ */
+export type ResultQueryPublic = {
+    /**
+     * Artifact Sha256
+     */
+    artifact_sha256: string;
+    benchmark: ResultBenchmark;
+    /**
+     * Candidate Key
+     */
+    candidate_key: string;
+    capabilities: ResultCapabilities;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    config: RunConfig;
+    /**
+     * Config Sha256
+     */
+    config_sha256: string;
+    /**
+     * Currency
+     */
+    currency: 'CNY' | 'USD';
+    /**
+     * End
+     */
+    end?: string | null;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    fees: ResultFees;
+    /**
+     * Is Synthetic
+     */
+    is_synthetic: boolean;
+    /**
+     * Listing Id
+     */
+    listing_id?: string | null;
+    /**
+     * Metrics
+     */
+    metrics: Array<ResultMetric>;
+    /**
+     * Price Definition
+     */
+    price_definition: {
+        [key: string]: JsonValue;
+    };
+    /**
+     * Result Trust
+     */
+    result_trust: 'native_strategy_and_engine_share_process';
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.result-query.v1';
+    /**
+     * Split
+     */
+    split: 'train' | 'validation';
+    /**
+     * Start
+     */
+    start?: string | null;
+    /**
+     * Status
+     */
+    status?: 'succeeded';
+    /**
+     * Tables
+     */
+    tables: {
+        [key: string]: ResultTable;
+    };
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+    window: EvaluationWindow;
+};
+
+/**
+ * ResultTable
+ */
+export type ResultTable = {
+    /**
+     * Columns
+     */
+    columns: Array<ResultColumn>;
+    /**
+     * Downsampled
+     */
+    downsampled: boolean;
+    /**
+     * Filter Status
+     */
+    filter_status: 'not_requested' | 'applied' | 'portfolio_series_unfiltered_by_listing';
+    /**
+     * Filtered Rows
+     */
+    filtered_rows: number;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Returned Rows
+     */
+    returned_rows: number;
+    /**
+     * Rows
+     */
+    rows: Array<Array<string | number | number | boolean | null>>;
+    /**
+     * Sampling
+     */
+    sampling: 'none' | 'min_max';
+    /**
+     * Total Rows
+     */
+    total_rows: number;
+};
+
+/**
  * RiskConfig
  */
 export type RiskConfig = {
@@ -2074,6 +2733,50 @@ export type RiskConfig = {
      * Enable Short Sell
      */
     enable_short_sell: boolean;
+};
+
+/**
+ * RunConfig
+ */
+export type RunConfig = {
+    /**
+     * Benchmark
+     */
+    benchmark?: null;
+    budgets?: BudgetConfig;
+    dataset: VersionRef;
+    /**
+     * Environment Digest
+     */
+    environment_digest: string;
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'seed_evaluation' | 'optimization';
+    market_profile: MarketConfig;
+    model?: ModelConfig;
+    objective?: ObjectiveConfig;
+    optimizer?: OptimizerConfig;
+    /**
+     * Profile
+     */
+    profile?: 'source_compat' | 'corrected_explicit_config';
+    /**
+     * Prompt Version
+     */
+    prompt_version?: 'source_prompts.v1';
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.run.v1';
+    seed_strategy: VersionRef;
+    /**
+     * Task
+     */
+    task: 'cn_time' | 'us_time' | 'cn_cross' | 'us_cross';
+    universe: VersionRef;
+    warmup: WarmupConfig;
+    windows: WindowSet;
 };
 
 /**
@@ -2233,6 +2936,23 @@ export type RunPublic = {
 };
 
 /**
+ * SeedOnlyResearch
+ */
+export type SeedOnlyResearch = {
+    optimizer?: SeedOptimizer;
+};
+
+/**
+ * SeedOptimizer
+ */
+export type SeedOptimizer = {
+    /**
+     * Max Iterations
+     */
+    max_iterations?: 0;
+};
+
+/**
  * SlippageConfig
  */
 export type SlippageConfig = {
@@ -2244,6 +2964,30 @@ export type SlippageConfig = {
      * Value
      */
     value?: number;
+};
+
+/**
+ * StrategyCreate
+ */
+export type StrategyCreate = {
+    /**
+     * Code
+     *
+     * Exact Python source, at most 131072 UTF-8 bytes. Syntax parsing only; never executed by the API.
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Parent Id
+     */
+    parent_id?: string | null;
+    /**
+     * Task
+     */
+    task: 'cn_time' | 'us_time' | 'cn_cross' | 'us_cross';
 };
 
 /**
@@ -3695,8 +4439,10 @@ export type ResearchCapabilitiesResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: ResearchCapabilities;
 };
+
+export type ResearchCapabilitiesResponse = ResearchCapabilitiesResponses[keyof ResearchCapabilitiesResponses];
 
 export type ReadResearchCheckpointData = {
     body?: never;
@@ -3739,6 +4485,198 @@ export type ReadResearchCheckpointResponses = {
 };
 
 export type ReadResearchCheckpointResponse = ReadResearchCheckpointResponses[keyof ReadResearchCheckpointResponses];
+
+export type CompareResearchResultsData = {
+    body: ResultCompareCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/research-evaluations/compare';
+};
+
+export type CompareResearchResultsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CompareResearchResultsError = CompareResearchResultsErrors[keyof CompareResearchResultsErrors];
+
+export type CompareResearchResultsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResultComparePublic;
+};
+
+export type CompareResearchResultsResponse = CompareResearchResultsResponses[keyof CompareResearchResultsResponses];
+
+export type DownloadResearchReportData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/research-evaluations/{evaluation_id}/report';
+};
+
+export type DownloadResearchReportErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type DownloadResearchReportError = DownloadResearchReportErrors[keyof DownloadResearchReportErrors];
+
+export type DownloadResearchReportResponses = {
+    /**
+     * Successful Response
+     */
+    200: Blob | File;
+};
+
+export type DownloadResearchReportResponse = DownloadResearchReportResponses[keyof DownloadResearchReportResponses];
+
+export type ReadResearchResultsData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: {
+        /**
+         * Sections
+         */
+        sections?: Array<'equity' | 'drawdown' | 'cash' | 'margin' | 'positions' | 'orders' | 'fills' | 'closed_trades'> | null;
+        /**
+         * Start
+         */
+        start?: string | null;
+        /**
+         * End
+         */
+        end?: string | null;
+        /**
+         * Listing Id
+         */
+        listing_id?: string | null;
+        /**
+         * Max Points
+         */
+        max_points?: number;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/research-evaluations/{evaluation_id}/results';
+};
+
+export type ReadResearchResultsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadResearchResultsError = ReadResearchResultsErrors[keyof ReadResearchResultsErrors];
+
+export type ReadResearchResultsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResultQueryPublic;
+};
+
+export type ReadResearchResultsResponse = ReadResearchResultsResponses[keyof ReadResearchResultsResponses];
+
+export type DownloadResearchResultsData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/research-evaluations/{evaluation_id}/results/download';
+};
+
+export type DownloadResearchResultsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type DownloadResearchResultsError = DownloadResearchResultsErrors[keyof DownloadResearchResultsErrors];
+
+export type DownloadResearchResultsResponses = {
+    /**
+     * Successful Response
+     */
+    200: Blob | File;
+};
+
+export type DownloadResearchResultsResponse = DownloadResearchResultsResponses[keyof DownloadResearchResultsResponses];
 
 export type ListResearchRunsData = {
     body?: never;
@@ -3828,6 +4766,43 @@ export type CreateResearchRunResponses = {
 };
 
 export type CreateResearchRunResponse = CreateResearchRunResponses[keyof CreateResearchRunResponses];
+
+export type PreflightResearchRunData = {
+    body: ResearchRunCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/research-runs/preflight';
+};
+
+export type PreflightResearchRunErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PreflightResearchRunError = PreflightResearchRunErrors[keyof PreflightResearchRunErrors];
+
+export type PreflightResearchRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResearchPreflightPublic;
+};
+
+export type PreflightResearchRunResponse = PreflightResearchRunResponses[keyof PreflightResearchRunResponses];
 
 export type ReadResearchRunData = {
     body?: never;
@@ -4200,6 +5175,48 @@ export type ResumeResearchRunResponses = {
 };
 
 export type ResumeResearchRunResponse = ResumeResearchRunResponses[keyof ResumeResearchRunResponses];
+
+export type ReadResearchUsageData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/research-runs/{run_id}/usage';
+};
+
+export type ReadResearchUsageErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadResearchUsageError = ReadResearchUsageErrors[keyof ReadResearchUsageErrors];
+
+export type ReadResearchUsageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResearchUsagePublic;
+};
+
+export type ReadResearchUsageResponse = ReadResearchUsageResponses[keyof ReadResearchUsageResponses];
 
 export type ListRunsData = {
     body?: never;
@@ -4648,6 +5665,53 @@ export type ListStrategiesResponses = {
 };
 
 export type ListStrategiesResponse = ListStrategiesResponses[keyof ListStrategiesResponses];
+
+export type CreateStrategyVersionData = {
+    body: StrategyCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/strategy-versions';
+};
+
+export type CreateStrategyVersionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateStrategyVersionError = CreateStrategyVersionErrors[keyof CreateStrategyVersionErrors];
+
+export type CreateStrategyVersionResponses = {
+    /**
+     * Exact idempotent replay
+     */
+    200: StrategyDetail;
+    /**
+     * Successful Response
+     */
+    201: StrategyDetail;
+};
+
+export type CreateStrategyVersionResponse = CreateStrategyVersionResponses[keyof CreateStrategyVersionResponses];
 
 export type ReadStrategyData = {
     body?: never;

@@ -1,9 +1,10 @@
 """Owner-scoped M3 research control and immutable provenance queries."""
 
+from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Header, Query, Request
+from fastapi import APIRouter, Header, Query, Request, Response
 from sqlalchemy import func, select
 
 from backend.app.api.deps import CurrentUser, SessionDep
@@ -33,6 +34,24 @@ from backend.app.research_services import (
     request_pause,
     resume_research_run,
     submit_research_run,
+)
+from backend.app.research_view_schemas import (
+    ResearchCapabilities,
+    ResearchPreflightPublic,
+    ResearchUsagePublic,
+    ResultCompareCreate,
+    ResultComparePublic,
+    ResultQueryPublic,
+    ResultSection,
+)
+from backend.app.research_views import (
+    compare_results,
+    load_owned_result,
+    preflight_research,
+    render_result_report,
+    research_capability_metadata,
+    research_usage,
+    result_view,
 )
 from backend.app.schemas import AttemptPublic, Page
 from backend.app.services import DomainError, request_cancel
@@ -161,7 +180,10 @@ def _page(session, model, run_id, owner_id, offset, limit):
         "data": session.scalars(
             select(model)
             .where(clause)
-            .order_by(model.created_at, model.id)
+            .order_by(
+                model.sequence if model is ResearchCheckpoint else model.created_at,
+                model.id,
+            )
             .offset(offset)
             .limit(limit)
         ).all(),
@@ -276,19 +298,141 @@ def checkpoint(checkpoint_id: UUID, user: CurrentUser, session: SessionDep):
     return _owned(session, ResearchCheckpoint, checkpoint_id, user.id)
 
 
-@router.get("/research-capabilities", operation_id="research_capabilities")
-def research_capabilities(user: CurrentUser):
-    from packages.tradegrad_adapter.environment import environment_digest
+@router.get(
+    "/research-capabilities",
+    response_model=ResearchCapabilities,
+    operation_id="research_capabilities",
+)
+def research_capabilities(user: CurrentUser, request: Request):
+    return research_capability_metadata(request.app.state.settings)
 
-    return {
-        "environment_digest": environment_digest(),
-        "schema_version": "tradegrad.run.v1",
-        "prompt_versions": ["source_prompts.v1"],
-        "model_providers": ["fixture"],
-        "models": ["deterministic-fixture-v1"],
-        "execution_modes": ["optimization"],
-        "seed_only_research": {"optimizer": {"max_iterations": 0}},
-        "live_model_calls": False,
-        "holdout_execution": False,
-        "checkpoint_resume": True,
-    }
+
+@router.post(
+    "/research-runs/preflight",
+    response_model=ResearchPreflightPublic,
+    operation_id="preflight_research_run",
+)
+def preflight_research_run(
+    body: ResearchRunCreate, user: CurrentUser, session: SessionDep, request: Request
+):
+    return preflight_research(session, user.id, body, request.app.state.settings)
+
+
+@router.get(
+    "/research-evaluations/{evaluation_id}/results",
+    response_model=ResultQueryPublic,
+    operation_id="read_research_results",
+)
+def read_research_results(
+    evaluation_id: UUID,
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+    sections: Annotated[list[ResultSection] | None, Query(max_length=8)] = None,
+    start: date | None = None,
+    end: date | None = None,
+    listing_id: UUID | None = None,
+    max_points: int = Query(1000, ge=4, le=5000),
+    offset: int = Query(0, ge=0, le=100000),
+    limit: int = Query(100, ge=1, le=500),
+):
+    result = load_owned_result(
+        session, evaluation_id, user.id, request.app.state.settings
+    )
+    return result_view(
+        result,
+        sections=sections,
+        start=start,
+        end=end,
+        listing_id=listing_id,
+        max_points=max_points,
+        offset=offset,
+        limit=limit,
+    )
+
+
+@router.post(
+    "/research-evaluations/compare",
+    response_model=ResultComparePublic,
+    operation_id="compare_research_results",
+)
+def compare_research_results(
+    body: ResultCompareCreate, user: CurrentUser, session: SessionDep, request: Request
+):
+    results = [
+        load_owned_result(session, identifier, user.id, request.app.state.settings)
+        for identifier in body.evaluation_ids
+    ]
+    return compare_results(results)
+
+
+_DOWNLOAD_HEADERS = {
+    "Cache-Control": "private, no-store",
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy": "sandbox; default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+}
+
+
+@router.get(
+    "/research-evaluations/{evaluation_id}/results/download",
+    response_class=Response,
+    operation_id="download_research_results",
+    responses={
+        200: {
+            "content": {
+                "application/json": {"schema": {"type": "string", "format": "binary"}}
+            }
+        }
+    },
+)
+def download_research_results(
+    evaluation_id: UUID, user: CurrentUser, session: SessionDep, request: Request
+):
+    result = load_owned_result(
+        session, evaluation_id, user.id, request.app.state.settings
+    )
+    return Response(
+        result.content,
+        media_type="application/json",
+        headers={
+            **_DOWNLOAD_HEADERS,
+            "Content-Disposition": f'attachment; filename="evaluation-{evaluation_id}.json"',
+        },
+    )
+
+
+@router.get(
+    "/research-evaluations/{evaluation_id}/report",
+    response_class=Response,
+    operation_id="download_research_report",
+    responses={
+        200: {
+            "content": {"text/html": {"schema": {"type": "string", "format": "binary"}}}
+        }
+    },
+)
+def download_research_report(
+    evaluation_id: UUID, user: CurrentUser, session: SessionDep, request: Request
+):
+    result = load_owned_result(
+        session, evaluation_id, user.id, request.app.state.settings
+    )
+    return Response(
+        render_result_report(result),
+        media_type="text/html",
+        headers={
+            **_DOWNLOAD_HEADERS,
+            "Content-Disposition": f'attachment; filename="evaluation-{evaluation_id}.html"',
+        },
+    )
+
+
+@router.get(
+    "/research-runs/{run_id}/usage",
+    response_model=ResearchUsagePublic,
+    operation_id="read_research_usage",
+)
+def read_research_usage(run_id: UUID, user: CurrentUser, session: SessionDep):
+    return research_usage(session, run_id, user.id)

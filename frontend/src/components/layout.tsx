@@ -12,6 +12,7 @@ import {
   Globe,
   Layers,
   Download,
+  Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { currentUserOptions, queryClient } from "@/lib/api";
@@ -25,6 +26,7 @@ const navigation = [
   { to: "/datasets", label: "Datasets", icon: Database },
   { to: "/strategies", label: "Strategy library", icon: Braces },
   { to: "/runs", label: "Experiments", icon: FlaskConical },
+  { to: "/settings", label: "Settings & status", icon: Settings2 },
 ] as const;
 
 export function AppLayout() {

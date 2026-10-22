@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "source": "tests/baseline/fixtures/CN/INDEX.csv",
+  "source_sha256": "08e0fa4fd3d4ba376435440d1b6cb34eb9b02a88201d966fa186bfd156d6a6e9",
+  "filter": "exchange_calendars 4.13.2 XSHG sessions [2024-01-02,2024-04-27)",
+  "rows": 76,
+  "sha256": "2ad75d287f03a5186201c1d9a1d029dd15940c8d78649c8111ae38d1a2046a1b",
+  "purpose": "Frozen real-application UI/queue/engine fixture; not observed market data or provider evidence"
+}

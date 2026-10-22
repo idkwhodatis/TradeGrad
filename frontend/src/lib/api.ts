@@ -9,8 +9,6 @@ export function describeError(error: unknown): {
   message: string;
   correlationId?: string;
 } {
-  const unreachableMessage =
-    "The service could not be reached. Check your connection and try again.";
   if (error && typeof error === "object") {
     const value = error as {
       message?: unknown;
@@ -18,36 +16,24 @@ export function describeError(error: unknown): {
       code?: unknown;
       name?: unknown;
     };
-    const correlationId =
-      typeof value.correlation_id === "string"
-        ? value.correlation_id
-        : undefined;
+    if (typeof value.message === "string")
+      return {
+        message: value.message,
+        correlationId:
+          typeof value.correlation_id === "string"
+            ? value.correlation_id
+            : undefined,
+      };
     if (value.name === "AbortError" || value.name === "TimeoutError")
       return {
         message:
           "The request timed out. Retry to check the same submission; a timeout does not mean the operation was not accepted.",
-        correlationId,
-      };
-    // Fetch uses TypeError for network failures, but unrelated programming
-    // errors and structured backend errors must retain their own messages.
-    if (
-      value.name === "TypeError" &&
-      value.code === undefined &&
-      typeof value.message === "string" &&
-      [
-        "Failed to fetch",
-        "NetworkError when attempting to fetch resource.",
-        "Load failed",
-      ].includes(value.message)
-    )
-      return { message: unreachableMessage, correlationId };
-    if (typeof value.message === "string")
-      return {
-        message: value.message,
-        correlationId,
       };
   }
-  return { message: unreachableMessage };
+  return {
+    message:
+      "The service could not be reached. Check your connection and try again.",
+  };
 }
 
 // A single transport covers ordinary requests, downloads, and authenticated SSE.
@@ -107,13 +93,18 @@ export const strategyOptions = (id: string) =>
     queryFn: async ({ signal }) =>
       (await sdk.readStrategy({ path: { strategy_id: id }, signal })).data,
   });
-export const runsOptions = () =>
+export const runsOptions = (offset = 0, limit = 100) =>
   queryOptions({
-    queryKey: ["runs"],
+    queryKey: ["runs", offset, limit],
     queryFn: async ({ signal }) =>
-      (await sdk.listRuns({ query: { limit: 100 }, signal })).data,
+      (await sdk.listRuns({ query: { offset, limit }, signal })).data,
     refetchInterval: 4000,
   });
+export const statusOptions = queryOptions({
+  queryKey: ["workspace-status"],
+  queryFn: async ({ signal }) => (await sdk.readStatus({ signal })).data,
+  refetchInterval: 10_000,
+});
 export const runOptions = (id: string) =>
   queryOptions({
     queryKey: ["run", id],

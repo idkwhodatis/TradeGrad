@@ -38,6 +38,13 @@ from packages.marketdata.contracts import (
 )
 
 
+def is_synthetic_result(result: ProviderResult) -> bool:
+    """Preserve an explicit upload declaration; never relabel it market evidence."""
+    return any(p.evidence == "fixture" for p in result.provenance) or (
+        result.price_semantics.native_mode == "user_declared_synthetic"
+    )
+
+
 def _save_checkpoint(settings, owner_id, import_id, result):
     content = canonical(result.model_dump(mode="json"))
     sha = hashlib.sha256(content).hexdigest()
@@ -505,7 +512,7 @@ def _publish(factory, item_id, generation, token, settings, listings, results):
         manifest.update(
             schema_version=2,
             market=config["market"],
-            is_synthetic=any(p.evidence == "fixture" for p in combined.provenance),
+            is_synthetic=is_synthetic_result(combined),
             listings=[x.model_dump(mode="json") for x in listings],
             coverage=[c.model_dump(mode="json") for c in combined.coverage],
             provenance=[p.model_dump(mode="json") for p in combined.provenance],

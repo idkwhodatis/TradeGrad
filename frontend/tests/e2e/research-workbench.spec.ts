@@ -45,7 +45,9 @@ test("login rejects incorrect credentials, then succeeds and survives reload", a
   await expect(
     page.getByRole("heading", { name: "Research overview" }),
   ).toBeVisible();
-  await expect(page.getByText("Seed-only · no model calls")).toBeVisible();
+  await expect(
+    page.getByText("Fixture optimization · no paid model calls"),
+  ).toBeVisible();
 });
 
 test("repeated submit creates one run; durable events, result and artifact survive reload", async ({
@@ -58,7 +60,9 @@ test("repeated submit creates one run; durable events, result and artifact survi
     headers: authorization(auth),
   });
   const beforeCount = (await before.json()).count as number;
-  await page.getByRole("link", { name: "New experiment", exact: true }).click();
+  await page
+    .getByRole("link", { name: "New seed evaluation", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Start with a fixed seed" }),
   ).toBeVisible();
@@ -389,19 +393,23 @@ test("real network interruption exposes an error and retry recovers", async ({
   await expect(viewSource).toBeVisible();
   await context.setOffline(true);
   await viewSource.click();
-  const sourceRegion = seedCard.getByRole("region", {
-    name: `${seedName} source`,
-    exact: true,
+  const sourcePanel = page.locator("section.panel").filter({
+    has: page.getByRole("button", { name: "Close source", exact: true }),
   });
-  await expect(sourceRegion.getByRole("alert")).toBeVisible({
+  await expect(sourcePanel.getByRole("alert")).toBeVisible({
     timeout: 30_000,
   });
   await context.setOffline(false);
-  await sourceRegion.getByRole("button", { name: "Close source" }).click();
+  await sourcePanel.getByRole("button", { name: "Close source" }).click();
   await viewSource.click();
   await expect(
-    sourceRegion.getByText("Read-only strategy source"),
+    sourcePanel.getByText("Read-only saved version", { exact: false }),
   ).toBeVisible();
+  const sourceRegion = sourcePanel.getByRole("region", {
+    name: `${seedName} source`,
+    exact: true,
+  });
+  await sourceRegion.getByText("Accessible source", { exact: true }).click();
   const preview = sourceRegion.locator("pre.preview");
   await expect(preview).toContainText("class TimeStrategy(Strategy):");
   // Verify the recovered response is the complete original source, not merely

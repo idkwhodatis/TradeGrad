@@ -22,6 +22,7 @@ import {
   watchSession,
 } from "@/lib/session";
 import "./styles.css";
+import { comparisonSearch } from "@/lib/navigation";
 
 function Root() {
   useEffect(() => {
@@ -197,6 +198,49 @@ const runRoute = createRoute({
     "RunDetailPage",
   ),
 });
+const experimentRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/experiments/new",
+  component: lazyRouteComponent(
+    () => import("@/features/new-experiment"),
+    "NewExperimentPage",
+  ),
+});
+const researchRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/research-runs/$runId",
+  component: lazyRouteComponent(
+    () => import("@/features/research-detail"),
+    "ResearchDetailPage",
+  ),
+});
+const backtestRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/backtests/$evaluationId",
+  component: lazyRouteComponent(
+    () => import("@/features/backtest-detail"),
+    "BacktestDetailPage",
+  ),
+});
+const compareRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/compare",
+  validateSearch: (search: Record<string, unknown>) => ({
+    evaluations: comparisonSearch(search.evaluations),
+  }),
+  component: lazyRouteComponent(
+    () => import("@/features/compare"),
+    "ComparePage",
+  ),
+});
+const settingsRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/settings",
+  component: lazyRouteComponent(
+    () => import("@/features/settings"),
+    "SettingsPage",
+  ),
+});
 const routeTree = rootRoute.addChildren([
   loginRoute,
   privateRoute.addChildren([
@@ -212,6 +256,11 @@ const routeTree = rootRoute.addChildren([
     runsRoute,
     newRunRoute,
     runRoute,
+    experimentRoute,
+    researchRoute,
+    backtestRoute,
+    compareRoute,
+    settingsRoute,
   ]),
 ]);
 const router = createRouter({

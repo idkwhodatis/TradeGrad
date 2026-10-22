@@ -1,0 +1,144 @@
+import { useQuery } from "@tanstack/react-query";
+import { ErrorState, Loading, PageHeader, Panel } from "@/components/common";
+import { currentUserOptions, statusOptions } from "@/lib/api";
+import { researchCapabilitiesOptions } from "@/lib/research-submit";
+import { label } from "@/lib/format";
+
+export function SettingsPage() {
+  const user = useQuery(currentUserOptions);
+  const status = useQuery(statusOptions);
+  const capabilities = useQuery(researchCapabilitiesOptions);
+  return (
+    <>
+      <PageHeader
+        title="Settings & runtime status"
+        subtitle="Observed service state and effective capabilities. No credentials are displayed or stored by this page."
+      />
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Panel title="Your workspace">
+          {user.isPending ? (
+            <Loading />
+          ) : user.error ? (
+            <ErrorState error={user.error} retry={() => void user.refetch()} />
+          ) : (
+            <dl className="details">
+              <div>
+                <dt>Signed in as</dt>
+                <dd>{user.data?.email}</dd>
+              </div>
+              <div>
+                <dt>Sharing</dt>
+                <dd>Owner-scoped private resources</dd>
+              </div>
+              <div>
+                <dt>Account and key management</dt>
+                <dd>
+                  Operator managed. This preview does not create accounts, keys,
+                  grants, or credentials.
+                </dd>
+              </div>
+            </dl>
+          )}
+        </Panel>
+        <Panel title="Observed service health">
+          {status.isPending ? (
+            <Loading />
+          ) : status.error ? (
+            <ErrorState
+              error={status.error}
+              retry={() => void status.refetch()}
+            />
+          ) : (
+            <dl className="details">
+              <div>
+                <dt>Database</dt>
+                <dd>{status.data?.database ? "Reachable" : "Unavailable"}</dd>
+              </div>
+              <div>
+                <dt>Your pending outbox deliveries</dt>
+                <dd>{status.data?.queue_pending ?? "Unknown"}</dd>
+              </div>
+              {Object.entries(status.data?.workers ?? {}).map(
+                ([role, state]) => (
+                  <div key={role}>
+                    <dt>{label(role)}</dt>
+                    <dd>{label(state)}</dd>
+                  </div>
+                ),
+              )}
+            </dl>
+          )}
+          <p className="text-xs muted mt-3">
+            A worker heartbeat is not proof of evaluator containment or
+            successful recovery. This page does not certify backups or restore
+            readiness.
+          </p>
+        </Panel>
+        <Panel title="Research capabilities">
+          {capabilities.isPending ? (
+            <Loading />
+          ) : capabilities.error ? (
+            <ErrorState
+              error={capabilities.error}
+              retry={() => void capabilities.refetch()}
+            />
+          ) : (
+            <dl className="details">
+              <div>
+                <dt>Models</dt>
+                <dd>{capabilities.data?.models?.join(", ")}</dd>
+              </div>
+              <div>
+                <dt>Paid model calls</dt>
+                <dd>
+                  {capabilities.data?.live_model_calls
+                    ? "Enabled"
+                    : "Disabled; deterministic fixture responses only"}
+                </dd>
+              </div>
+              <div>
+                <dt>Final holdout execution</dt>
+                <dd>
+                  {capabilities.data?.holdout_execution
+                    ? "Enabled"
+                    : "Not enabled in this milestone"}
+                </dd>
+              </div>
+              <div>
+                <dt>Environment definition SHA-256</dt>
+                <dd className="hash">
+                  {capabilities.data?.environment_digest}
+                </dd>
+              </div>
+              <div>
+                <dt>Evaluator image</dt>
+                <dd>
+                  The actual image ID is pinned and recorded separately on each
+                  configured run.
+                </dd>
+              </div>
+            </dl>
+          )}
+        </Panel>
+        <Panel title="Limits and release boundaries">
+          {capabilities.data && (
+            <dl className="details">
+              {Object.entries(capabilities.data.limits).map(([name, value]) => (
+                <div key={name}>
+                  <dt>{label(name)}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          <p className="text-xs muted mt-3">
+            Native engine output is untrusted strategy-process evidence, not an
+            independent ledger. Live-data capabilities carry their own
+            verification status. Runtime settings are read-only here; deployment
+            and restore rehearsal remain separate operator gates.
+          </p>
+        </Panel>
+      </div>
+    </>
+  );
+}

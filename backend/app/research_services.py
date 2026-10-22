@@ -151,37 +151,8 @@ def _reference(session, model, reference, owner_id):
     return item
 
 
-def submit_research_run(
-    session: Session,
-    owner_id: UUID,
-    body: RunConfig,
-    idempotency_key: str,
-    settings: Settings,
-):
-    if (
-        not idempotency_key
-        or len(idempotency_key) > 128
-        or any(ord(c) < 33 or ord(c) > 126 for c in idempotency_key)
-    ):
-        raise DomainError(
-            "invalid_idempotency_key",
-            "Idempotency-Key must be 1 to 128 printable ASCII characters without spaces",
-            422,
-        )
-    advisory_lock(session, f"submit:{owner_id}")
-    previous = session.scalar(
-        select(ResearchRun).where(
-            ResearchRun.owner_id == owner_id,
-            ResearchRun.idempotency_key == idempotency_key,
-        )
-    )
-    if previous:
-        if previous.request_sha256 != body.sha256:
-            raise DomainError(
-                "idempotency_conflict",
-                "This Idempotency-Key was already used with a different request",
-            )
-        return previous
+def validate_research_submission(session, owner_id, body, settings):
+    """Shared read-only preflight. No locks, quota reservation, or writes."""
     from packages.tradegrad_adapter.environment import environment_digest
 
     if body.execution_mode != "optimization":
@@ -268,15 +239,18 @@ def submit_research_run(
             settings.max_artifact_bytes,
         )
 
+    reports = []
     try:
         # Holdout is metadata-only: no holdout evaluation, metrics or selection in M3.
         for window in evaluation_windows(body):
-            preflight_dataset(
-                body,
-                window["split"],
-                dataset.manifest,
-                read_file,
-                evaluation_window=window,
+            reports.append(
+                preflight_dataset(
+                    body,
+                    window["split"],
+                    dataset.manifest,
+                    read_file,
+                    evaluation_window=window,
+                )
             )
     except DomainError:
         raise
@@ -284,6 +258,43 @@ def submit_research_run(
         raise DomainError(
             "research_preflight_failed", redact(str(error))[:2000], 422
         ) from None
+    return dataset, strategy, universe, reports
+
+
+def submit_research_run(
+    session: Session,
+    owner_id: UUID,
+    body: RunConfig,
+    idempotency_key: str,
+    settings: Settings,
+):
+    if (
+        not idempotency_key
+        or len(idempotency_key) > 128
+        or any(ord(c) < 33 or ord(c) > 126 for c in idempotency_key)
+    ):
+        raise DomainError(
+            "invalid_idempotency_key",
+            "Idempotency-Key must be 1 to 128 printable ASCII characters without spaces",
+            422,
+        )
+    advisory_lock(session, f"submit:{owner_id}")
+    previous = session.scalar(
+        select(ResearchRun).where(
+            ResearchRun.owner_id == owner_id,
+            ResearchRun.idempotency_key == idempotency_key,
+        )
+    )
+    if previous:
+        if previous.request_sha256 != body.sha256:
+            raise DomainError(
+                "idempotency_conflict",
+                "This Idempotency-Key was already used with a different request",
+            )
+        return previous
+    dataset, strategy, _universe, _reports = validate_research_submission(
+        session, owner_id, body, settings
+    )
     active = session.scalar(
         select(func.count())
         .select_from(ResearchRun)

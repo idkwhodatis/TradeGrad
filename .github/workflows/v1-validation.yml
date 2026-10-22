@@ -142,7 +142,7 @@ jobs:
           .venv-research/bin/python -m pip install --require-hashes -r runtimes/research/requirements.lock
           .venv-research/bin/python -m script.validate_runtime_split --runtime research
       - name: Validate immutable windows, actual TradeTGD and crash-recovery contracts
-        run: .venv-research/bin/python -m pytest tests/tradegrad --ignore=tests/tradegrad/test_results.py --ignore=tests/tradegrad/test_results_entrypoint.py --ignore=tests/tradegrad/test_window_engine_bridge.py -q --junitxml=m3-research-contracts-junit.xml
+        run: .venv-research/bin/python -m pytest tests/tradegrad --ignore=tests/tradegrad/test_results.py --ignore=tests/tradegrad/test_results_entrypoint.py --ignore=tests/tradegrad/test_window_engine_bridge.py --ignore=tests/tradegrad/test_result_views_native.py -q --junitxml=m3-research-contracts-junit.xml
       - name: Install pinned engine for SHA-pinned original-seed adapter bridges
         run: |
           python -m venv .venv
@@ -150,7 +150,7 @@ jobs:
       - name: Verify configured warm-up staging against actual original-seed engine
         env:
           TRADEGRAD_LOCAL_ENGINE_BRIDGE: "1"
-        run: .venv-research/bin/python -m pytest tests/tradegrad/test_window_engine_bridge.py -q --junitxml=m3-window-engine-junit.xml
+        run: .venv-research/bin/python -m pytest tests/tradegrad/test_window_engine_bridge.py tests/tradegrad/test_result_views_native.py -q --junitxml=m3-window-engine-junit.xml
       - name: Validate actual SDK schemas and deterministic normalization contracts
         env:
           TRADEGRAD_LOCAL_ENGINE_BRIDGE: "1"

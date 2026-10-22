@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, Navigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -34,6 +34,7 @@ import {
 import { datasetOptions } from "@/lib/data-api";
 import { snapshotLabel } from "@/lib/data-utils";
 import { useRunEvents } from "@/lib/use-run-events";
+import { researchConfig } from "@/lib/navigation";
 import {
   formatBytes,
   formatDate,
@@ -46,6 +47,9 @@ import {
 export function RunDetailPage() {
   const { runId } = useParams({ strict: false }) as { runId: string };
   const run = useQuery(runOptions(runId));
+  if (run.data && researchConfig(run.data.config)) {
+    return <Navigate to="/research-runs/$runId" params={{ runId }} replace />;
+  }
   return (
     <>
       <Link to="/runs" className="text-link mb-5">

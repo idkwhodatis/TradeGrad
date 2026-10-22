@@ -63,7 +63,10 @@ export async function inputs(
       item.source === "synthetic_fixture",
   );
   const strategy = strategies.find(
-    (item) => item.task === task && !item.name.startsWith("E2E "),
+    (item) =>
+      item.task === task &&
+      item.name === `Original ${task} seed` &&
+      item.parent_id === null,
   );
   if (!dataset || !strategy)
     throw new Error(

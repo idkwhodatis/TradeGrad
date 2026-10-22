@@ -34,4 +34,5 @@ export const terminalStatuses = new Set([
   "failed",
   "cancelled",
   "interrupted",
+  "paused",
 ]);

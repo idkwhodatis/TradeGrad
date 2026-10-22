@@ -6,6 +6,3 @@
 !runtimes/evaluator/Dockerfile
 !runtimes/evaluator/*.py
 !runtimes/evaluator/requirements.lock
-!packages/
-!packages/tradegrad_adapter/
-!packages/tradegrad_adapter/results.py

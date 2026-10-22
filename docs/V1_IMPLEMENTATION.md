@@ -43,6 +43,9 @@ application and browser acceptance remains pending. See [M3 evidence](M3_VALIDAT
 and the [separate research runtime](../runtimes/research/README.md). The user's
 2026-10-22 local-first instruction permits further locally verifiable preparation
 while retaining, rather than silently passing, unavailable integration gates.
-M4–M6 have not started. Live provider verification is separate from deterministic
+M4's available local gate passed 780 tests, including real native-result-to-query
+component checks and 184 frontend contracts. Its complete browser/queue/database
+acceptance remains deferred. See [M4 evidence](M4_VALIDATION.md). M5–M6 have not
+started. Live provider verification is separate from deterministic
 synthetic SDK-response fixtures. An absent or pending report means the relevant
 phase has not passed.

@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
@@ -26,6 +27,7 @@ import {
   terminalStatuses,
 } from "@/lib/format";
 import type { RunPublic } from "@/client/types.gen";
+import { runDetailRoute } from "@/lib/navigation";
 
 export function RunsTable({ runs }: { runs: RunPublic[] }) {
   if (!runs.length)
@@ -34,7 +36,7 @@ export function RunsTable({ runs }: { runs: RunPublic[] }) {
         <FlaskConical size={30} />
         <h3>Your first experiment starts here</h3>
         <p>
-          Choose a published snapshot and an unchanged seed.
+          Choose a published snapshot and an immutable strategy.
           <br />
           Every run keeps its own inputs, events, and artifacts.
         </p>
@@ -64,14 +66,17 @@ export function RunsTable({ runs }: { runs: RunPublic[] }) {
             <tr key={run.id}>
               <td>
                 <Link
-                  to="/runs/$runId"
+                  to={runDetailRoute(run.config)}
                   params={{ runId: run.id }}
                   className="cell-main"
                 >
                   {taskLabels[String(run.config.task)] || "Seed evaluation"}
                 </Link>
                 <span className="cell-sub">
-                  {shortId(run.id)} · Attempt generation {run.generation}
+                  {shortId(run.id)} · Attempt generation {run.generation} ·{" "}
+                  {run.config.schema_version === "tradegrad.run.v1"
+                    ? "Configured optimization"
+                    : "Legacy seed evaluation"}
                 </span>
               </td>
               <td>
@@ -82,7 +87,7 @@ export function RunsTable({ runs }: { runs: RunPublic[] }) {
               </td>
               <td>
                 <Link
-                  to="/runs/$runId"
+                  to={runDetailRoute(run.config)}
                   params={{ runId: run.id }}
                   aria-label={`Open experiment ${shortId(run.id)}`}
                   className="text-link"
@@ -129,15 +134,15 @@ export function OverviewPage() {
       icon: Database,
     },
     {
-      label: "Seed strategies",
+      label: "Strategy versions",
       value: strategies.data?.count ?? 0,
-      note: "Original code · unchanged",
+      note: "Immutable source and lineage",
       icon: Braces,
     },
     {
       label: "Completed in recent runs",
       value: recent.filter((run) => run.status === "succeeded").length,
-      note: "Fixed-seed evaluations",
+      note: "Persisted execution outcomes",
       icon: CheckCheck,
     },
   ];
@@ -147,29 +152,34 @@ export function OverviewPage() {
         title="Research overview"
         subtitle="A clear view of your data, experiments, and evidence."
       >
-        <Button asChild>
-          <Link to="/runs/new">
-            <Plus />
-            New experiment
-          </Link>
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button asChild variant="outline">
+            <Link to="/runs/new">New seed evaluation</Link>
+          </Button>
+          <Button asChild>
+            <Link to="/experiments/new">
+              <Plus />
+              New experiment
+            </Link>
+          </Button>
+        </div>
       </PageHeader>
       <section className="hero">
         <div>
           <div className="eyebrow">YOUR RESEARCH, TRACEABLE BY DESIGN</div>
           <h2>From a fixed seed to a reproducible result.</h2>
           <p>
-            Choose immutable data, run one of the four original strategies, and
-            follow every stage. Your inputs and results stay linked, even after
-            a reload.
+            Freeze your data, windows and execution rules. Follow upstream
+            TradeGrad candidate iterations and durable checkpoints, then inspect
+            native results without losing their evidence on reload.
           </p>
         </div>
         <div className="hero-tag">
           <FlaskConical size={25} />
           <strong className="block mt-3 text-sm font-medium">
-            M2 data workbench
+            Research preview
           </strong>
-          <span>Seed-only · no model calls</span>
+          <span>Fixture optimization · no paid model calls</span>
         </div>
       </section>
       <div className="stats">
@@ -198,16 +208,17 @@ export function OverviewPage() {
           <RunsTable runs={recent.slice(0, 6)} />
         </Panel>
         <div className="stack">
-          <Panel title="In this foundation">
+          <Panel title="Evidence boundaries">
             <div className="flex items-start gap-3">
               <div className="catalog-icon !mb-0 !h-9 !w-9 shrink-0">
                 <Sparkles size={17} />
               </div>
               <div>
-                <h3>Small scope. Real plumbing.</h3>
+                <h3>Persisted results, explicit limits.</h3>
                 <p className="mt-2 text-xs leading-6 muted">
-                  Authenticated runs, durable orchestration, isolated seed
-                  evaluation, and permission-checked artifacts.
+                  Native strategy and engine share a process. Validated native
+                  output is not an independent trusted ledger or a trading
+                  recommendation.
                 </p>
               </div>
             </div>
@@ -226,8 +237,10 @@ export function OverviewPage() {
               <div>
                 <h3 className="!text-xs">TradeGrad optimization</h3>
                 <p>
-                  Candidate evolution and optimizer checkpoints come later.
-                  Current resumes restart the fixed seed.
+                  Configured runs use the original optimizer and verified
+                  checkpoints. Only deterministic fixture models are enabled.
+                  Legacy seed evaluations remain separate and restart the fixed
+                  seed on retry.
                 </p>
               </div>
             </div>
@@ -238,19 +251,26 @@ export function OverviewPage() {
   );
 }
 export function RunsPage() {
-  const runs = useQuery(runsOptions());
+  const [offset, setOffset] = useState(0);
+  const limit = 25;
+  const runs = useQuery(runsOptions(offset, limit));
   return (
     <>
       <PageHeader
         title="Experiments"
         subtitle="Each evaluation has a fixed configuration and a durable history."
       >
-        <Button asChild>
-          <Link to="/runs/new">
-            <Plus />
-            New experiment
-          </Link>
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button asChild variant="outline">
+            <Link to="/runs/new">New seed evaluation</Link>
+          </Button>
+          <Button asChild>
+            <Link to="/experiments/new">
+              <Plus />
+              New experiment
+            </Link>
+          </Button>
+        </div>
       </PageHeader>
       {runs.isPending ? (
         <Loading />
@@ -258,15 +278,32 @@ export function RunsPage() {
         <ErrorState error={runs.error} retry={() => void runs.refetch()} />
       ) : (
         <Panel
-          title={`Recent experiments · ${runs.data?.count ?? 0} total`}
+          title={`Experiments · ${runs.data?.count ?? 0} total`}
           body={false}
         >
           <RunsTable runs={runs.data?.data || []} />
         </Panel>
       )}
       <p className="mt-4 text-xs muted">
-        Showing up to 100 recent experiments. All dates and event times are UTC.
+        Showing {runs.data?.data.length ?? 0} experiments from offset {offset}.
+        All dates and event times are UTC.
       </p>
+      <div className="flex gap-2 mt-3">
+        <Button
+          variant="outline"
+          disabled={offset === 0 || runs.isPending}
+          onClick={() => setOffset(Math.max(0, offset - limit))}
+        >
+          Previous experiments
+        </Button>
+        <Button
+          variant="outline"
+          disabled={runs.isPending || offset + limit >= (runs.data?.count ?? 0)}
+          onClick={() => setOffset(offset + limit)}
+        >
+          Next experiments
+        </Button>
+      </div>
     </>
   );
 }

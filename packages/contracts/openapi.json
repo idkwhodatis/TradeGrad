@@ -799,6 +799,33 @@
         "title": "CheckpointPublic",
         "type": "object"
       },
+      "ComparisonDifference": {
+        "additionalProperties": false,
+        "properties": {
+          "affects_comparability": {
+            "title": "Affects Comparability",
+            "type": "boolean"
+          },
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "$ref": "#/components/schemas/DifferenceValue"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "field",
+          "affects_comparability",
+          "values"
+        ],
+        "title": "ComparisonDifference",
+        "type": "object"
+      },
       "CoveragePublic": {
         "additionalProperties": false,
         "properties": {
@@ -931,6 +958,25 @@
           "end"
         ],
         "title": "DateWindow",
+        "type": "object"
+      },
+      "DifferenceValue": {
+        "additionalProperties": false,
+        "properties": {
+          "evaluation_id": {
+            "format": "uuid",
+            "title": "Evaluation Id",
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/JsonValue"
+          }
+        },
+        "required": [
+          "evaluation_id",
+          "value"
+        ],
+        "title": "DifferenceValue",
         "type": "object"
       },
       "ErrorResponse": {
@@ -1244,6 +1290,36 @@
           "finished_at"
         ],
         "title": "EvaluationPublic",
+        "type": "object"
+      },
+      "EvaluationWindow": {
+        "additionalProperties": false,
+        "properties": {
+          "end": {
+            "format": "date",
+            "title": "End",
+            "type": "string"
+          },
+          "split": {
+            "enum": [
+              "train",
+              "validation"
+            ],
+            "title": "Split",
+            "type": "string"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "split",
+          "start",
+          "end"
+        ],
+        "title": "EvaluationWindow",
         "type": "object"
       },
       "EventPublic": {
@@ -1715,6 +1791,7 @@
         "title": "ImportPublic",
         "type": "object"
       },
+      "JsonValue": {},
       "ListingPublic": {
         "additionalProperties": false,
         "properties": {
@@ -2955,6 +3032,43 @@
         "title": "PriceSemantics",
         "type": "object"
       },
+      "ProfileDefault": {
+        "additionalProperties": false,
+        "properties": {
+          "market_profile": {
+            "$ref": "#/components/schemas/MarketConfig"
+          },
+          "profile": {
+            "enum": [
+              "source_compat",
+              "corrected_explicit_config"
+            ],
+            "title": "Profile",
+            "type": "string"
+          },
+          "task": {
+            "enum": [
+              "cn_time",
+              "us_time",
+              "cn_cross",
+              "us_cross"
+            ],
+            "title": "Task",
+            "type": "string"
+          },
+          "warmup": {
+            "$ref": "#/components/schemas/WarmupConfig"
+          }
+        },
+        "required": [
+          "task",
+          "profile",
+          "market_profile",
+          "warmup"
+        ],
+        "title": "ProfileDefault",
+        "type": "object"
+      },
       "ProviderPublic": {
         "additionalProperties": false,
         "properties": {
@@ -3026,6 +3140,282 @@
           "runtime_mode"
         ],
         "title": "ProviderPublic",
+        "type": "object"
+      },
+      "ResearchCapabilities": {
+        "additionalProperties": false,
+        "properties": {
+          "checkpoint_resume": {
+            "const": true,
+            "default": true,
+            "title": "Checkpoint Resume",
+            "type": "boolean"
+          },
+          "compare_max_evaluations": {
+            "const": 4,
+            "default": 4,
+            "title": "Compare Max Evaluations",
+            "type": "integer"
+          },
+          "defaults": {
+            "$ref": "#/components/schemas/ResearchDefaults"
+          },
+          "environment_digest": {
+            "title": "Environment Digest",
+            "type": "string"
+          },
+          "execution_modes": {
+            "default": [
+              "optimization"
+            ],
+            "items": {
+              "const": "optimization",
+              "type": "string"
+            },
+            "title": "Execution Modes",
+            "type": "array"
+          },
+          "holdout_execution": {
+            "const": false,
+            "default": false,
+            "title": "Holdout Execution",
+            "type": "boolean"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/ResearchLimits"
+          },
+          "live_model_calls": {
+            "const": false,
+            "default": false,
+            "title": "Live Model Calls",
+            "type": "boolean"
+          },
+          "model_providers": {
+            "default": [
+              "fixture"
+            ],
+            "items": {
+              "const": "fixture",
+              "type": "string"
+            },
+            "title": "Model Providers",
+            "type": "array"
+          },
+          "models": {
+            "default": [
+              "deterministic-fixture-v1"
+            ],
+            "items": {
+              "const": "deterministic-fixture-v1",
+              "type": "string"
+            },
+            "title": "Models",
+            "type": "array"
+          },
+          "portable_execution": {
+            "const": false,
+            "default": false,
+            "title": "Portable Execution",
+            "type": "boolean"
+          },
+          "preflight": {
+            "const": true,
+            "default": true,
+            "title": "Preflight",
+            "type": "boolean"
+          },
+          "profile_defaults": {
+            "items": {
+              "$ref": "#/components/schemas/ProfileDefault"
+            },
+            "title": "Profile Defaults",
+            "type": "array"
+          },
+          "profiles": {
+            "default": [
+              "source_compat",
+              "corrected_explicit_config"
+            ],
+            "items": {
+              "enum": [
+                "source_compat",
+                "corrected_explicit_config"
+              ],
+              "type": "string"
+            },
+            "title": "Profiles",
+            "type": "array"
+          },
+          "prompt_versions": {
+            "default": [
+              "source_prompts.v1"
+            ],
+            "items": {
+              "const": "source_prompts.v1",
+              "type": "string"
+            },
+            "title": "Prompt Versions",
+            "type": "array"
+          },
+          "report_download": {
+            "const": true,
+            "default": true,
+            "title": "Report Download",
+            "type": "boolean"
+          },
+          "result_query": {
+            "const": true,
+            "default": true,
+            "title": "Result Query",
+            "type": "boolean"
+          },
+          "sample_methods": {
+            "default": [
+              "power_law",
+              "uniform",
+              "top_k"
+            ],
+            "items": {
+              "enum": [
+                "power_law",
+                "uniform",
+                "top_k"
+              ],
+              "type": "string"
+            },
+            "title": "Sample Methods",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "tradegrad.run.v1",
+            "default": "tradegrad.run.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "seed_only_research": {
+            "$ref": "#/components/schemas/SeedOnlyResearch"
+          },
+          "tasks": {
+            "default": [
+              "cn_time",
+              "us_time",
+              "cn_cross",
+              "us_cross"
+            ],
+            "items": {
+              "enum": [
+                "cn_time",
+                "us_time",
+                "cn_cross",
+                "us_cross"
+              ],
+              "type": "string"
+            },
+            "title": "Tasks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "environment_digest",
+          "profile_defaults",
+          "limits"
+        ],
+        "title": "ResearchCapabilities",
+        "type": "object"
+      },
+      "ResearchDefaults": {
+        "additionalProperties": false,
+        "properties": {
+          "budgets": {
+            "$ref": "#/components/schemas/BudgetConfig"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelConfig"
+          },
+          "objective": {
+            "$ref": "#/components/schemas/ObjectiveConfig"
+          },
+          "optimizer": {
+            "$ref": "#/components/schemas/OptimizerConfig"
+          }
+        },
+        "title": "ResearchDefaults",
+        "type": "object"
+      },
+      "ResearchLimits": {
+        "additionalProperties": false,
+        "properties": {
+          "max_active_imports_per_user": {
+            "title": "Max Active Imports Per User",
+            "type": "integer"
+          },
+          "max_active_runs_per_user": {
+            "title": "Max Active Runs Per User",
+            "type": "integer"
+          },
+          "max_artifact_bytes": {
+            "title": "Max Artifact Bytes",
+            "type": "integer"
+          },
+          "max_upload_bytes": {
+            "title": "Max Upload Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "max_active_runs_per_user",
+          "max_active_imports_per_user",
+          "max_upload_bytes",
+          "max_artifact_bytes"
+        ],
+        "title": "ResearchLimits",
+        "type": "object"
+      },
+      "ResearchPreflightPublic": {
+        "additionalProperties": false,
+        "properties": {
+          "config_sha256": {
+            "title": "Config Sha256",
+            "type": "string"
+          },
+          "evaluation_windows": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationWindow"
+            },
+            "title": "Evaluation Windows",
+            "type": "array"
+          },
+          "holdout_execution": {
+            "const": false,
+            "default": false,
+            "title": "Holdout Execution",
+            "type": "boolean"
+          },
+          "is_synthetic": {
+            "title": "Is Synthetic",
+            "type": "boolean"
+          },
+          "valid": {
+            "const": true,
+            "default": true,
+            "title": "Valid",
+            "type": "boolean"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "config_sha256",
+          "evaluation_windows",
+          "is_synthetic",
+          "warnings"
+        ],
+        "title": "ResearchPreflightPublic",
         "type": "object"
       },
       "ResearchRunCreate": {
@@ -3441,6 +3831,94 @@
         "title": "ResearchRunPublic",
         "type": "object"
       },
+      "ResearchUsagePublic": {
+        "additionalProperties": false,
+        "properties": {
+          "adopted_calls": {
+            "title": "Adopted Calls",
+            "type": "integer"
+          },
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "charged_tokens": {
+            "title": "Charged Tokens",
+            "type": "integer"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "null"
+          },
+          "cost_status": {
+            "const": "unavailable",
+            "default": "unavailable",
+            "title": "Cost Status",
+            "type": "string"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "known_usage_calls": {
+            "title": "Known Usage Calls",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "scope": {
+            "const": "persisted_logical_model_calls",
+            "default": "persisted_logical_model_calls",
+            "title": "Scope",
+            "type": "string"
+          },
+          "unknown_usage_calls": {
+            "title": "Unknown Usage Calls",
+            "type": "integer"
+          },
+          "usage_sources": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Usage Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "run_id",
+          "calls",
+          "adopted_calls",
+          "input_tokens",
+          "output_tokens",
+          "charged_tokens",
+          "known_usage_calls",
+          "unknown_usage_calls",
+          "usage_sources"
+        ],
+        "title": "ResearchUsagePublic",
+        "type": "object"
+      },
       "ResolveCreate": {
         "additionalProperties": false,
         "properties": {
@@ -3477,6 +3955,417 @@
           "market"
         ],
         "title": "ResolveCreate",
+        "type": "object"
+      },
+      "ResultBenchmark": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "series": {
+            "title": "Series",
+            "type": "null"
+          },
+          "status": {
+            "const": "not_configured",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "reason"
+        ],
+        "title": "ResultBenchmark",
+        "type": "object"
+      },
+      "ResultCapabilities": {
+        "additionalProperties": false,
+        "properties": {
+          "benchmark": {
+            "const": false,
+            "title": "Benchmark",
+            "type": "boolean"
+          },
+          "closed_trades": {
+            "title": "Closed Trades",
+            "type": "boolean"
+          },
+          "drawdown": {
+            "title": "Drawdown",
+            "type": "boolean"
+          },
+          "equity": {
+            "title": "Equity",
+            "type": "boolean"
+          },
+          "fee_component_breakdown": {
+            "const": false,
+            "title": "Fee Component Breakdown",
+            "type": "boolean"
+          },
+          "fees_aggregate": {
+            "title": "Fees Aggregate",
+            "type": "boolean"
+          },
+          "fills": {
+            "title": "Fills",
+            "type": "boolean"
+          },
+          "internal_decisions": {
+            "const": false,
+            "title": "Internal Decisions",
+            "type": "boolean"
+          },
+          "observable_order_trace": {
+            "title": "Observable Order Trace",
+            "type": "boolean"
+          },
+          "orders": {
+            "title": "Orders",
+            "type": "boolean"
+          },
+          "positions": {
+            "title": "Positions",
+            "type": "boolean"
+          },
+          "trusted_ledger": {
+            "const": false,
+            "title": "Trusted Ledger",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "equity",
+          "drawdown",
+          "positions",
+          "orders",
+          "fills",
+          "closed_trades",
+          "fees_aggregate",
+          "fee_component_breakdown",
+          "benchmark",
+          "observable_order_trace",
+          "internal_decisions",
+          "trusted_ledger"
+        ],
+        "title": "ResultCapabilities",
+        "type": "object"
+      },
+      "ResultColumn": {
+        "additionalProperties": false,
+        "properties": {
+          "dtype": {
+            "title": "Dtype",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "dtype",
+          "unit"
+        ],
+        "title": "ResultColumn",
+        "type": "object"
+      },
+      "ResultCompareCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "evaluation_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 2,
+            "title": "Evaluation Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "evaluation_ids"
+        ],
+        "title": "ResultCompareCreate",
+        "type": "object"
+      },
+      "ResultComparePublic": {
+        "additionalProperties": false,
+        "properties": {
+          "comparable": {
+            "title": "Comparable",
+            "type": "boolean"
+          },
+          "differences": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonDifference"
+            },
+            "title": "Differences",
+            "type": "array"
+          },
+          "evaluations": {
+            "items": {
+              "$ref": "#/components/schemas/ResultComparisonItem"
+            },
+            "title": "Evaluations",
+            "type": "array"
+          },
+          "ranking": {
+            "title": "Ranking",
+            "type": "null"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "comparable",
+          "differences",
+          "evaluations",
+          "warnings"
+        ],
+        "title": "ResultComparePublic",
+        "type": "object"
+      },
+      "ResultComparisonItem": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_sha256": {
+            "title": "Artifact Sha256",
+            "type": "string"
+          },
+          "candidate_key": {
+            "title": "Candidate Key",
+            "type": "string"
+          },
+          "code_sha256": {
+            "title": "Code Sha256",
+            "type": "string"
+          },
+          "config": {
+            "$ref": "#/components/schemas/RunConfig"
+          },
+          "config_sha256": {
+            "title": "Config Sha256",
+            "type": "string"
+          },
+          "currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "evaluation_id": {
+            "format": "uuid",
+            "title": "Evaluation Id",
+            "type": "string"
+          },
+          "is_synthetic": {
+            "title": "Is Synthetic",
+            "type": "boolean"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/ResultMetric"
+            },
+            "title": "Metrics",
+            "type": "array"
+          },
+          "price_definition": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Price Definition",
+            "type": "object"
+          },
+          "result_trust": {
+            "const": "native_strategy_and_engine_share_process",
+            "title": "Result Trust",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "split": {
+            "enum": [
+              "train",
+              "validation"
+            ],
+            "title": "Split",
+            "type": "string"
+          },
+          "status": {
+            "const": "succeeded",
+            "default": "succeeded",
+            "title": "Status",
+            "type": "string"
+          },
+          "window": {
+            "$ref": "#/components/schemas/EvaluationWindow"
+          }
+        },
+        "required": [
+          "evaluation_id",
+          "run_id",
+          "candidate_key",
+          "code_sha256",
+          "config_sha256",
+          "artifact_sha256",
+          "split",
+          "window",
+          "config",
+          "currency",
+          "price_definition",
+          "result_trust",
+          "is_synthetic",
+          "metrics"
+        ],
+        "title": "ResultComparisonItem",
+        "type": "object"
+      },
+      "ResultFees": {
+        "additionalProperties": false,
+        "properties": {
+          "breakdown_status": {
+            "const": "unsupported_by_execution_report",
+            "title": "Breakdown Status",
+            "type": "string"
+          },
+          "calculation_basis": {
+            "title": "Calculation Basis",
+            "type": "string"
+          },
+          "commission_stamp_transfer_breakdown": {
+            "title": "Commission Stamp Transfer Breakdown",
+            "type": "null"
+          },
+          "definition_version": {
+            "title": "Definition Version",
+            "type": "string"
+          },
+          "native_total_commission": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Native Total Commission"
+          },
+          "slippage_cost": {
+            "title": "Slippage Cost",
+            "type": "null"
+          },
+          "slippage_cost_status": {
+            "const": "not_separately_reported_by_native_engine",
+            "title": "Slippage Cost Status",
+            "type": "string"
+          },
+          "total_from_fills": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Total From Fills"
+          },
+          "unit": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unit",
+          "definition_version",
+          "total_from_fills",
+          "native_total_commission",
+          "calculation_basis",
+          "breakdown_status",
+          "slippage_cost_status"
+        ],
+        "title": "ResultFees",
+        "type": "object"
+      },
+      "ResultMetric": {
+        "additionalProperties": false,
+        "properties": {
+          "calculation_basis": {
+            "title": "Calculation Basis",
+            "type": "string"
+          },
+          "definition_version": {
+            "title": "Definition Version",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "name",
+          "value",
+          "unit",
+          "definition_version",
+          "calculation_basis",
+          "unavailable_reason"
+        ],
+        "title": "ResultMetric",
         "type": "object"
       },
       "ResultPublic": {
@@ -3540,6 +4429,281 @@
         "title": "ResultPublic",
         "type": "object"
       },
+      "ResultQueryPublic": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_sha256": {
+            "title": "Artifact Sha256",
+            "type": "string"
+          },
+          "benchmark": {
+            "$ref": "#/components/schemas/ResultBenchmark"
+          },
+          "candidate_key": {
+            "title": "Candidate Key",
+            "type": "string"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/ResultCapabilities"
+          },
+          "code_sha256": {
+            "title": "Code Sha256",
+            "type": "string"
+          },
+          "config": {
+            "$ref": "#/components/schemas/RunConfig"
+          },
+          "config_sha256": {
+            "title": "Config Sha256",
+            "type": "string"
+          },
+          "currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "evaluation_id": {
+            "format": "uuid",
+            "title": "Evaluation Id",
+            "type": "string"
+          },
+          "fees": {
+            "$ref": "#/components/schemas/ResultFees"
+          },
+          "is_synthetic": {
+            "title": "Is Synthetic",
+            "type": "boolean"
+          },
+          "listing_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Id"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/ResultMetric"
+            },
+            "title": "Metrics",
+            "type": "array"
+          },
+          "price_definition": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Price Definition",
+            "type": "object"
+          },
+          "result_trust": {
+            "const": "native_strategy_and_engine_share_process",
+            "title": "Result Trust",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "tradegrad.result-query.v1",
+            "default": "tradegrad.result-query.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "split": {
+            "enum": [
+              "train",
+              "validation"
+            ],
+            "title": "Split",
+            "type": "string"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "status": {
+            "const": "succeeded",
+            "default": "succeeded",
+            "title": "Status",
+            "type": "string"
+          },
+          "tables": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ResultTable"
+            },
+            "propertyNames": {
+              "enum": [
+                "equity",
+                "drawdown",
+                "cash",
+                "margin",
+                "positions",
+                "orders",
+                "fills",
+                "closed_trades"
+              ]
+            },
+            "title": "Tables",
+            "type": "object"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "window": {
+            "$ref": "#/components/schemas/EvaluationWindow"
+          }
+        },
+        "required": [
+          "evaluation_id",
+          "run_id",
+          "candidate_key",
+          "code_sha256",
+          "config_sha256",
+          "artifact_sha256",
+          "split",
+          "window",
+          "config",
+          "currency",
+          "price_definition",
+          "result_trust",
+          "is_synthetic",
+          "metrics",
+          "tables",
+          "capabilities",
+          "fees",
+          "benchmark",
+          "warnings"
+        ],
+        "title": "ResultQueryPublic",
+        "type": "object"
+      },
+      "ResultTable": {
+        "additionalProperties": false,
+        "properties": {
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/ResultColumn"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "downsampled": {
+            "title": "Downsampled",
+            "type": "boolean"
+          },
+          "filter_status": {
+            "enum": [
+              "not_requested",
+              "applied",
+              "portfolio_series_unfiltered_by_listing"
+            ],
+            "title": "Filter Status",
+            "type": "string"
+          },
+          "filtered_rows": {
+            "title": "Filtered Rows",
+            "type": "integer"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "returned_rows": {
+            "title": "Returned Rows",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "sampling": {
+            "enum": [
+              "none",
+              "min_max"
+            ],
+            "title": "Sampling",
+            "type": "string"
+          },
+          "total_rows": {
+            "title": "Total Rows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "columns",
+          "rows",
+          "total_rows",
+          "filtered_rows",
+          "returned_rows",
+          "offset",
+          "limit",
+          "downsampled",
+          "sampling",
+          "filter_status"
+        ],
+        "title": "ResultTable",
+        "type": "object"
+      },
       "RiskConfig": {
         "additionalProperties": false,
         "properties": {
@@ -3561,6 +4725,102 @@
           "enable_short_sell"
         ],
         "title": "RiskConfig",
+        "type": "object"
+      },
+      "RunConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "benchmark": {
+            "title": "Benchmark",
+            "type": "null"
+          },
+          "budgets": {
+            "$ref": "#/components/schemas/BudgetConfig"
+          },
+          "dataset": {
+            "$ref": "#/components/schemas/VersionRef"
+          },
+          "environment_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Environment Digest",
+            "type": "string"
+          },
+          "execution_mode": {
+            "default": "seed_evaluation",
+            "enum": [
+              "seed_evaluation",
+              "optimization"
+            ],
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "market_profile": {
+            "$ref": "#/components/schemas/MarketConfig"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelConfig"
+          },
+          "objective": {
+            "$ref": "#/components/schemas/ObjectiveConfig"
+          },
+          "optimizer": {
+            "$ref": "#/components/schemas/OptimizerConfig"
+          },
+          "profile": {
+            "default": "corrected_explicit_config",
+            "enum": [
+              "source_compat",
+              "corrected_explicit_config"
+            ],
+            "title": "Profile",
+            "type": "string"
+          },
+          "prompt_version": {
+            "const": "source_prompts.v1",
+            "default": "source_prompts.v1",
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "tradegrad.run.v1",
+            "default": "tradegrad.run.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "seed_strategy": {
+            "$ref": "#/components/schemas/VersionRef"
+          },
+          "task": {
+            "enum": [
+              "cn_time",
+              "us_time",
+              "cn_cross",
+              "us_cross"
+            ],
+            "title": "Task",
+            "type": "string"
+          },
+          "universe": {
+            "$ref": "#/components/schemas/VersionRef"
+          },
+          "warmup": {
+            "$ref": "#/components/schemas/WarmupConfig"
+          },
+          "windows": {
+            "$ref": "#/components/schemas/WindowSet"
+          }
+        },
+        "required": [
+          "task",
+          "dataset",
+          "seed_strategy",
+          "universe",
+          "windows",
+          "warmup",
+          "market_profile",
+          "environment_digest"
+        ],
+        "title": "RunConfig",
         "type": "object"
       },
       "RunCreate": {
@@ -3864,6 +5124,29 @@
         "title": "RunPublic",
         "type": "object"
       },
+      "SeedOnlyResearch": {
+        "additionalProperties": false,
+        "properties": {
+          "optimizer": {
+            "$ref": "#/components/schemas/SeedOptimizer"
+          }
+        },
+        "title": "SeedOnlyResearch",
+        "type": "object"
+      },
+      "SeedOptimizer": {
+        "additionalProperties": false,
+        "properties": {
+          "max_iterations": {
+            "const": 0,
+            "default": 0,
+            "title": "Max Iterations",
+            "type": "integer"
+          }
+        },
+        "title": "SeedOptimizer",
+        "type": "object"
+      },
       "SlippageConfig": {
         "additionalProperties": false,
         "properties": {
@@ -3882,6 +5165,53 @@
           }
         },
         "title": "SlippageConfig",
+        "type": "object"
+      },
+      "StrategyCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "description": "Exact Python source, at most 131072 UTF-8 bytes. Syntax parsing only; never executed by the API.",
+            "maxLength": 131072,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "task": {
+            "enum": [
+              "cn_time",
+              "us_time",
+              "cn_cross",
+              "us_cross"
+            ],
+            "title": "Task",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "task",
+          "code"
+        ],
+        "title": "StrategyCreate",
         "type": "object"
       },
       "StrategyDetail": {
@@ -6530,7 +7860,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchCapabilities"
+                }
               }
             },
             "description": "Successful Response"
@@ -6657,6 +7989,423 @@
           }
         ],
         "summary": "Checkpoint"
+      }
+    },
+    "/api/v1/research-evaluations/compare": {
+      "post": {
+        "operationId": "compare_research_results",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResultCompareCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultComparePublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Compare Research Results"
+      }
+    },
+    "/api/v1/research-evaluations/{evaluation_id}/report": {
+      "get": {
+        "operationId": "download_research_report",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Download Research Report"
+      }
+    },
+    "/api/v1/research-evaluations/{evaluation_id}/results": {
+      "get": {
+        "operationId": "read_research_results",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sections",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "equity",
+                      "drawdown",
+                      "cash",
+                      "margin",
+                      "positions",
+                      "orders",
+                      "fills",
+                      "closed_trades"
+                    ],
+                    "type": "string"
+                  },
+                  "maxItems": 8,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sections"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "in": "query",
+            "name": "listing_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Listing Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_points",
+            "required": false,
+            "schema": {
+              "default": 1000,
+              "maximum": 5000,
+              "minimum": 4,
+              "title": "Max Points",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultQueryPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Research Results"
+      }
+    },
+    "/api/v1/research-evaluations/{evaluation_id}/results/download": {
+      "get": {
+        "operationId": "download_research_results",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Download Research Results"
       }
     },
     "/api/v1/research-runs": {
@@ -6829,6 +8578,79 @@
           }
         ],
         "summary": "Create Research Run"
+      }
+    },
+    "/api/v1/research-runs/preflight": {
+      "post": {
+        "operationId": "preflight_research_run",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchRunCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPreflightPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Preflight Research Run"
       }
     },
     "/api/v1/research-runs/{run_id}": {
@@ -7521,6 +9343,81 @@
           }
         ],
         "summary": "Resume Research"
+      }
+    },
+    "/api/v1/research-runs/{run_id}/usage": {
+      "get": {
+        "operationId": "read_research_usage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchUsagePublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Research Usage"
       }
     },
     "/api/v1/runs": {
@@ -8354,6 +10251,100 @@
           }
         ],
         "summary": "List Strategies"
+      },
+      "post": {
+        "operationId": "create_strategy_version",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StrategyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StrategyDetail"
+                }
+              }
+            },
+            "description": "Exact idempotent replay"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StrategyDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Strategy"
       }
     },
     "/api/v1/strategy-versions/{strategy_id}": {
