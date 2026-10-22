@@ -597,16 +597,11 @@ def execute(import_id, generation, settings=None, factory=None):
             config = item.request
             provider_name = item.provider
             owner_id = item.owner_id
-        from packages.marketdata.contracts import SCHEMA_VERSION, TRANSFORM_VERSION
+        from packages.marketdata.contracts import execution_policy_compatible
 
         execution_policy = config.get("_execution", {})
-        if (
-            execution_policy.get("schema_version") != SCHEMA_VERSION
-            or execution_policy.get("transform_version") != TRANSFORM_VERSION
-            or execution_policy.get("worker_contract") != "data-import.v1"
-            or execution_policy.get("provider_mode") != settings.data_provider_mode
-            or not isinstance(execution_policy.get("block_days"), int)
-            or not 1 <= execution_policy["block_days"] <= 366
+        if not execution_policy_compatible(
+            execution_policy, settings.data_provider_mode
         ):
             _set_status(
                 factory,

@@ -134,7 +134,13 @@ jobs:
           .venv-data/bin/openbb-build
           python -m script.validate_runtime_split --runtime api
           .venv-data/bin/python -m script.validate_runtime_split --runtime data
+      - name: Install pinned engine for SHA-pinned original-seed adapter bridges
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --require-hashes -r runtimes/evaluator/requirements.lock
       - name: Validate actual SDK schemas and deterministic normalization contracts
+        env:
+          TRADEGRAD_LOCAL_ENGINE_BRIDGE: "1"
         run: .venv-data/bin/python -m pytest tests/marketdata -q --ignore=tests/marketdata/test_live_providers.py -k "not optional_live" --junitxml=m2-data-contracts-junit.xml
       - name: Explicit scoped live-provider smoke (no fixtures or fallback)
         if: env.DATA_PROVIDER_MODE == 'live'

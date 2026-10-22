@@ -5,6 +5,8 @@ exchange_calendars sessions. These prices are artificial, NOT captured returns.
 Other dates stay missing, never filled.
 """
 
+from math import sin
+
 import pandas as pd
 
 
@@ -34,22 +36,39 @@ def akshare_bars(
     if symbol not in {"600000", "000001"}:
         return pd.DataFrame()
     factor = {"": 1.0, "qfq": 0.9, "hfq": 1.1}[adjust]
-    return pd.DataFrame(
-        [
+    rows = []
+    for i, day in enumerate(fixture_days("XSHG")):
+        # Use the absolute fixed-window session index, never the request-relative
+        # offset: retry/date-block overlaps must return exactly the same prices.
+        if not start_date <= day.replace("-", "") <= end_date:
+            continue
+        if i < 4:
+            # Keep the tiny Jan 2-5 endpoint contract samples unchanged.
+            opening, high, low, close = 10 + i, 12 + i, 9 + i, 11 + i
+        else:
+            # Distinct deterministic synthetic paths exercise basket rebalancing.
+            # Identical rising paths produced no completed trades in the original
+            # two-listing cross seed. These are not historical price observations.
+            direction = 1 if symbol == "600000" else -1
+            close = round(14 + (i - 3) * 0.04 + direction * 3 * sin((i - 3) / 4), 4)
+            opening = round(close - 0.2 * sin(i), 4)
+            high, low = (
+                round(max(opening, close) + 1, 4),
+                round(min(opening, close) - 1, 4),
+            )
+        rows.append(
             {
                 "日期": day,
                 "股票代码": symbol,
-                "开盘": (10 + i) * factor,
-                "最高": (12 + i) * factor,
-                "最低": (9 + i) * factor,
-                "收盘": (11 + i) * factor,
+                "开盘": opening * factor,
+                "最高": high * factor,
+                "最低": low * factor,
+                "收盘": close * factor,
                 "成交量": 1000 + i,
                 "成交额": 1000000 + i,
             }
-            for i, day in enumerate(fixture_days("XSHG"))
-            if start_date <= day.replace("-", "") <= end_date
-        ]
-    )
+        )
+    return pd.DataFrame(rows)
 
 
 def yfinance_resolve(symbol: str):

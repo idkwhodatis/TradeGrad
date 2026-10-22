@@ -272,7 +272,11 @@ def submit_import(
     )
     if active >= settings.max_active_imports_per_user:
         raise DomainError("import_quota", "Active import limit reached", 429)
-    from packages.marketdata.contracts import SCHEMA_VERSION, TRANSFORM_VERSION
+    from packages.marketdata.contracts import (
+        FIXTURE_VERSION,
+        SCHEMA_VERSION,
+        TRANSFORM_VERSION,
+    )
 
     request["_execution"] = {
         "provider_mode": settings.data_provider_mode,
@@ -280,6 +284,9 @@ def submit_import(
         "schema_version": SCHEMA_VERSION,
         "transform_version": TRANSFORM_VERSION,
         "worker_contract": "data-import.v1",
+        "fixture_version": FIXTURE_VERSION
+        if settings.data_provider_mode == "fixture"
+        else None,
     }
     item = DataImport(
         id=uuid4(),

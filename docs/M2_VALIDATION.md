@@ -2,8 +2,12 @@
 
 ## Status
 
-**Prepared locally, not yet accepted.** The new M2 PostgreSQL, real-process,
+**Local provisional gate passed; hosted/live acceptance remains incomplete.** The new M2 PostgreSQL, real-process,
 Docker, Chromium and live-provider gates have not run against this code revision.
+The user explicitly allowed local progression with unavailable Playwright
+provisionally deferred on 2026-10-22. This does not waive PostgreSQL transactions,
+actual evaluator isolation or real upstream evidence. M3 may be developed and
+checked locally while those acceptance items remain open.
 Earlier M0/M1 hosted results remain evidence for their recorded exact commit,
 not for this M2 revision. See [M1 evidence](M1_VALIDATION.md).
 
@@ -20,6 +24,38 @@ Collection found 187 real-PostgreSQL tests plus two actual-process recovery test
 and Playwright discovered 20 Chromium scenarios, three of them live-provider
 eligible. Collection/discovery is not execution. The Docker suite is likewise
 pending on the M2 revision.
+
+## Additional local adapter-to-engine bridge
+
+The exact M2-only source tree was separately exported to exclude concurrent M3
+edits: **271 local tests passed** (32 baseline, 81 API/supervisor, 115 data
+including three real-engine bridges, 43 frontend), with no failures or skips.
+Three live probes were excluded, not passed. Frontend typecheck/build also pass.
+
+
+Three explicit, SHA-pinned original-seed integrations run each real adapter with
+frozen SDK-schema responses through normalization, coverage and immutable bundle
+verification into actual AKQuant 0.3.27 in the separately locked engine runtime.
+They cover AKShare Shanghai + Shenzhen (234 rows), Yahoo AAPL (124), and OpenBB
+MSFT (124), checking exact Parquet/CSV/preview/universe parity and hashes before
+and after execution. Only the original seed hashes are allowed in this opt-in
+host test; generated or uploaded candidate code is never executed by this route.
+
+The first run exposed identical rising CN fixture prices that produced no
+completed cross-sectional trades. Distinct deterministic synthetic paths now
+exercise turnover without modifying strategy code or weakening assertions.
+Tiny Jan 2–5 endpoint examples remain unchanged; overlapping and monthly blocks
+reproduce identical values. Fixture revision `synthetic-daily.v2` is pinned in
+new import execution policies; old fixture checkpoints cannot resume into the
+new price generator. Live data transformation versions are unchanged.
+
+Run `TRADEGRAD_LOCAL_ENGINE_BRIDGE=1 .venv-data/bin/python -m pytest
+ tests/marketdata -q --ignore=tests/marketdata/test_live_providers.py
+ -k 'not optional_live'` from the repository root after installing the existing
+locked data and `.venv` engine runtimes. This is **synthetic native integration**,
+not live download, API/PostgreSQL, queue, Docker, browser or warm-up acceptance.
+Those tests are retained separately. Ordinary runs without opt-in report the
+three bridge cases as skipped, never passed. Hosted CI explicitly enables them.
 
 ## Implemented data boundary
 
