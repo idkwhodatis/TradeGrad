@@ -34,6 +34,9 @@ isolation, two-worker SIGKILL/recovery and nine real Chromium scenarios.
 Downloaded outcome artifacts were hash-verified. See
 [staged evidence](M1_VALIDATION.md) and [development operations](M1_OPERATIONS.md).
 
-M2 data integration is in progress. M3–M6 have not started. Live provider
-verification is separate from deterministic recorded-provider fixtures. An
-absent or pending report means the relevant phase has not passed.
+M2 data integration is prepared locally but its hosted gate is pending. See
+[M2 acceptance and limitations](M2_VALIDATION.md), including the transitional
+cold-start seed behavior and still-incomplete short-optimization slice.
+M3–M6 have not started. Live provider verification is separate from deterministic
+synthetic SDK-response fixtures. An absent or pending report means the relevant
+phase has not passed.

@@ -3,6 +3,15 @@ import { AlertCircle, LoaderCircle, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { describeError } from "@/lib/api";
 import { label } from "@/lib/format";
+import { nativeWindowWarning } from "@/lib/execution-notices";
+
+export function NativeWindowNotice() {
+  return (
+    <p className="notice mt-4" data-testid="native-window-warning">
+      {nativeWindowWarning}
+    </p>
+  );
+}
 
 export function PageHeader({
   eyebrow = "RESEARCH WORKSPACE",
@@ -97,9 +106,10 @@ export function DemoNotice() {
     <div className="notice">
       <FlaskConical />
       <p>
-        Synthetic demonstration data only. M1 evaluates an unchanged seed
-        strategy with AKQuant. No live market feed, model calls, optimization,
-        or investment recommendation.
+        Fixed-seed research only. Synthetic and provider-fixture datasets are
+        labeled separately from live downloads. Native strategy results are not
+        independently trusted. No model calls, optimization, live trading, or
+        investment recommendation.
       </p>
     </div>
   );

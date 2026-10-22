@@ -28,6 +28,8 @@ from backend.app.core.security import (
 )
 from backend.app.models import (
     Artifact,
+    DataImport,
+    DataOutbox,
     DatasetVersion,
     ExecutionAttempt,
     OutboxEvent,
@@ -79,6 +81,11 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
             409: {"model": ErrorResponse},
             422: {"model": ErrorResponse},
         },
+    )
+    from backend.app.api.body_limit import BodyLimitMiddleware
+
+    app.add_middleware(
+        BodyLimitMiddleware, max_bytes=settings.max_upload_bytes + 100_000
     )
     app.state.settings = settings
     app.state.engine = engine if engine is not None else create_db_engine(settings)
@@ -174,7 +181,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
         try:
             session.execute(
                 text(
-                    "SELECT version_num FROM alembic_version WHERE version_num = '001_m1'"
+                    "SELECT version_num FROM alembic_version WHERE version_num = '002_m2'"
                 )
             ).scalar_one()
         except SQLAlchemyError:
@@ -194,13 +201,25 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
                 if any(h.role == role and h.heartbeat_at > cutoff for h in records)
                 else "unavailable"
             )
-            for role in ("research", "dispatcher", "reconciler")
+            for role in (
+                "research",
+                "dispatcher",
+                "reconciler",
+                "data",
+                "data_dispatcher",
+            )
         }
         pending = session.scalar(
             select(func.count())
             .select_from(OutboxEvent)
             .join(ResearchRun, ResearchRun.id == OutboxEvent.run_id)
             .where(ResearchRun.owner_id == user.id, OutboxEvent.dispatched_at.is_(None))
+        )
+        pending += session.scalar(
+            select(func.count())
+            .select_from(DataOutbox)
+            .join(DataImport, DataImport.id == DataOutbox.import_id)
+            .where(DataImport.owner_id == user.id, DataOutbox.dispatched_at.is_(None))
         )
         return HealthResponse(
             status="ready"
@@ -522,4 +541,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
             },
         )
 
+    from backend.app.data_routes import router as data_router
+
+    app.include_router(data_router, prefix=PREFIX)
     return app

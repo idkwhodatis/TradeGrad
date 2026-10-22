@@ -76,7 +76,7 @@ export function LoginPage() {
           </div>
         </div>
         <footer className="text-xs text-[#8eab7f]">
-          M1 foundation · Synthetic seed evaluation
+          Research workbench · Fixed-seed evaluation
         </footer>
       </section>
       <section className="login-main">

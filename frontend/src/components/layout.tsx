@@ -9,6 +9,9 @@ import {
   LogOut,
   ArrowUpRight,
   CircleHelp,
+  Globe,
+  Layers,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { currentUserOptions, queryClient } from "@/lib/api";
@@ -16,6 +19,9 @@ import { clearSession } from "@/lib/session";
 
 const navigation = [
   { to: "/", label: "Overview", icon: LayoutDashboard },
+  { to: "/data-sources", label: "Data sources", icon: Globe },
+  { to: "/imports", label: "Imports", icon: Download },
+  { to: "/universes", label: "Universes", icon: Layers },
   { to: "/datasets", label: "Datasets", icon: Database },
   { to: "/strategies", label: "Strategy library", icon: Braces },
   { to: "/runs", label: "Experiments", icon: FlaskConical },
@@ -51,7 +57,7 @@ export function AppLayout() {
           <div>
             <div className="text-xs font-semibold">Research workspace</div>
             <div className="mt-1 text-[10px] text-[#8a967d]">
-              Private · M1 foundation
+              Private · Data & research
             </div>
           </div>
         </div>

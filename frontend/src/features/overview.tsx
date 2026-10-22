@@ -34,7 +34,7 @@ export function RunsTable({ runs }: { runs: RunPublic[] }) {
         <FlaskConical size={30} />
         <h3>Your first experiment starts here</h3>
         <p>
-          Choose a synthetic snapshot and an unchanged seed.
+          Choose a published snapshot and an unchanged seed.
           <br />
           Every run keeps its own inputs, events, and artifacts.
         </p>
@@ -125,7 +125,7 @@ export function OverviewPage() {
     {
       label: "Dataset snapshots",
       value: datasets.data?.count ?? 0,
-      note: "Immutable · synthetic demo",
+      note: "Immutable · explicit provenance",
       icon: Database,
     },
     {
@@ -159,15 +159,15 @@ export function OverviewPage() {
           <div className="eyebrow">YOUR RESEARCH, TRACEABLE BY DESIGN</div>
           <h2>From a fixed seed to a reproducible result.</h2>
           <p>
-            Start with synthetic data, run one of the four original strategies,
-            and follow every stage. Your inputs and results stay linked, even
-            after a reload.
+            Choose immutable data, run one of the four original strategies, and
+            follow every stage. Your inputs and results stay linked, even after
+            a reload.
           </p>
         </div>
         <div className="hero-tag">
           <FlaskConical size={25} />
           <strong className="block mt-3 text-sm font-medium">
-            M1 foundation
+            M2 data workbench
           </strong>
           <span>Seed-only · no model calls</span>
         </div>
@@ -216,7 +216,8 @@ export function OverviewPage() {
               <div>
                 <h3 className="!text-xs">Market-data adapters</h3>
                 <p>
-                  AKShare, yfinance, and OpenBB are not enabled in this build.
+                  Inspect AKShare, yfinance, and OpenBB capabilities, evidence,
+                  imports and immutable snapshots.
                 </p>
               </div>
             </div>

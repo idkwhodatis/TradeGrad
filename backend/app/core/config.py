@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     sse_poll_seconds: float = Field(default=1, ge=0.1, le=30)
     cors_origins: list[str] = []
     max_artifact_bytes: int = Field(default=50_000_000, ge=1024)
+    data_provider_mode: str = Field(default="live", pattern=r"^(live|fixture)$")
+    data_lease_seconds: int = Field(default=120, ge=30, le=600)
+    data_block_days: int = Field(default=31, ge=1, le=366)
+    max_active_imports_per_user: int = Field(default=4, ge=1, le=100)
+    max_upload_bytes: int = Field(default=10_000_000, ge=1024, le=10_000_000)
     max_active_runs_per_user: int = Field(default=4, ge=1, le=100)
 
     @field_validator("database_url")

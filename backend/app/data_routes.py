@@ -1,0 +1,449 @@
+"""M2 routes use metadata and bounded verified JSON only; never provider SDKs."""
+
+import hashlib
+import json
+from datetime import date
+from pathlib import Path
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import APIRouter, File, Form, Header, Query, Request, UploadFile
+from pydantic import ValidationError
+from sqlalchemy import func, select
+
+from backend.app.api.deps import CurrentUser, SessionDep
+from backend.app.core.atomic_storage import publish_bytes
+from backend.app.data_schemas import (
+    BlockPublic,
+    CoveragePublic,
+    ImportCreate,
+    ImportDetail,
+    ImportPublic,
+    ListingPublic,
+    PreviewPage,
+    ProviderPublic,
+    ResolveCreate,
+    UniverseCreate,
+    UniversePublic,
+    UploadMapping,
+)
+from backend.app.data_services import (
+    cancel_import,
+    create_universe,
+    owned_dataset,
+    owned_import,
+    retry_import,
+    submit_import,
+)
+from backend.app.models import (
+    DataBlock,
+    DataImport,
+    Listing,
+    OwnerListing,
+    UniverseVersion,
+)
+from backend.app.schemas import Page
+from backend.app.services import DomainError
+from backend.app.storage import read_verified, safe_path
+
+router = APIRouter()
+IdempotencyKey = Annotated[
+    str, Header(alias="Idempotency-Key", min_length=1, max_length=128)
+]
+
+
+def paginate(session, model, owner_id, offset, limit):
+    clause = model.owner_id == owner_id
+    return {
+        "data": session.scalars(
+            select(model)
+            .where(clause)
+            .order_by(model.created_at.desc(), model.id)
+            .offset(offset)
+            .limit(limit)
+        ).all(),
+        "count": session.scalar(select(func.count()).select_from(model).where(clause)),
+    }
+
+
+@router.get(
+    "/data/providers",
+    response_model=list[ProviderPublic],
+    operation_id="list_data_providers",
+)
+def providers(user: CurrentUser, request: Request):
+    from packages.marketdata.catalog import provider_catalog
+
+    catalog = [
+        {k: v for k, v in item.items() if k not in {"provider", "intervals"}}
+        | {"upstream": item["provider"]}
+        for item in provider_catalog()
+    ]
+    mode = request.app.state.settings.data_provider_mode
+    return [
+        {
+            **p,
+            "runtime_mode": mode,
+            "fixture_notice": "Explicit synthetic SDK-schema fixture mode; not live provider evidence or investment data."
+            if mode == "fixture"
+            else None,
+        }
+        for p in catalog
+    ]
+
+
+@router.post(
+    "/data/resolve",
+    response_model=ImportPublic,
+    status_code=202,
+    operation_id="resolve_data_instruments",
+)
+def resolve(
+    body: ResolveCreate,
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+    idempotency_key: IdempotencyKey,
+):
+    item = submit_import(
+        session,
+        user.id,
+        body,
+        idempotency_key,
+        request.app.state.settings,
+        kind="resolve",
+    )
+    session.commit()
+    return item
+
+
+@router.get(
+    "/data/listings",
+    response_model=Page[ListingPublic],
+    operation_id="list_data_listings",
+)
+def listings(
+    user: CurrentUser,
+    session: SessionDep,
+    listing_ids: Annotated[list[UUID] | None, Query(max_length=100)] = None,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+):
+    query = (
+        select(Listing)
+        .join(OwnerListing, OwnerListing.listing_id == Listing.id)
+        .where(OwnerListing.owner_id == user.id)
+    )
+    if listing_ids:
+        query = query.where(Listing.id.in_(listing_ids))
+    items = session.scalars(
+        query.order_by(Listing.symbol, Listing.id).offset(offset).limit(limit)
+    ).all()
+    count = session.scalar(select(func.count()).select_from(query.subquery()))
+    return {"data": [i.metadata_json for i in items], "count": count}
+
+
+@router.post(
+    "/data/imports",
+    response_model=ImportPublic,
+    status_code=202,
+    operation_id="create_data_import",
+)
+def create_import(
+    body: ImportCreate,
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+    idempotency_key: IdempotencyKey,
+):
+    item = submit_import(
+        session, user.id, body, idempotency_key, request.app.state.settings
+    )
+    session.commit()
+    return item
+
+
+@router.get(
+    "/data/imports", response_model=Page[ImportPublic], operation_id="list_data_imports"
+)
+def imports(
+    user: CurrentUser,
+    session: SessionDep,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+):
+    return paginate(session, DataImport, user.id, offset, limit)
+
+
+@router.get(
+    "/data/imports/{import_id}",
+    response_model=ImportDetail,
+    operation_id="read_data_import",
+)
+def read_import(
+    import_id: UUID,
+    user: CurrentUser,
+    session: SessionDep,
+    block_offset: int = Query(0, ge=0, le=1_000_000),
+    block_limit: int = Query(1000, ge=1, le=1000),
+):
+
+    item = owned_import(session, import_id, user.id)
+    blocks = session.scalars(
+        select(DataBlock)
+        .where(DataBlock.import_id == import_id)
+        .order_by(DataBlock.symbol, DataBlock.start_date, DataBlock.id)
+        .offset(block_offset)
+        .limit(block_limit)
+    ).all()
+    total = session.scalar(
+        select(func.count())
+        .select_from(DataBlock)
+        .where(DataBlock.import_id == import_id)
+    )
+    return ImportDetail(
+        **ImportPublic.model_validate(item).model_dump(),
+        blocks=[BlockPublic.model_validate(b) for b in blocks],
+        blocks_total=total,
+        blocks_offset=block_offset,
+        blocks_limit=block_limit,
+    )
+
+
+@router.post(
+    "/data/imports/{import_id}/cancel",
+    response_model=ImportPublic,
+    status_code=202,
+    operation_id="cancel_data_import",
+)
+def cancel(import_id: UUID, user: CurrentUser, session: SessionDep):
+    item = cancel_import(session, import_id, user.id)
+    session.commit()
+    return item
+
+
+@router.post(
+    "/data/imports/{import_id}/retry",
+    response_model=ImportPublic,
+    status_code=202,
+    operation_id="retry_data_import",
+)
+def retry(import_id: UUID, user: CurrentUser, session: SessionDep, request: Request):
+    item = retry_import(session, import_id, user.id, request.app.state.settings)
+    session.commit()
+    return item
+
+
+@router.post(
+    "/data/universes",
+    response_model=UniversePublic,
+    status_code=201,
+    operation_id="create_data_universe",
+)
+def universe_create(body: UniverseCreate, user: CurrentUser, session: SessionDep):
+    item = create_universe(session, user.id, body)
+    session.commit()
+    return item
+
+
+@router.get(
+    "/data/universes",
+    response_model=Page[UniversePublic],
+    operation_id="list_data_universes",
+)
+def universe_list(
+    user: CurrentUser,
+    session: SessionDep,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+):
+    return paginate(session, UniverseVersion, user.id, offset, limit)
+
+
+@router.get(
+    "/data/universes/{universe_id}",
+    response_model=UniversePublic,
+    operation_id="read_data_universe",
+)
+def universe_read(universe_id: UUID, user: CurrentUser, session: SessionDep):
+    item = session.scalar(
+        select(UniverseVersion).where(
+            UniverseVersion.id == universe_id, UniverseVersion.owner_id == user.id
+        )
+    )
+    if item is None:
+        raise DomainError("not_found", "Universe version not found", 404)
+    return item
+
+
+@router.post(
+    "/data/uploads/validate-mapping",
+    response_model=UploadMapping,
+    operation_id="validate_upload_mapping",
+)
+def validate_upload_mapping(body: UploadMapping, user: CurrentUser):
+    return body
+
+
+@router.post(
+    "/data/uploads",
+    response_model=ImportPublic,
+    status_code=202,
+    operation_id="upload_data_file",
+)
+async def upload(
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+    idempotency_key: IdempotencyKey,
+    mapping: Annotated[str, Form(max_length=20000)],
+    file: Annotated[UploadFile, File()],
+):
+    try:
+        body = UploadMapping.model_validate_json(mapping)
+    except (ValidationError, ValueError):
+        raise DomainError(
+            "invalid_upload_mapping",
+            "Upload mapping is invalid; provide columns, dates, currency, units and price semantics",
+            422,
+        ) from None
+    settings = request.app.state.settings
+    extension = Path(file.filename or "").suffix.lower()
+    if extension not in {".csv", ".parquet"}:
+        raise DomainError(
+            "invalid_upload_type", "Only CSV and Parquet files are supported", 422
+        )
+    content = await file.read(settings.max_upload_bytes + 1)
+    if not content or len(content) > settings.max_upload_bytes:
+        raise DomainError(
+            "upload_size", "Upload is empty or exceeds the configured byte limit", 413
+        )
+    sha = hashlib.sha256(content).hexdigest()
+    key = f"uploads/{user.id}/{sha}{extension}"
+    target = safe_path(settings.storage_root, key)
+    item = submit_import(
+        session,
+        user.id,
+        body,
+        idempotency_key,
+        settings,
+        kind="upload",
+        upload={
+            "storage_key": key,
+            "sha256": sha,
+            "format": extension[1:],
+            "size_bytes": len(content),
+        },
+    )
+    # Validate ownership, quota and idempotency before writing durable bytes.
+    # The outbox cannot become visible until the complete object exists.
+    publish_bytes(target, content, sha256=sha)
+    session.commit()
+    return item
+
+
+@router.post(
+    "/datasets/{dataset_id}/refresh",
+    response_model=ImportPublic,
+    status_code=202,
+    operation_id="refresh_data_snapshot",
+)
+def refresh(
+    dataset_id: UUID,
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+    idempotency_key: IdempotencyKey,
+):
+    dataset = owned_dataset(session, dataset_id, user.id)
+    config = dataset.manifest.get("import_request")
+    if not config or dataset.source == "upload":
+        raise DomainError(
+            "refresh_unavailable",
+            "This snapshot cannot be provider-refreshed; upload a new file instead",
+            422,
+        )
+    body = ImportCreate.model_validate(config)
+    item = submit_import(
+        session,
+        user.id,
+        body,
+        idempotency_key,
+        request.app.state.settings,
+        parent_version_id=dataset.id,
+    )
+    session.commit()
+    return item
+
+
+@router.get(
+    "/datasets/{dataset_id}/coverage",
+    response_model=CoveragePublic,
+    operation_id="read_data_coverage",
+)
+def coverage(dataset_id: UUID, user: CurrentUser, session: SessionDep):
+    item = owned_dataset(session, dataset_id, user.id)
+    manifest = item.manifest
+    return {
+        "dataset_version_id": item.id,
+        "coverage": manifest.get("coverage", []),
+        "quality": manifest.get("quality", {}),
+        "provenance": manifest.get("provenance", []),
+        "universe": manifest.get("universe", {"state": "user_fixed"}),
+    }
+
+
+@router.get(
+    "/datasets/{dataset_id}/preview",
+    response_model=PreviewPage,
+    operation_id="preview_data_snapshot",
+)
+def preview(
+    dataset_id: UUID,
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+    listing_id: UUID,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    offset: int = Query(0, ge=0, le=100000),
+    limit: int = Query(100, ge=1, le=500),
+):
+    item = owned_dataset(session, dataset_id, user.id)
+    if start_date and end_date and start_date >= end_date:
+        raise DomainError(
+            "invalid_dates", "Preview end date must follow start date", 422
+        )
+    refs = item.manifest.get("preview_files", {}).get(str(listing_id))
+    if refs is None:
+        raise DomainError("not_found", "Listing not present in snapshot", 404)
+    rows = []
+    # Maximum ten-year import and monthly checkpoints bound this scan; no SQL/path inputs.
+    for ref in refs:
+        if start_date and ref["end_date"] <= str(start_date):
+            continue
+        if end_date and ref["start_date"] >= str(end_date):
+            continue
+        raw = read_verified(
+            request.app.state.settings.storage_root,
+            f"{item.storage_key}/{ref['path']}",
+            ref["sha256"],
+            2_000_000,
+        )
+        for row in json.loads(raw):
+            if row["listing_id"] != str(listing_id):
+                raise DomainError(
+                    "snapshot_integrity", "Preview listing identity mismatch"
+                )
+            if (start_date is None or row["session_date"] >= str(start_date)) and (
+                end_date is None or row["session_date"] < str(end_date)
+            ):
+                rows.append(row)
+    rows.sort(key=lambda r: r["session_date"])
+    return {
+        "data": rows[offset : offset + limit],
+        "count": len(rows),
+        "offset": offset,
+        "limit": limit,
+        "listing_id": str(listing_id),
+    }

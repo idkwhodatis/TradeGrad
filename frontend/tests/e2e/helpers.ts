@@ -58,7 +58,9 @@ export async function inputs(
   const strategies = (await strategiesResponse.json()).data as StrategyPublic[];
   const dataset = datasets.find(
     (item) =>
-      item.market.toLowerCase() === task.slice(0, 2) && item.is_synthetic,
+      item.market.toLowerCase() === task.slice(0, 2) &&
+      item.is_synthetic &&
+      item.source === "synthetic_fixture",
   );
   const strategy = strategies.find(
     (item) => item.task === task && !item.name.startsWith("E2E "),

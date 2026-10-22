@@ -110,8 +110,56 @@ const datasetsRoute = createRoute({
   getParentRoute: () => privateRoute,
   path: "/datasets",
   component: lazyRouteComponent(
-    () => import("@/features/catalogs"),
+    () => import("@/features/data-datasets"),
     "DatasetsPage",
+  ),
+});
+const dataSourcesRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/data-sources",
+  component: lazyRouteComponent(
+    () => import("@/features/data-sources"),
+    "DataSourcesPage",
+  ),
+});
+const importsRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/imports",
+  component: lazyRouteComponent(
+    () => import("@/features/data-imports"),
+    "ImportsPage",
+  ),
+});
+const importRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/imports/$importId",
+  component: lazyRouteComponent(
+    () => import("@/features/data-imports"),
+    "ImportDetailPage",
+  ),
+});
+const datasetRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/datasets/$datasetId",
+  component: lazyRouteComponent(
+    () => import("@/features/data-datasets"),
+    "DatasetDetailPage",
+  ),
+});
+const uploadRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/datasets/upload",
+  component: lazyRouteComponent(
+    () => import("@/features/data-upload"),
+    "UploadDatasetPage",
+  ),
+});
+const universesRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/universes",
+  component: lazyRouteComponent(
+    () => import("@/features/data-universes"),
+    "UniversesPage",
   ),
 });
 const strategiesRoute = createRoute({
@@ -133,6 +181,9 @@ const runsRoute = createRoute({
 const newRunRoute = createRoute({
   getParentRoute: () => privateRoute,
   path: "/runs/new",
+  validateSearch: (search: Record<string, unknown>): { dataset?: string } => ({
+    dataset: typeof search.dataset === "string" ? search.dataset : undefined,
+  }),
   component: lazyRouteComponent(
     () => import("@/features/new-run"),
     "NewRunPage",
@@ -151,6 +202,12 @@ const routeTree = rootRoute.addChildren([
   privateRoute.addChildren([
     overviewRoute,
     datasetsRoute,
+    dataSourcesRoute,
+    importsRoute,
+    importRoute,
+    datasetRoute,
+    uploadRoute,
+    universesRoute,
     strategiesRoute,
     runsRoute,
     newRunRoute,

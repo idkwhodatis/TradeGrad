@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Braces, Database, Code2, X } from "lucide-react";
+import { Braces, Code2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,80 +9,9 @@ import {
   Loading,
   PageHeader,
 } from "@/components/common";
-import { datasetsOptions, strategiesOptions, strategyOptions } from "@/lib/api";
-import { formatDate, taskLabels } from "@/lib/format";
+import { strategiesOptions, strategyOptions } from "@/lib/api";
+import { taskLabels } from "@/lib/format";
 
-export function DatasetsPage() {
-  const datasets = useQuery(datasetsOptions);
-  return (
-    <>
-      <PageHeader
-        title="Dataset snapshots"
-        subtitle="Immutable inputs, with their provenance and date boundaries intact."
-      />
-      <DemoNotice />
-      <div className="mt-6">
-        {datasets.isPending ? (
-          <Loading />
-        ) : datasets.error ? (
-          <ErrorState
-            error={datasets.error}
-            retry={() => void datasets.refetch()}
-          />
-        ) : (
-          <div className="catalog">
-            {datasets.data?.data.map((dataset) => (
-              <article className="panel panel-body" key={dataset.id}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="catalog-icon">
-                    <Database size={21} />
-                  </div>
-                  <Badge variant="secondary">
-                    {dataset.is_synthetic
-                      ? "Synthetic demo"
-                      : "Published snapshot"}
-                  </Badge>
-                </div>
-                <h2>{dataset.name}</h2>
-                <p className="mt-2 text-xs muted">
-                  {dataset.market} market · {dataset.source}
-                </p>
-                <dl className="details">
-                  <div>
-                    <dt>Coverage</dt>
-                    <dd>
-                      {dataset.start_date} → {dataset.end_date}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Date convention</dt>
-                    <dd>[start, end) · exclusive end</dd>
-                  </div>
-                  <div>
-                    <dt>Published</dt>
-                    <dd>{formatDate(dataset.created_at)} UTC</dd>
-                  </div>
-                  <div>
-                    <dt>Content SHA-256</dt>
-                    <dd className="hash">{dataset.content_sha256}</dd>
-                  </div>
-                </dl>
-                <details className="mt-5">
-                  <summary className="text-link cursor-pointer">
-                    View snapshot manifest
-                  </summary>
-                  <pre className="preview mt-3">
-                    {JSON.stringify(dataset.manifest, null, 2)}
-                  </pre>
-                </details>
-              </article>
-            ))}
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
 export function StrategiesPage() {
   const strategies = useQuery(strategiesOptions);
   const [selected, setSelected] = useState<string | null>(null);

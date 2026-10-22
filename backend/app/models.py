@@ -212,3 +212,174 @@ class WorkerHeartbeat(Base):
     heartbeat_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )
+
+
+class Instrument(Base):
+    __tablename__ = "instruments"
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    asset_type: Mapped[str] = mapped_column(String(30))
+    identity_status: Mapped[str] = mapped_column(
+        String(30), default="provider_resolved"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class Listing(Base):
+    __tablename__ = "listings"
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    instrument_id: Mapped[UUID] = mapped_column(ForeignKey("instruments.id"))
+    symbol: Mapped[str] = mapped_column(String(80))
+    mic: Mapped[str] = mapped_column(String(4))
+    currency: Mapped[str] = mapped_column(String(16))
+    timezone: Mapped[str] = mapped_column(String(80))
+    calendar: Mapped[str] = mapped_column(String(80))
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class OwnerListing(Base):
+    __tablename__ = "owner_listings"
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    listing_id: Mapped[UUID] = mapped_column(
+        ForeignKey("listings.id"), primary_key=True
+    )
+
+
+class VendorMapping(Base):
+    __tablename__ = "vendor_mappings"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    listing_id: Mapped[UUID] = mapped_column(ForeignKey("listings.id"), index=True)
+    vendor: Mapped[str] = mapped_column(String(80))
+    symbol: Mapped[str] = mapped_column(String(80))
+    valid_from: Mapped[date | None] = mapped_column(Date)
+    valid_to: Mapped[date | None] = mapped_column(Date)
+    __table_args__ = (
+        UniqueConstraint(
+            "listing_id",
+            "vendor",
+            "symbol",
+            "valid_from",
+            "valid_to",
+            name="uq_listing_vendor_period",
+        ),
+    )
+
+
+class UniverseVersion(Base):
+    __tablename__ = "universe_versions"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    state: Mapped[str] = mapped_column(String(40))
+    as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    members: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    evidence: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    content_sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    __table_args__ = (
+        CheckConstraint(
+            "state IN ('user_fixed','current_snapshot','historical_membership','point_in_time_verified')"
+        ),
+    )
+
+
+class DataImport(Base):
+    __tablename__ = "data_imports"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))
+    provider: Mapped[str] = mapped_column(String(30))
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    request_sha256: Mapped[str] = mapped_column(String(64))
+    request: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    listing_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    status: Mapped[str] = mapped_column(String(30), default="requested", index=True)
+    generation: Mapped[int] = mapped_column(Integer, default=1)
+    lease_token: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    progress: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    warnings: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    error: Mapped[str | None] = mapped_column(Text)
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
+    dataset_version_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("dataset_versions.id")
+    )
+    parent_version_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("dataset_versions.id")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    __table_args__ = (
+        UniqueConstraint(
+            "owner_id", "idempotency_key", name="uq_data_import_owner_key"
+        ),
+        CheckConstraint(
+            "status IN ('requested','fetching','normalizing','validating','ready','partial','failed','cancelled')"
+        ),
+        CheckConstraint("generation > 0"),
+    )
+
+
+class DataBlock(Base):
+    __tablename__ = "data_blocks"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    import_id: Mapped[UUID] = mapped_column(ForeignKey("data_imports.id"), index=True)
+    symbol: Mapped[str] = mapped_column(String(80))
+    listing_id: Mapped[UUID | None] = mapped_column(ForeignKey("listings.id"))
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date] = mapped_column(Date)
+    status: Mapped[str] = mapped_column(String(30), default="requested")
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    storage_key: Mapped[str | None] = mapped_column(String(500))
+    content_sha256: Mapped[str | None] = mapped_column(String(64))
+    coverage: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    error: Mapped[str | None] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    __table_args__ = (
+        UniqueConstraint(
+            "import_id", "symbol", "start_date", "end_date", name="uq_data_block_window"
+        ),
+    )
+
+
+class DataOutbox(Base):
+    __tablename__ = "data_outbox"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    import_id: Mapped[UUID] = mapped_column(ForeignKey("data_imports.id"))
+    generation: Mapped[int] = mapped_column(Integer)
+    job_id: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        UniqueConstraint("import_id", "generation", name="uq_data_outbox_generation"),
+    )
+
+
+class ProviderBudget(Base):
+    __tablename__ = "provider_budgets"
+    key: Mapped[str] = mapped_column(String(255), primary_key=True)
+    next_allowed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

@@ -1,26 +1,58 @@
-# TradeGrad research workbench · M1
+# TradeGrad research workbench · M1 + M2
 
-React + Vite + TypeScript, Tailwind/shadcn components, TanStack Router/Query,
+React + Vite + TypeScript, Tailwind/shadcn components, TanStack Router/Query/Table,
 React Hook Form/Zod, and an OpenAPI-generated `@hey-api/openapi-ts` fetch client.
-See `THIRD_PARTY_NOTICES.md` for the official FastAPI template attribution.
+TradingView Lightweight Charts is lazy-loaded for bounded OHLCV preview only.
+See `THIRD_PARTY_NOTICES.md` for licenses and attribution.
 
-## Scope
+## Scope and evidence boundaries
 
-This is a real authenticated **synthetic fixed-seed evaluation** slice, not a full
-V1 product or a mock optimizer. It includes login, overview, immutable dataset and
-strategy catalogs, new evaluation, ordered event replay, durable run/attempt status,
-cancel, restart-from-scratch resume, numeric metrics and permission-checked downloads.
-Native strategy and engine share a process. Results are research observations, not
-an independently trusted ledger. No data providers, paid models, account signup,
-password recovery, holdout claims, optimization charts, or live execution are shipped.
+M1 remains a real authenticated fixed-seed evaluation slice: login, overview,
+strategy catalog, immutable configuration, ordered events, durable attempts,
+cancellation, restart-from-scratch resume, metrics and permission-checked artifacts.
+Native strategy and engine share a process. Results are research observations,
+not an independently trusted ledger. There are no paid models, optimization,
+verified holdouts, live trading, account signup or password recovery.
+
+M2 adds:
+
+- Data Sources: scoped provider capabilities and distinct fixture/live transport
+  labels; server-side asynchronous security resolution; explicit MIC/listing
+  selection and vendor mapping evidence. Calendar-proxy notes are shown beside the
+  session calendar, without equating venues. Resolution drafts survive reload.
+- Imports: persisted requested/fetching/normalizing/validating/ready states,
+  partial/failure/cancellation, per-symbol/date-block coverage and hashes,
+  generation-aware retry and completed-checkpoint reuse. Detail fetches at most
+  10 blocks per page and labels completion counts as page-scoped.
+- Dataset snapshots: explicit provenance, price/split/dividend semantics, quality,
+  coverage, immutable parent-version links and full-history refresh into a new ID.
+  Single-listing previews request one date window and at most 100 rows per page.
+  The optional OHLCV chart uses only that page. Tables preserve original precision.
+- CSV/Parquet uploads: explicit date/column mapping, security, MIC, currency,
+  calendar, units and price basis; validation errors never become published data.
+  Unknown values are preserved, not inferred. Browser uploads are limited to 10 MB.
+- Universes: user-fixed, current and historical membership, individual effective
+  intervals and known-at timestamps. Current and historical membership require a
+  nonblank evidence reference, bounded with its note to a 16 KiB serialized record.
+  User evidence cannot create verified PIT.
+- Evaluate a chosen immutable snapshot with an unchanged original seed. Dataset
+  evidence labels distinguish synthetic demo, provider fixture, live-provider
+  snapshot and unverified upload. Native-untrusted results and the launch form
+  disclose cold-start windows with no pre-start warm-up. Early history-dependent
+  decisions retain original-source behavior; warm-up-aware execution/preflight
+  remains an M3 gate, not an implemented M2 feature.
+
+Source capabilities labeled documented or fixture-tested are not live verification.
+Synthetic provider fixtures are artificial SDK-schema examples, not captured quotes.
+No credentials or fixture-mode switches are accepted from browser payloads.
+Original M1 synthetic snapshots remain runnable; they have no normalized M2 preview
+or provider-refresh source.
 
 ## Development
 
-Use Node >=22.12 (validated locally on Node 24.19) and npm. Versions and transitive
-integrities are fixed in `package-lock.json`. TypeScript is pinned to 6.0.3 because
-@hey-api/openapi-ts 0.99.0 requires its compiler API; TypeScript 7's native entry
-point is incompatible. `@hookform/resolvers` is pinned to 5.9.1 because 6.0.0's
-optional Effect peers do not currently resolve cleanly. Peer checks were not bypassed.
+Use Node >=22.12 (validated on Node 24.19) and npm. Versions and transitive integrities
+are fixed in `package-lock.json`. TypeScript 6.0.3 matches openapi-ts 0.99.0.
+The scoped TanStack Table v8 API is pinned to 8.21.3. Lightweight Charts is 5.1.0.
 
 ```sh
 npm ci
@@ -28,73 +60,88 @@ npm run dev
 ```
 
 The dev server binds **127.0.0.1:5173** and proxies `/api` to
-`http://127.0.0.1:8000`. Set `API_PROXY_TARGET` when needed. Use an explicit
-`VITE_DEV_HOST=0.0.0.0` only in a container needing network exposure. Production must
-serve the SPA fallback and API on the same origin. Tokens are not placed in URLs;
-SSE and artifact downloads use Authorization headers. Sessions are tab-scoped,
-expire automatically, and survive reload. Browser storage is not an XSS boundary.
+`http://127.0.0.1:8000`. Set `API_PROXY_TARGET` when needed. Set
+`VITE_DEV_HOST=0.0.0.0` only for an intentionally network-exposed container.
+Production serves SPA fallback and API on the same origin. Authentication stays
+in headers, not URLs. Sessions and owner-scoped drafts survive tab reload;
+expiry clears queries and returns to login. Browser storage is not an XSS boundary.
 
 ```sh
-# From repository root after changing backend schemas:
+# Repository root, SDK-free API environment:
 .venv-api/bin/python -m backend.app.export_openapi
-# From frontend:
+# Frontend:
 npm run generate-client
+npm run format:check
 npm run typecheck
 npm run build
 npm test
 npm run test:e2e:list
 ```
 
-Generated files under `src/client/` must not be hand-edited. Request/response types
-come from `../packages/contracts/openapi.json`. UI-only validators are not a second
-server contract. Idempotency keys survive network failures/reload and are scoped to
-an authenticated owner; a changed configuration receives a new key.
+Never hand-edit `src/client/`. Request/response types come from the exported
+OpenAPI schema, including UploadMapping. UI display/date helpers are not a second
+wire contract. Idempotency keys are owner/operation scoped, survive uncertain
+network outcomes, and change with changed inputs. Synchronous guards prevent
+multiple DOM submissions before React updates disabled state.
 
 ## Real-stack browser acceptance
 
-Playwright scenarios use **real HTTP, PostgreSQL, dispatcher, research worker and
-Docker evaluator**. There are no route mocks or SQLite substitutes. Start the stack
-using the repository's infrastructure instructions, migrate it, and bootstrap two
-synthetic-only test accounts. Never run these fixtures on a real-data environment.
+Playwright uses **real HTTP, PostgreSQL, dispatcher, data worker, research worker
+and Docker evaluator**. There are no route mocks, fabricated successful responses,
+SQLite substitutes, saved logins or embedded passwords. Before starting these tests,
+run migrations, bootstrap disposable accounts and set the server/data workers to
+explicit `DATA_PROVIDER_MODE=fixture`. The data spec rejects a mismatched mode instead of
+silently making live downloads. Live-provider verification is a separate gate.
 
-Required environment variables:
+Required runtime environment:
 
-- `E2E_EMAIL`, `E2E_PASSWORD`: primary synthetic fixture account.
+- `E2E_EMAIL`, `E2E_PASSWORD`: primary disposable fixture account.
 - `E2E_OTHER_EMAIL`, `E2E_OTHER_PASSWORD`: second account for ownership tests.
 - `E2E_API_URL`: API origin, default `http://127.0.0.1:8000`.
-- `E2E_BASE_URL`: optional already-running frontend origin. If omitted, Playwright
-  starts `npm run dev` itself at `http://127.0.0.1:5173`.
-- `API_PROXY_TARGET`: dev frontend's backend target, default same as above.
-
-From the repository root (with the API environment configured):
+- `E2E_BASE_URL`: optional already-running frontend origin. Otherwise Playwright
+  starts the dev server on loopback, where process/socket permissions allow it.
+- `API_PROXY_TARGET`: the frontend's backend origin.
+- `E2E_LIVE_PROVIDERS=1`: explicit separate public-provider gate, paired with server
+  `DATA_PROVIDER_MODE=live` and `npm run test:e2e -- --grep @provider-flow`. Only the
+  three positive provider flows support this mode; deterministic negatives skip.
+  This mode requires actual live provenance, a non-synthetic snapshot and no fixture
+  banner before the real Docker seed run. Unavailable upstreams fail, never fall
+  back to fixtures. A fixture-mode pass is not evidence that this live gate passed.
 
 ```sh
 .venv-api/bin/python -m backend.app.bootstrap --email "$E2E_EMAIL" --password-env E2E_PASSWORD --with-synthetic-fixtures --with-e2e-fixtures
 .venv-api/bin/python -m backend.app.bootstrap --email "$E2E_OTHER_EMAIL" --password-env E2E_OTHER_PASSWORD --with-synthetic-fixtures
+# Start the real API, dispatcher, data and research workers via documented infrastructure.
 cd frontend
 npx playwright install --with-deps chromium
 npm run test:e2e
 ```
 
-The opt-in E2E fixture seeds are named exactly:
-`E2E slow cn_time seed (20s import delay)` and `E2E syntax-error cn_time seed`.
-They are actually executed inside the evaluator and never alter original seeds.
-They let the browser test running cancellation and failed-run retry without timing
-races or fabricated API responses. Do not enable them in ordinary bootstrap.
+The original slow and syntax-error E2E strategy fixtures remain explicitly named
+and are never substituted for original seeds. Semantic named locators select the
+provider, venue/listing and original seed; fixture row ordering is not a contract.
 
-Scenarios cover login failure/success, repeated UI and concurrent HTTP submissions,
-state/events/result/download persistence, running cancellation/resume, failed retry,
-session expiry/deep-link return, cross-owner resource denial, direct URL/back/refresh,
-small-screen navigation, and actual offline transport failure/recovery. One worker
-keeps count assertions isolated; do not run parallel suites against those accounts.
+20 discovered scenarios comprise the 9 M1 cases and 11 M2 cases:
 
-Trace and video are **off** so authenticated request/password bodies are not uploaded.
-Failure screenshots, HTML report and JUnit are enabled and must contain only synthetic
-test accounts/data. Do not upload test environment files or logs containing secrets.
+- All three independent provider fixture adapters: browser resolution/import,
+  validation/publication, bounded paging/chart, pinned snapshot → actual Docker
+  original-seed evaluation. AKShare covers Shanghai and Shenzhen together.
+- Partial out-of-window coverage, visible per-block failure and retry proving
+  completed block hashes/attempts unchanged, rather than pretending recovery.
+- Durable cancellation, refresh preserving the previous version and preview.
+- Duplicate/missing upload mapping and successful explicit unknown price semantics.
+- Fixed/current/historical universe distinctions and no manual verified-PIT option.
+- Cross-user read/write/refresh/listing/universe denial and anonymous upload denial.
+- Concurrent same-key import replay, conflict on altered body, real offline failure
+  and same-key retry, reload persistence and narrow viewport.
+
+Trace, video, screenshots and HTML reporting are **off**. Only outcome-filtered
+JUnit evidence should be published by CI. Never upload raw reports, authenticated
+browser artifacts, test environment files, tokens or credential-bearing logs.
 
 ## Validation boundary
 
-Local typecheck/build and pure behavior tests have been executed. Playwright discovery
-validates test loading, **not browser acceptance**. Browser, PostgreSQL and Docker
-runtime execution require an authorized runner with supported process/network access.
-No browser acceptance pass is claimed until that real-stack gate runs successfully.
+Typecheck, production build, pure unit tests and Playwright discovery can run
+without servers. Discovery is **not a browser acceptance pass**. Chromium,
+PostgreSQL, Docker and process-recovery verification run only on the authorized
+hosted real-stack gate. A fixture gate never substitutes for a live provider gate.

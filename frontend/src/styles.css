@@ -1014,3 +1014,132 @@ input {
     padding: 34px 26px;
   }
 }
+
+.data-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.data-tabs a {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  font-size: 12px;
+  background: white;
+}
+.data-tabs a[aria-current="page"] {
+  background: var(--color-secondary);
+  color: var(--color-primary);
+  font-weight: 650;
+}
+.data-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
+  gap: 22px;
+}
+.data-metadata {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+.data-metadata div {
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  min-width: 0;
+}
+.data-metadata dt {
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+  margin-bottom: 7px;
+}
+.data-metadata dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.data-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12px;
+}
+.data-check input {
+  min-height: 18px;
+  width: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: var(--color-primary);
+}
+.data-check small {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-muted-foreground);
+  overflow-wrap: anywhere;
+}
+.data-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 18px;
+  font-size: 12px;
+  color: var(--color-muted-foreground);
+}
+.data-progress {
+  width: 100%;
+  height: 12px;
+  accent-color: var(--color-primary);
+}
+.price-chart {
+  height: 320px;
+  min-width: 0;
+}
+textarea {
+  font: inherit;
+  min-height: 110px;
+  border: 1px solid var(--color-input);
+  border-radius: 6px;
+  padding: 10px;
+  width: 100%;
+  resize: vertical;
+}
+.data-warning {
+  overflow-wrap: anywhere;
+}
+.status-ready {
+  background: #eaf2e1;
+  color: #4d7831;
+}
+.status-fetching,
+.status-normalizing,
+.status-validating,
+.status-requested {
+  background: #e5edf8;
+  color: #466b9d;
+}
+.status-partial {
+  background: #fff3df;
+  color: #946b25;
+}
+@media (max-width: 1000px) {
+  .data-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 760px) {
+  .data-metadata {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .data-tabs {
+    gap: 6px;
+  }
+  .data-tabs a {
+    padding: 7px 9px;
+  }
+}

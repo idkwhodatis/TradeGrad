@@ -3,9 +3,11 @@
 > **WebUI V1 branch status:** M0's four-task engine baseline is validated. The M1
 > synthetic, seed-only web application passed real PostgreSQL, Docker isolation and
 > all nine real-browser gates. A separate actual two-worker SIGKILL/recovery
-> acceptance check also passed. M2 data integration is in progress.
+> acceptance check also passed. M2 data integration is prepared locally; its hosted
+> acceptance is pending. Seed-only evaluation still uses disclosed cold-start
+> semantics, not warm-up-aware research execution.
 > This is not complete V1 and has no live trading. See
-> [staged validation](docs/M1_VALIDATION.md),
+> [staged validation](docs/M1_VALIDATION.md), [M2 limitations](docs/M2_VALIDATION.md),
 > [development setup](docs/M1_OPERATIONS.md) and [remaining gates](docs/V1_IMPLEMENTATION.md).
 
 This is the implementation of our paper *Trading Strategy Optimization via Textual Gradient*.

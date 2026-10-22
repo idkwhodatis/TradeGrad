@@ -1,0 +1,16 @@
+# Independent Python 3.12 data worker, never installed into the evaluator image.
+pydantic==2.14.1
+pandas==2.3.3
+pyarrow==23.0.1
+exchange-calendars==4.13.2
+akshare==1.19.1
+yfinance==1.7.0
+# Lean OpenBB V5 namespace, not the legacy shared-equity metapackage.
+openbb-core==2.0.1
+openbb-nasdaq==2.0.0
+pytest==8.4.2
+ruff==0.17.1
+
+# Orchestration modules share API exact versions, without sharing environments.
+-r ../../backend/requirements.in
+-c ../../backend/requirements.lock

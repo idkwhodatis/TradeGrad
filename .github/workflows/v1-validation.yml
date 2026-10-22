@@ -2,6 +2,13 @@ name: V1 staged validation
 
 on:
   workflow_dispatch:
+    inputs:
+      provider_mode:
+        description: "fixture is deterministic; live explicitly checks public upstreams without fallback"
+        required: true
+        default: fixture
+        type: choice
+        options: [fixture, live]
   push:
     branches: ["feat/webui-v1"]
   pull_request:
@@ -61,10 +68,10 @@ jobs:
           retention-days: 14
 
   application:
-    name: M1 PostgreSQL, isolated engine and real browser
+    name: M1–M2 real application (${{ (inputs.provider_mode == 'live' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]'))) && 'live' || 'fixture' }})
     needs: baseline
     runs-on: ubuntu-22.04
-    timeout-minutes: 35
+    timeout-minutes: 45
     env:
       # Credentials are generated and masked on this disposable runner only.
       POSTGRES_USER: tradegrad_ci
@@ -76,6 +83,11 @@ jobs:
       E2E_EMAIL: first@example.com
       E2E_OTHER_EMAIL: second@example.com
       WORKER_CONCURRENCY: "1"
+      DATA_WORKER_CONCURRENCY: "1"
+      # Ordinary pushes freeze SDK responses. Live requires explicit dispatch or
+      # a [live-data] feature-branch commit marker; no default-branch change needed.
+      DATA_PROVIDER_MODE: ${{ (inputs.provider_mode == 'live' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]'))) && 'live' || 'fixture' }}
+      E2E_LIVE_PROVIDERS: ${{ (inputs.provider_mode == 'live' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]'))) && '1' || '0' }}
       HEARTBEAT_SECONDS: "1"
       LEASE_SECONDS: "20"
       PYTHONDONTWRITEBYTECODE: "1"
@@ -115,10 +127,25 @@ jobs:
           exit 1
       - name: Install separately locked API runtime
         run: python -m pip install --require-hashes -r backend/requirements.lock
+      - name: Install separately hash-locked data worker and generate lean OpenBB client
+        run: |
+          python -m venv .venv-data
+          .venv-data/bin/python -m pip install --require-hashes -r runtimes/data/requirements.lock
+          .venv-data/bin/openbb-build
+          python -m script.validate_runtime_split --runtime api
+          .venv-data/bin/python -m script.validate_runtime_split --runtime data
+      - name: Validate actual SDK schemas and deterministic normalization contracts
+        run: .venv-data/bin/python -m pytest tests/marketdata -q --ignore=tests/marketdata/test_live_providers.py -k "not optional_live" --junitxml=m2-data-contracts-junit.xml
+      - name: Explicit scoped live-provider smoke (no fixtures or fallback)
+        if: env.DATA_PROVIDER_MODE == 'live'
+        env:
+          TRADEGRAD_MARKETDATA_LIVE: "1"
+          TRADEGRAD_OPENBB_LIVE: "1"
+        run: .venv-data/bin/python -m pytest tests/marketdata/test_live_providers.py tests/marketdata/test_openbb.py -q -k "test_live_resolve_fetch_and_snapshot or optional_live" --junitxml=m2-live-provider-junit.xml
       - name: Validate supervisor contracts
         run: python -m pytest backend/tests tests/runner -q --junitxml=m1-supervisor-junit.xml
       - name: Validate real PostgreSQL transactions and Procrastinate schema
-        run: python -m pytest tests/integration -q --junitxml=m1-postgres-junit.xml
+        run: .venv-data/bin/python -m pytest tests/integration -q --junitxml=m1-m2-postgres-junit.xml
       - name: Build local evaluator image (never published)
         run: docker build -t "$EVALUATOR_IMAGE" -f runtimes/evaluator/Dockerfile .
       - name: Require real kernel isolation and unchanged four-task engine results
@@ -141,10 +168,12 @@ jobs:
           alembic -c backend/alembic.ini upgrade head
           python -m backend.app.bootstrap --email "$E2E_EMAIL" --password-env E2E_PASSWORD --with-synthetic-fixtures --with-e2e-fixtures
           python -m backend.app.bootstrap --email "$E2E_OTHER_EMAIL" --password-env E2E_OTHER_PASSWORD --with-synthetic-fixtures
-      - name: Verify concurrent runs and real queue-worker SIGKILL recovery
+      - name: Verify real research/data worker SIGKILL and checkpoint recovery
         env:
           TRADEGRAD_REQUIRE_PROCESS_RECOVERY: "1"
-        run: python -m pytest tests/system -q --junitxml=m1-process-recovery-junit.xml
+          TRADEGRAD_REQUIRE_DATA_PROCESS_RECOVERY: "1"
+          DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
+        run: python -m pytest tests/system -q --junitxml=m1-m2-process-recovery-junit.xml
       - name: Exercise the real HTTP, queue, engine and browser boundary
         shell: bash
         run: |
@@ -154,8 +183,10 @@ jobs:
           python -m workers.research dispatcher >var/ci-logs/dispatcher.log 2>&1 & dispatcher=$!
           python -m workers.research worker >var/ci-logs/worker.log 2>&1 & worker=$!
           python -m workers.research reconciler >var/ci-logs/reconciler.log 2>&1 & reconciler=$!
+          .venv-data/bin/python -m workers.data dispatcher >var/ci-logs/data-dispatcher.log 2>&1 & data_dispatcher=$!
+          .venv-data/bin/python -m workers.data worker >var/ci-logs/data-worker.log 2>&1 & data_worker=$!
           cleanup() {
-            kill "$api" "$dispatcher" "$worker" "$reconciler" 2>/dev/null || true
+            kill "$api" "$dispatcher" "$worker" "$reconciler" "$data_dispatcher" "$data_worker" 2>/dev/null || true
             docker ps -aq --filter label=io.tradegrad.managed=evaluator-v1 | xargs -r docker rm -f >/dev/null
           }
           trap cleanup EXIT
@@ -171,17 +202,21 @@ jobs:
           else:
               raise SystemExit('API readiness failed; real browser gate cannot run')
           PY
-          npm run test:e2e --prefix frontend
+          if [ "$DATA_PROVIDER_MODE" = live ]; then
+            npm run test:e2e --prefix frontend -- --grep @provider-flow
+          else
+            npm run test:e2e --prefix frontend
+          fi
       - name: Remove the disposable database
         if: always()
         run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
       - name: Export outcome-only evidence without diagnostic payloads
         if: always()
-        run: python script/summarize_ci_junit.py m1-supervisor-junit.xml m1-postgres-junit.xml m1-isolation-junit.xml m1-process-recovery-junit.xml frontend/test-results/junit.xml
+        run: python script/summarize_ci_junit.py m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml frontend/test-results/junit.xml
       - name: Preserve bounded test evidence (no traces, credentials or source data)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: m1-validation-${{ github.sha }}
+          name: m1-m2-${{ env.DATA_PROVIDER_MODE }}-validation-${{ github.sha }}
           path: var/ci-evidence/*.xml
           retention-days: 14

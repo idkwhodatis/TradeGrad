@@ -138,3 +138,13 @@ describe("evaluation form boundaries", () => {
     expect(runFormSchema.safeParse(value).success).toBe(false),
   );
 });
+
+it("transitional seed execution discloses cold starts without claiming M3 warm-up", async () => {
+  const { nativeWindowWarning } =
+    await import("../../src/lib/execution-notices");
+  expect(nativeWindowWarning).toContain(
+    "cold-start windows with no pre-start warm-up",
+  );
+  expect(nativeWindowWarning).toContain("original-source behavior");
+  expect(nativeWindowWarning).toContain("M3 gate, not available now");
+});

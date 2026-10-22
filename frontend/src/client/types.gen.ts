@@ -85,6 +85,58 @@ export type AttemptPublic = {
 };
 
 /**
+ * BlockPublic
+ */
+export type BlockPublic = {
+    /**
+     * Attempts
+     */
+    attempts: number;
+    /**
+     * Content Sha256
+     */
+    content_sha256: string | null;
+    /**
+     * Coverage
+     */
+    coverage: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * End Date
+     */
+    end_date: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Listing Id
+     */
+    listing_id: string | null;
+    /**
+     * Start Date
+     */
+    start_date: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Symbol
+     */
+    symbol: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
  * Body_login_access_token
  */
 export type BodyLoginAccessToken = {
@@ -112,6 +164,114 @@ export type BodyLoginAccessToken = {
      * Username
      */
     username: string;
+};
+
+/**
+ * Body_upload_data_file
+ */
+export type BodyUploadDataFile = {
+    /**
+     * File
+     */
+    file: Blob | File;
+    /**
+     * Mapping
+     */
+    mapping: string;
+};
+
+/**
+ * Capability
+ */
+export type Capability = {
+    /**
+     * Checked At
+     */
+    checked_at?: string | null;
+    /**
+     * Connector
+     */
+    connector: string;
+    /**
+     * End
+     */
+    end?: string | null;
+    /**
+     * Endpoint
+     */
+    endpoint: string;
+    /**
+     * Evidence
+     */
+    evidence?: 'documentation' | 'fixture' | 'live' | 'uploaded' | 'none';
+    /**
+     * Feature
+     */
+    feature: string;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Package Versions
+     */
+    package_versions?: {
+        [key: string]: string;
+    };
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Source Url
+     */
+    source_url?: string | null;
+    /**
+     * Start
+     */
+    start?: string | null;
+    /**
+     * Status
+     */
+    status: 'documented' | 'verified' | 'unsupported' | 'unknown';
+    /**
+     * Symbols
+     */
+    symbols?: Array<string>;
+};
+
+/**
+ * CoveragePublic
+ */
+export type CoveragePublic = {
+    /**
+     * Coverage
+     */
+    coverage: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Provenance
+     */
+    provenance: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Quality
+     */
+    quality: {
+        [key: string]: unknown;
+    };
+    /**
+     * Universe
+     */
+    universe: {
+        [key: string]: unknown;
+    };
 };
 
 /**
@@ -247,6 +407,272 @@ export type HealthResponse = {
 };
 
 /**
+ * ImportCreate
+ */
+export type ImportCreate = {
+    /**
+     * End Date
+     *
+     * Exclusive end date [start_date,end_date)
+     */
+    end_date: string;
+    /**
+     * Listing Ids
+     */
+    listing_ids?: Array<string>;
+    /**
+     * Market
+     */
+    market: 'CN' | 'US';
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Price Mode
+     */
+    price_mode?: 'provider_native' | 'raw' | 'qfq' | 'hfq' | 'repair';
+    /**
+     * Provider
+     */
+    provider: 'akshare' | 'yfinance' | 'openbb';
+    /**
+     * Start Date
+     */
+    start_date: string;
+    /**
+     * Symbols
+     */
+    symbols?: Array<string>;
+    /**
+     * Universe Version Id
+     */
+    universe_version_id?: string | null;
+};
+
+/**
+ * ImportDetail
+ */
+export type ImportDetail = {
+    /**
+     * Blocks
+     */
+    blocks: Array<BlockPublic>;
+    /**
+     * Blocks Limit
+     */
+    blocks_limit: number;
+    /**
+     * Blocks Offset
+     */
+    blocks_offset: number;
+    /**
+     * Blocks Total
+     */
+    blocks_total: number;
+    /**
+     * Cancel Requested
+     */
+    cancel_requested: boolean;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string | null;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind: 'resolve' | 'import' | 'upload';
+    /**
+     * Listing Ids
+     */
+    listing_ids: Array<string>;
+    /**
+     * Parent Version Id
+     */
+    parent_version_id: string | null;
+    /**
+     * Progress
+     */
+    progress: {
+        [key: string]: unknown;
+    };
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Request
+     */
+    request: {
+        [key: string]: unknown;
+    };
+    /**
+     * Status
+     */
+    status: 'requested' | 'fetching' | 'normalizing' | 'validating' | 'ready' | 'partial' | 'failed' | 'cancelled';
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Warnings
+     */
+    warnings: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+/**
+ * ImportPublic
+ */
+export type ImportPublic = {
+    /**
+     * Cancel Requested
+     */
+    cancel_requested: boolean;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string | null;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind: 'resolve' | 'import' | 'upload';
+    /**
+     * Listing Ids
+     */
+    listing_ids: Array<string>;
+    /**
+     * Parent Version Id
+     */
+    parent_version_id: string | null;
+    /**
+     * Progress
+     */
+    progress: {
+        [key: string]: unknown;
+    };
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Request
+     */
+    request: {
+        [key: string]: unknown;
+    };
+    /**
+     * Status
+     */
+    status: 'requested' | 'fetching' | 'normalizing' | 'validating' | 'ready' | 'partial' | 'failed' | 'cancelled';
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Warnings
+     */
+    warnings: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+/**
+ * ListingPublic
+ */
+export type ListingPublic = {
+    /**
+     * Asset Type
+     */
+    asset_type?: 'equity' | 'index' | 'fund' | 'contract';
+    /**
+     * Calendar
+     */
+    calendar: string;
+    /**
+     * Calendar Note
+     */
+    calendar_note?: string | null;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Delisted On
+     */
+    delisted_on?: string | null;
+    /**
+     * Identity Status
+     */
+    identity_status?: 'registry' | 'provider_resolved' | 'user_supplied';
+    /**
+     * Instrument Id
+     */
+    instrument_id: string;
+    /**
+     * Listed On
+     */
+    listed_on?: string | null;
+    /**
+     * Listing Id
+     */
+    listing_id: string;
+    /**
+     * Mic
+     */
+    mic: string;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Symbol
+     */
+    symbol: string;
+    /**
+     * Timezone
+     */
+    timezone: string;
+    /**
+     * Vendor Symbols
+     */
+    vendor_symbols?: Array<VendorSymbol>;
+};
+
+/**
  * Page[ArtifactPublic]
  */
 export type PageArtifactPublic = {
@@ -275,6 +701,34 @@ export type PageDatasetPublic = {
 };
 
 /**
+ * Page[ImportPublic]
+ */
+export type PageImportPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<ImportPublic>;
+};
+
+/**
+ * Page[ListingPublic]
+ */
+export type PageListingPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<ListingPublic>;
+};
+
+/**
  * Page[RunPublic]
  */
 export type PageRunPublic = {
@@ -300,6 +754,198 @@ export type PageStrategyPublic = {
      * Data
      */
     data: Array<StrategyPublic>;
+};
+
+/**
+ * Page[UniversePublic]
+ */
+export type PageUniversePublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<UniversePublic>;
+};
+
+/**
+ * PreviewBar
+ */
+export type PreviewBar = {
+    /**
+     * Adj Close
+     */
+    adj_close?: number | null;
+    /**
+     * Amount
+     */
+    amount?: number | null;
+    /**
+     * Close
+     */
+    close: number;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Flags
+     */
+    flags: Array<string>;
+    /**
+     * High
+     */
+    high: number;
+    /**
+     * Listing Id
+     */
+    listing_id: string;
+    /**
+     * Low
+     */
+    low: number;
+    /**
+     * Open
+     */
+    open: number;
+    /**
+     * Session Date
+     */
+    session_date: string;
+    /**
+     * Volume
+     */
+    volume: number;
+    /**
+     * Volume Unit
+     */
+    volume_unit: string;
+};
+
+/**
+ * PreviewPage
+ */
+export type PreviewPage = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<PreviewBar>;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Listing Id
+     */
+    listing_id: string;
+    /**
+     * Offset
+     */
+    offset: number;
+};
+
+/**
+ * PriceSemantics
+ */
+export type PriceSemantics = {
+    /**
+     * Actions Snapshot Id
+     */
+    actions_snapshot_id?: string | null;
+    /**
+     * Adj Close Dividend Basis
+     */
+    adj_close_dividend_basis?: 'adjusted' | 'unknown';
+    /**
+     * Adj Close Split Basis
+     */
+    adj_close_split_basis?: 'adjusted' | 'unknown';
+    /**
+     * Adjustment As Of
+     */
+    adjustment_as_of?: string | null;
+    /**
+     * Algorithm Version
+     */
+    algorithm_version?: string | null;
+    /**
+     * Dividend Basis
+     */
+    dividend_basis?: 'unadjusted' | 'adjusted' | 'unknown';
+    /**
+     * Native Mode
+     */
+    native_mode?: string;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Split Basis
+     */
+    split_basis?: 'unadjusted' | 'adjusted' | 'unknown';
+};
+
+/**
+ * ProviderPublic
+ */
+export type ProviderPublic = {
+    /**
+     * Capabilities
+     */
+    capabilities: Array<Capability>;
+    /**
+     * Fixture Notice
+     */
+    fixture_notice?: string | null;
+    /**
+     * Id
+     */
+    id: 'akshare' | 'yfinance' | 'openbb';
+    /**
+     * Markets
+     */
+    markets: Array<string>;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Price Modes
+     */
+    price_modes: Array<string>;
+    /**
+     * Runtime Mode
+     */
+    runtime_mode: 'live' | 'fixture';
+    /**
+     * Upstream
+     */
+    upstream: string;
+};
+
+/**
+ * ResolveCreate
+ */
+export type ResolveCreate = {
+    /**
+     * Market
+     */
+    market: 'CN' | 'US';
+    /**
+     * Provider
+     */
+    provider: 'akshare' | 'yfinance' | 'openbb';
+    /**
+     * Symbols
+     */
+    symbols: Array<string>;
 };
 
 /**
@@ -579,6 +1225,159 @@ export type Token = {
 };
 
 /**
+ * UniverseCreate
+ */
+export type UniverseCreate = {
+    /**
+     * As Of
+     */
+    as_of: string;
+    /**
+     * Evidence
+     */
+    evidence?: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Members
+     */
+    members: Array<UniverseMember>;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * State
+     */
+    state?: 'user_fixed' | 'current_snapshot' | 'historical_membership' | 'point_in_time_verified';
+};
+
+/**
+ * UniverseMember
+ */
+export type UniverseMember = {
+    /**
+     * Known At
+     */
+    known_at?: string | null;
+    /**
+     * Listing Id
+     */
+    listing_id: string;
+    /**
+     * Valid From
+     */
+    valid_from?: string | null;
+    /**
+     * Valid To
+     */
+    valid_to?: string | null;
+};
+
+/**
+ * UniversePublic
+ */
+export type UniversePublic = {
+    /**
+     * As Of
+     */
+    as_of: string;
+    /**
+     * Content Sha256
+     */
+    content_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Evidence
+     */
+    evidence: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Members
+     */
+    members: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * State
+     */
+    state: string;
+};
+
+/**
+ * UploadMapping
+ */
+export type UploadMapping = {
+    /**
+     * Calendar
+     */
+    calendar: string;
+    /**
+     * Columns
+     */
+    columns: {
+        [key: string]: string;
+    };
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Date Format
+     */
+    date_format?: string;
+    /**
+     * End Date
+     */
+    end_date: string;
+    /**
+     * Market
+     */
+    market: 'CN' | 'US';
+    /**
+     * Mic
+     */
+    mic: string;
+    /**
+     * Name
+     */
+    name?: string;
+    price_semantics: PriceSemantics;
+    /**
+     * Start Date
+     */
+    start_date: string;
+    /**
+     * Symbol
+     */
+    symbol: string;
+    /**
+     * Timezone
+     */
+    timezone: string;
+    /**
+     * Unknown Flags
+     */
+    unknown_flags?: Array<string>;
+    /**
+     * Volume Unit
+     */
+    volume_unit: 'shares' | 'lots' | 'contracts' | 'unknown';
+};
+
+/**
  * UserPublic
  */
 export type UserPublic = {
@@ -602,6 +1401,28 @@ export type UserPublic = {
      * Is Superuser
      */
     is_superuser: boolean;
+};
+
+/**
+ * VendorSymbol
+ */
+export type VendorSymbol = {
+    /**
+     * Symbol
+     */
+    symbol: string;
+    /**
+     * Valid From
+     */
+    valid_from?: string | null;
+    /**
+     * Valid To
+     */
+    valid_to?: string | null;
+    /**
+     * Vendor
+     */
+    vendor: string;
 };
 
 export type DownloadArtifactData = {
@@ -645,6 +1466,567 @@ export type DownloadArtifactResponses = {
 };
 
 export type DownloadArtifactResponse = DownloadArtifactResponses[keyof DownloadArtifactResponses];
+
+export type ListDataImportsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/data/imports';
+};
+
+export type ListDataImportsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListDataImportsError = ListDataImportsErrors[keyof ListDataImportsErrors];
+
+export type ListDataImportsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageImportPublic;
+};
+
+export type ListDataImportsResponse = ListDataImportsResponses[keyof ListDataImportsResponses];
+
+export type CreateDataImportData = {
+    body: ImportCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/data/imports';
+};
+
+export type CreateDataImportErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateDataImportError = CreateDataImportErrors[keyof CreateDataImportErrors];
+
+export type CreateDataImportResponses = {
+    /**
+     * Successful Response
+     */
+    202: ImportPublic;
+};
+
+export type CreateDataImportResponse = CreateDataImportResponses[keyof CreateDataImportResponses];
+
+export type ReadDataImportData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: {
+        /**
+         * Block Offset
+         */
+        block_offset?: number;
+        /**
+         * Block Limit
+         */
+        block_limit?: number;
+    };
+    url: '/api/v1/data/imports/{import_id}';
+};
+
+export type ReadDataImportErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadDataImportError = ReadDataImportErrors[keyof ReadDataImportErrors];
+
+export type ReadDataImportResponses = {
+    /**
+     * Successful Response
+     */
+    200: ImportDetail;
+};
+
+export type ReadDataImportResponse = ReadDataImportResponses[keyof ReadDataImportResponses];
+
+export type CancelDataImportData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/api/v1/data/imports/{import_id}/cancel';
+};
+
+export type CancelDataImportErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CancelDataImportError = CancelDataImportErrors[keyof CancelDataImportErrors];
+
+export type CancelDataImportResponses = {
+    /**
+     * Successful Response
+     */
+    202: ImportPublic;
+};
+
+export type CancelDataImportResponse = CancelDataImportResponses[keyof CancelDataImportResponses];
+
+export type RetryDataImportData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/api/v1/data/imports/{import_id}/retry';
+};
+
+export type RetryDataImportErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type RetryDataImportError = RetryDataImportErrors[keyof RetryDataImportErrors];
+
+export type RetryDataImportResponses = {
+    /**
+     * Successful Response
+     */
+    202: ImportPublic;
+};
+
+export type RetryDataImportResponse = RetryDataImportResponses[keyof RetryDataImportResponses];
+
+export type ListDataListingsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Listing Ids
+         */
+        listing_ids?: Array<string> | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/data/listings';
+};
+
+export type ListDataListingsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListDataListingsError = ListDataListingsErrors[keyof ListDataListingsErrors];
+
+export type ListDataListingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageListingPublic;
+};
+
+export type ListDataListingsResponse = ListDataListingsResponses[keyof ListDataListingsResponses];
+
+export type ListDataProvidersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/data/providers';
+};
+
+export type ListDataProvidersErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListDataProvidersError = ListDataProvidersErrors[keyof ListDataProvidersErrors];
+
+export type ListDataProvidersResponses = {
+    /**
+     * Response List Data Providers
+     *
+     * Successful Response
+     */
+    200: Array<ProviderPublic>;
+};
+
+export type ListDataProvidersResponse = ListDataProvidersResponses[keyof ListDataProvidersResponses];
+
+export type ResolveDataInstrumentsData = {
+    body: ResolveCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/data/resolve';
+};
+
+export type ResolveDataInstrumentsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ResolveDataInstrumentsError = ResolveDataInstrumentsErrors[keyof ResolveDataInstrumentsErrors];
+
+export type ResolveDataInstrumentsResponses = {
+    /**
+     * Successful Response
+     */
+    202: ImportPublic;
+};
+
+export type ResolveDataInstrumentsResponse = ResolveDataInstrumentsResponses[keyof ResolveDataInstrumentsResponses];
+
+export type ListDataUniversesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/data/universes';
+};
+
+export type ListDataUniversesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListDataUniversesError = ListDataUniversesErrors[keyof ListDataUniversesErrors];
+
+export type ListDataUniversesResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageUniversePublic;
+};
+
+export type ListDataUniversesResponse = ListDataUniversesResponses[keyof ListDataUniversesResponses];
+
+export type CreateDataUniverseData = {
+    body: UniverseCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/data/universes';
+};
+
+export type CreateDataUniverseErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateDataUniverseError = CreateDataUniverseErrors[keyof CreateDataUniverseErrors];
+
+export type CreateDataUniverseResponses = {
+    /**
+     * Successful Response
+     */
+    201: UniversePublic;
+};
+
+export type CreateDataUniverseResponse = CreateDataUniverseResponses[keyof CreateDataUniverseResponses];
+
+export type ReadDataUniverseData = {
+    body?: never;
+    path: {
+        /**
+         * Universe Id
+         */
+        universe_id: string;
+    };
+    query?: never;
+    url: '/api/v1/data/universes/{universe_id}';
+};
+
+export type ReadDataUniverseErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadDataUniverseError = ReadDataUniverseErrors[keyof ReadDataUniverseErrors];
+
+export type ReadDataUniverseResponses = {
+    /**
+     * Successful Response
+     */
+    200: UniversePublic;
+};
+
+export type ReadDataUniverseResponse = ReadDataUniverseResponses[keyof ReadDataUniverseResponses];
+
+export type UploadDataFileData = {
+    body: BodyUploadDataFile;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/data/uploads';
+};
+
+export type UploadDataFileErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type UploadDataFileError = UploadDataFileErrors[keyof UploadDataFileErrors];
+
+export type UploadDataFileResponses = {
+    /**
+     * Successful Response
+     */
+    202: ImportPublic;
+};
+
+export type UploadDataFileResponse = UploadDataFileResponses[keyof UploadDataFileResponses];
+
+export type ValidateUploadMappingData = {
+    body: UploadMapping;
+    path?: never;
+    query?: never;
+    url: '/api/v1/data/uploads/validate-mapping';
+};
+
+export type ValidateUploadMappingErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ValidateUploadMappingError = ValidateUploadMappingErrors[keyof ValidateUploadMappingErrors];
+
+export type ValidateUploadMappingResponses = {
+    /**
+     * Successful Response
+     */
+    200: UploadMapping;
+};
+
+export type ValidateUploadMappingResponse = ValidateUploadMappingResponses[keyof ValidateUploadMappingResponses];
 
 export type ListDatasetsData = {
     body?: never;
@@ -733,6 +2115,159 @@ export type ReadDatasetResponses = {
 };
 
 export type ReadDatasetResponse = ReadDatasetResponses[keyof ReadDatasetResponses];
+
+export type ReadDataCoverageData = {
+    body?: never;
+    path: {
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query?: never;
+    url: '/api/v1/datasets/{dataset_id}/coverage';
+};
+
+export type ReadDataCoverageErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadDataCoverageError = ReadDataCoverageErrors[keyof ReadDataCoverageErrors];
+
+export type ReadDataCoverageResponses = {
+    /**
+     * Successful Response
+     */
+    200: CoveragePublic;
+};
+
+export type ReadDataCoverageResponse = ReadDataCoverageResponses[keyof ReadDataCoverageResponses];
+
+export type PreviewDataSnapshotData = {
+    body?: never;
+    path: {
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query: {
+        /**
+         * Listing Id
+         */
+        listing_id: string;
+        /**
+         * Start Date
+         */
+        start_date?: string | null;
+        /**
+         * End Date
+         */
+        end_date?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/datasets/{dataset_id}/preview';
+};
+
+export type PreviewDataSnapshotErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PreviewDataSnapshotError = PreviewDataSnapshotErrors[keyof PreviewDataSnapshotErrors];
+
+export type PreviewDataSnapshotResponses = {
+    /**
+     * Successful Response
+     */
+    200: PreviewPage;
+};
+
+export type PreviewDataSnapshotResponse = PreviewDataSnapshotResponses[keyof PreviewDataSnapshotResponses];
+
+export type RefreshDataSnapshotData = {
+    body?: never;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query?: never;
+    url: '/api/v1/datasets/{dataset_id}/refresh';
+};
+
+export type RefreshDataSnapshotErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type RefreshDataSnapshotError = RefreshDataSnapshotErrors[keyof RefreshDataSnapshotErrors];
+
+export type RefreshDataSnapshotResponses = {
+    /**
+     * Successful Response
+     */
+    202: ImportPublic;
+};
+
+export type RefreshDataSnapshotResponse = RefreshDataSnapshotResponses[keyof RefreshDataSnapshotResponses];
 
 export type HealthLiveData = {
     body?: never;

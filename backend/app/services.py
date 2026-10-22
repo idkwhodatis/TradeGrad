@@ -155,6 +155,27 @@ def submit_run(
             422,
             {"start_date": str(dataset.start_date), "end_date": str(dataset.end_date)},
         )
+    compatibility = dataset.manifest.get("evaluation_compatibility", {})
+    if compatibility.get("compatible") is False:
+        raise DomainError(
+            "incompatible_data_units",
+            "Dataset cannot be evaluated until its units and semantic flags are resolved in a new snapshot",
+            422,
+            compatibility.get("reasons", []),
+        )
+    listings = dataset.manifest.get("listings", [])
+    if listings and body.task.endswith("_time") and len(listings) != 1:
+        raise DomainError(
+            "single_listing_required",
+            "Time-series evaluation requires a snapshot with exactly one listing",
+            422,
+        )
+    if listings and dataset.manifest.get("quality", {}).get("unknown_flags"):
+        raise DomainError(
+            "unknown_data_semantics",
+            "Uploaded data has unresolved semantic flags; resolve them in a new upload before evaluation",
+            422,
+        )
     active = session.scalar(
         select(func.count())
         .select_from(ResearchRun)

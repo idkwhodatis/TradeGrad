@@ -27,7 +27,7 @@ export function describeError(error: unknown): {
     if (value.name === "AbortError" || value.name === "TimeoutError")
       return {
         message:
-          "The request timed out. Retry to check the same submission; a timeout does not mean the run was not created.",
+          "The request timed out. Retry to check the same submission; a timeout does not mean the operation was not accepted.",
       };
   }
   return {

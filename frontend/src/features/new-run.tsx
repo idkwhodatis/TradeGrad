@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   DemoNotice,
+  NativeWindowNotice,
   ErrorState,
   Loading,
   PageHeader,
@@ -32,10 +33,19 @@ import {
   saveSubmission,
   submissionFor,
 } from "@/lib/idempotency";
+import { datasetOptions } from "@/lib/data-api";
+import { asRecord, snapshotLabel } from "@/lib/data-utils";
 import { taskLabels } from "@/lib/format";
 
 export function NewRunPage() {
+  const { dataset: preferred } = useSearch({ strict: false }) as {
+    dataset?: string;
+  };
   const datasets = useQuery(datasetsOptions);
+  const preferredDataset = useQuery({
+    ...datasetOptions(preferred || ""),
+    enabled: !!preferred,
+  });
   const strategies = useQuery(strategiesOptions);
   const user = useQuery(currentUserOptions);
   return (
@@ -51,16 +61,29 @@ export function NewRunPage() {
         </Link>
       </PageHeader>
       <DemoNotice />
+      <NativeWindowNotice />
       <div className="mt-6">
-        {datasets.isPending || strategies.isPending || user.isPending ? (
+        {datasets.isPending ||
+        strategies.isPending ||
+        user.isPending ||
+        (!!preferred && preferredDataset.isPending) ? (
           <Loading />
-        ) : datasets.error || strategies.error || user.error ? (
+        ) : datasets.error ||
+          strategies.error ||
+          user.error ||
+          preferredDataset.error ? (
           <ErrorState
-            error={datasets.error || strategies.error || user.error}
+            error={
+              datasets.error ||
+              strategies.error ||
+              user.error ||
+              preferredDataset.error
+            }
             retry={() => {
               void datasets.refetch();
               void strategies.refetch();
               void user.refetch();
+              if (preferred) void preferredDataset.refetch();
             }}
           />
         ) : !datasets.data?.data.length ||
@@ -73,7 +96,15 @@ export function NewRunPage() {
         ) : (
           <RunForm
             owner={user.data.id}
-            datasets={datasets.data.data}
+            preferred={preferred}
+            datasets={
+              preferredDataset.data &&
+              !datasets.data.data.some(
+                (item) => item.id === preferredDataset.data?.id,
+              )
+                ? [preferredDataset.data, ...datasets.data.data]
+                : datasets.data.data
+            }
             strategies={strategies.data.data}
           />
         )}
@@ -84,18 +115,36 @@ export function NewRunPage() {
 
 function RunForm({
   owner,
+  preferred,
   datasets,
   strategies,
 }: {
   owner: string;
+  preferred?: string;
   datasets: DatasetPublic[];
   strategies: StrategyPublic[];
 }) {
   const navigate = useNavigate();
-  const saved = useRef(loadSubmission(owner));
+  const saved = useRef(preferred ? null : loadSubmission(owner));
   const first =
-    datasets.find((dataset) => dataset.market === "CN") || datasets[0];
-  const firstTask = first.market === "CN" ? "cn_time" : "us_time";
+    datasets.find((dataset) => dataset.id === preferred) ||
+    datasets.find(
+      (dataset) =>
+        dataset.market === "CN" && dataset.source === "synthetic_fixture",
+    ) ||
+    datasets.find((dataset) => dataset.market === "CN") ||
+    datasets[0];
+  const isBasket =
+    Array.isArray(first.manifest.listings) &&
+    first.manifest.listings.length > 1;
+  const firstTask =
+    first.market === "CN"
+      ? isBasket
+        ? "cn_cross"
+        : "cn_time"
+      : isBasket
+        ? "us_cross"
+        : "us_time";
   const defaults: RunCreate = saved.current?.body || {
     task: firstTask,
     dataset_version_id: first.id,
@@ -172,6 +221,28 @@ function RunForm({
       });
       return;
     }
+    if (
+      body.task.endsWith("_time") &&
+      Array.isArray(selectedDataset.manifest.listings) &&
+      selectedDataset.manifest.listings.length !== 1
+    ) {
+      setError("dataset_version_id", {
+        message:
+          "Time-series evaluation requires exactly one listing. Choose a basket task or a single-listing snapshot.",
+      });
+      return;
+    }
+    const compatibility = asRecord(
+      selectedDataset.manifest.evaluation_compatibility,
+    );
+    if (compatibility.compatible === false) {
+      setError("dataset_version_id", {
+        message: Array.isArray(compatibility.reasons)
+          ? compatibility.reasons.join(" ")
+          : "This snapshot is not compatible with the fixed-seed evaluator. Inspect its metadata.",
+      });
+      return;
+    }
     submitting.current = true;
     setFailure(null);
     try {
@@ -232,7 +303,7 @@ function RunForm({
                     </option>
                     {compatibleDatasets.map((dataset) => (
                       <option key={dataset.id} value={dataset.id}>
-                        {dataset.name} · Synthetic
+                        {dataset.name} · {snapshotLabel(dataset)}
                       </option>
                     ))}
                   </select>
@@ -241,6 +312,20 @@ function RunForm({
                       ? `${selectedDataset.start_date} to ${selectedDataset.end_date}, exclusive end. Snapshot is immutable.`
                       : "No compatible dataset available."}
                   </small>
+                  {selectedDataset && (
+                    <p className="notice">
+                      {snapshotLabel(selectedDataset)}. Price semantics and
+                      coverage are fixed in the{" "}
+                      <Link
+                        className="text-link"
+                        to="/datasets/$datasetId"
+                        params={{ datasetId: selectedDataset.id }}
+                      >
+                        snapshot manifest
+                      </Link>
+                      .
+                    </p>
+                  )}
                   {errors.dataset_version_id && (
                     <span className="field-error">
                       {errors.dataset_version_id.message}

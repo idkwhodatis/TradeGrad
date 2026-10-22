@@ -16,6 +16,7 @@ import type { ArtifactPublic, RunDetail } from "@/client/types.gen";
 import { Button } from "@/components/ui/button";
 import {
   DemoNotice,
+  NativeWindowNotice,
   ErrorState,
   Loading,
   PageHeader,
@@ -30,6 +31,8 @@ import {
   resumeRun,
   runOptions,
 } from "@/lib/api";
+import { datasetOptions } from "@/lib/data-api";
+import { snapshotLabel } from "@/lib/data-utils";
 import { useRunEvents } from "@/lib/use-run-events";
 import {
   formatBytes,
@@ -60,6 +63,7 @@ export function RunDetailPage() {
   );
 }
 function RunContent({ run }: { run: RunDetail }) {
+  const dataset = useQuery(datasetOptions(run.dataset_version_id));
   const terminal = terminalStatuses.has(run.status);
   const events = useRunEvents(run.id, terminal);
   const artifacts = useQuery({
@@ -139,6 +143,7 @@ function RunContent({ run }: { run: RunDetail }) {
         </div>
       </PageHeader>
       <DemoNotice />
+      <NativeWindowNotice />
       {command.error && (
         <div className="mt-4">
           <ErrorState error={command.error} />
@@ -237,7 +242,7 @@ function RunContent({ run }: { run: RunDetail }) {
           {run.status === "succeeded" && (
             <Panel
               title="Evaluation results"
-              action={<span className="chip">Synthetic data</span>}
+              action={<span className="chip">Native · untrusted result</span>}
             >
               <p className="text-xs muted mb-5">
                 Fixed-seed native AKQuant metrics. Strategy and engine share a
@@ -317,7 +322,23 @@ function RunContent({ run }: { run: RunDetail }) {
               </div>
               <div>
                 <dt>Dataset version</dt>
-                <dd className="hash">{run.dataset_version_id}</dd>
+                <dd className="hash">
+                  <Link
+                    className="text-link"
+                    to="/datasets/$datasetId"
+                    params={{ datasetId: run.dataset_version_id }}
+                  >
+                    {run.dataset_version_id}
+                  </Link>
+                </dd>
+              </div>
+              <div>
+                <dt>Data evidence</dt>
+                <dd>
+                  {dataset.data
+                    ? snapshotLabel(dataset.data)
+                    : "Inspect pinned dataset"}
+                </dd>
               </div>
               <div>
                 <dt>Strategy version</dt>

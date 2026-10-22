@@ -1,0 +1,92 @@
+"""Synthetic, fixed SDK-schema examples, NOT captured or live market quotes.
+
+The fixed generated window is [2024-01-02,2024-07-01). Dates come only from
+exchange_calendars sessions. These prices are artificial, NOT captured returns.
+Other dates stay missing, never filled.
+"""
+
+import pandas as pd
+
+
+def fixture_days(calendar: str):
+    import exchange_calendars as xc
+
+    return [
+        item.date().isoformat()
+        for item in xc.get_calendar(calendar).sessions_in_range(
+            "2024-01-02", "2024-06-30"
+        )
+    ]
+
+
+DAYS = fixture_days("XNAS")
+
+
+def akshare_resolve():
+    return pd.DataFrame(
+        {"code": ["600000", "000001"], "name": ["Fixture Shanghai", "Fixture Shenzhen"]}
+    )
+
+
+def akshare_bars(
+    symbol: str, adjust: str, start_date: str = "20240102", end_date: str = "20240630"
+):
+    if symbol not in {"600000", "000001"}:
+        return pd.DataFrame()
+    factor = {"": 1.0, "qfq": 0.9, "hfq": 1.1}[adjust]
+    return pd.DataFrame(
+        [
+            {
+                "日期": day,
+                "股票代码": symbol,
+                "开盘": (10 + i) * factor,
+                "最高": (12 + i) * factor,
+                "最低": (9 + i) * factor,
+                "收盘": (11 + i) * factor,
+                "成交量": 1000 + i,
+                "成交额": 1000000 + i,
+            }
+            for i, day in enumerate(fixture_days("XSHG"))
+            if start_date <= day.replace("-", "") <= end_date
+        ]
+    )
+
+
+def yfinance_resolve(symbol: str):
+    if symbol not in {"AAPL", "MSFT"}:
+        return {"quotes": [], "metadata": {}}
+    return {
+        "quotes": [
+            {"symbol": symbol, "shortname": f"Fixture {symbol}", "quoteType": "EQUITY"}
+        ],
+        "metadata": {
+            "symbol": symbol,
+            "currency": "USD",
+            "exchangeName": "NMS",
+            "exchangeTimezoneName": "America/New_York",
+            "instrumentType": "EQUITY",
+        },
+    }
+
+
+def yfinance_bars(symbol: str, start: str = "2024-01-02", end: str = "2024-07-01"):
+    if symbol not in {"AAPL", "MSFT"}:
+        return pd.DataFrame()
+    days = [day for day in DAYS if start <= day < end]
+    return pd.DataFrame(
+        [
+            {
+                "Open": 100 + i,
+                "High": 102 + i,
+                "Low": 99 + i,
+                "Close": 101 + i,
+                "Adj Close": 100.5 + i,
+                "Volume": 10000 + i,
+                "Dividends": 0.25 if i == 1 else 0.0,
+                "Stock Splits": 2.0 if i == 2 else 0.0,
+            }
+            for i, day in enumerate(DAYS)
+            if day in days
+        ],
+        index=pd.DatetimeIndex(days, tz="America/New_York", name="Date"),
+    )
