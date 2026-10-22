@@ -37,6 +37,12 @@ Downloaded outcome artifacts were hash-verified. See
 M2 data integration is prepared locally but its hosted gate is pending. See
 [M2 acceptance and limitations](M2_VALIDATION.md), including the transitional
 cold-start seed behavior and still-incomplete short-optimization slice.
-M3–M6 have not started. Live provider verification is separate from deterministic
+M3's available local gate passed 518 tests, including actual unchanged upstream
+TradeTGD and native AKQuant component integrations; its new PostgreSQL/Docker
+application and browser acceptance remains pending. See [M3 evidence](M3_VALIDATION.md)
+and the [separate research runtime](../runtimes/research/README.md). The user's
+2026-10-22 local-first instruction permits further locally verifiable preparation
+while retaining, rather than silently passing, unavailable integration gates.
+M4–M6 have not started. Live provider verification is separate from deterministic
 synthetic SDK-response fixtures. An absent or pending report means the relevant
 phase has not passed.

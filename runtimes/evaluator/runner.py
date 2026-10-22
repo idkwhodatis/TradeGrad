@@ -7,9 +7,9 @@ Native engine metrics are observations, not a tamper-proof trusted ledger.
 
 from __future__ import annotations
 
-import json
 import base64
 import fcntl
+import json
 import math
 import os
 import re
@@ -17,10 +17,10 @@ import shutil
 import subprocess
 import threading
 import time
-from pathlib import Path
-from typing import Callable
-from uuid import UUID
+from collections.abc import Callable
 from contextlib import contextmanager
+from pathlib import Path
+from uuid import UUID
 
 RESULT_PREFIX = "TRADEGRAD_RESULT_V1:"
 
@@ -57,10 +57,17 @@ def _metrics(path: Path) -> dict:
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 1_048_576:
         raise ValueError("Missing or oversized metrics.json")
 
+    return _validated_metrics_bytes(path.read_bytes())
+
+
+def _validated_metrics_bytes(data: bytes) -> dict:
+    if len(data) > 1_048_576:
+        raise ValueError("Oversized metrics JSON")
+
     def invalid_constant(_):
         raise ValueError("Evaluation metrics must be finite numbers")
 
-    value = json.loads(path.read_text(), parse_constant=invalid_constant)
+    value = json.loads(data, parse_constant=invalid_constant)
     fields = (
         "sharpe_ratio",
         "annualized_return",
@@ -70,7 +77,7 @@ def _metrics(path: Path) -> dict:
         "return_per_trade",
     )
     if not isinstance(value, dict) or not isinstance(value.get("metrics"), dict):
-        raise ValueError("Invalid evaluation result schema")
+        raise ValueError("Invalid evaluation result schema")  # noqa: TRY004 - wire schema validation
     numbers = [value.get("combined_score")] + [
         value["metrics"].get(key) for key in fields
     ]
@@ -103,6 +110,91 @@ def _metrics(path: Path) -> dict:
     return value
 
 
+def decode_result_protocol(
+    stdout: bytes,
+    output_dir: Path,
+    *,
+    expected_config_sha256: str | None = None,
+    expected_identity: dict | None = None,
+) -> tuple[dict, dict | None]:
+    """Validate a bounded data-only wire record; never deserialize engine objects."""
+    from packages.tradegrad_adapter.results import (
+        MAX_WIRE_BYTES,
+        RESULT_PREFIX_V2,
+        canonical_json_bytes,
+        validate_envelope,
+    )
+
+    records = []
+    for line in stdout.decode("utf-8", errors="strict").splitlines():
+        for prefix in (RESULT_PREFIX, RESULT_PREFIX_V2):
+            if line.startswith(prefix):
+                records.append((prefix, line[len(prefix) :]))
+    if len(records) != 1 or len(records[0][1]) > 4 * ((MAX_WIRE_BYTES + 2) // 3):
+        raise ValueError("Missing, duplicated or oversized result protocol record")
+    prefix, encoded = records[0]
+    data = base64.b64decode(encoded, validate=True)
+    if len(data) > MAX_WIRE_BYTES:
+        raise ValueError("Result protocol exceeded its byte budget")
+    bundle = None
+    if prefix == RESULT_PREFIX_V2:
+        envelope = validate_envelope(data)
+        bundle = envelope["bundle"]
+        if (
+            expected_config_sha256 is not None
+            and bundle["identity"].get("run_config_sha256") != expected_config_sha256
+        ):
+            raise ValueError("ResultBundle belongs to a different immutable config")
+        if expected_identity is not None and bundle["identity"] != expected_identity:
+            raise ValueError("ResultBundle staged-input identity mismatch")
+        metrics_bytes = canonical_json_bytes(envelope["metrics"])
+    else:
+        if expected_config_sha256 is not None:
+            raise ValueError("Configured research requires a complete V2 ResultBundle")
+        metrics_bytes = data
+    metrics = _validated_metrics_bytes(metrics_bytes)
+    files = {"metrics.json": metrics_bytes}
+    if bundle is not None:
+        files["result-bundle.json"] = canonical_json_bytes(bundle)
+    if not output_dir.is_dir() or any(
+        path.is_symlink() for path in (output_dir, *output_dir.parents)
+    ):
+        raise ValueError("Result output directory must not traverse symlinks")
+    if any(
+        (output_dir / name).exists() or (output_dir / name).is_symlink()
+        for name in files
+    ):
+        raise ValueError("Result output artifacts cannot overwrite existing paths")
+    created = []
+    try:
+        for name, content in files.items():
+            path = output_dir / name
+            fd = os.open(
+                path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600
+            )
+            created.append(path)
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(content)
+                stream.flush()
+                os.fsync(stream.fileno())
+    except OSError as error:
+        for path in created:
+            path.unlink(missing_ok=True)
+        raise ValueError(
+            "Result artifacts could not be exclusively published"
+        ) from error
+    return metrics, bundle
+
+
+def _without_protocol(value: bytes) -> str:
+    """Structured output is stored once as an artifact, never repeated in logs."""
+    return "\n".join(
+        line
+        for line in value.decode("utf-8", errors="replace").splitlines()
+        if not line.startswith((RESULT_PREFIX, "TRADEGRAD_RESULT_V2:"))
+    )
+
+
 class DockerEvaluator:
     def __init__(
         self,
@@ -133,6 +225,7 @@ class DockerEvaluator:
             log_bytes,
             grace_seconds,
         )
+        self.wire_log_allowance = 0
         self.state_dir = (
             state_dir
             or Path(os.environ.get("TRADEGRAD_RUNNER_STATE_DIR", "var/runner"))
@@ -192,6 +285,29 @@ class DockerEvaluator:
             )
         return image_id
 
+    def bind_environment(self, expected_digest: str) -> str:
+        """Resolve a mutable tag once; configured research uses that exact image ID."""
+        if not re.fullmatch(r"[0-9a-f]{64}", expected_digest):
+            raise ValueError("Invalid immutable environment digest")
+        self._preflight()
+        image_id = self._image_id()
+        label = self._command(
+            "image",
+            "inspect",
+            image_id,
+            "--format",
+            '{{index .Config.Labels "io.tradegrad.environment_digest"}}',
+        )
+        if label.returncode or label.stdout.strip() != expected_digest:
+            raise IsolationUnavailable(
+                "Evaluator image does not match frozen build inputs"
+            )
+        self.image = image_id
+        from packages.tradegrad_adapter.results import MAX_WIRE_BYTES
+
+        self.wire_log_allowance = 4 * ((MAX_WIRE_BYTES + 2) // 3) + 128
+        return image_id
+
     def _preflight(self):
         result = self._command("info", "--format", "{{json .}}")
         try:
@@ -200,6 +316,8 @@ class DockerEvaluator:
             raise IsolationUnavailable(
                 "Cannot verify Docker isolation capabilities"
             ) from exc
+        if not isinstance(info, dict):
+            raise IsolationUnavailable("Docker isolation information must be an object")
         required = (
             "MemoryLimit",
             "SwapLimit",
@@ -269,14 +387,30 @@ class DockerEvaluator:
                 return None
             raise IsolationUnavailable("Cannot confirm evaluator container state")
         try:
-            value = json.loads(result.stdout)[0]
-            labels = value["Config"]["Labels"] or {}
+            rows = json.loads(result.stdout)
+            if (
+                not isinstance(rows, list)
+                or len(rows) != 1
+                or not isinstance(rows[0], dict)
+            ):
+                raise ValueError("Docker inspect must return one container object")
+            value = rows[0]
+            config, state = value.get("Config"), value.get("State")
+            if not isinstance(config, dict):
+                raise TypeError("Docker inspect returned malformed config")
+            labels = config.get("Labels")
+            if not isinstance(labels, dict):
+                raise TypeError("Docker inspect returned malformed labels")
             if labels.get("io.tradegrad.managed") != "evaluator-v1" or labels.get(
                 "io.tradegrad.attempt_id"
             ) != _identity(attempt_id):
                 raise IsolationUnavailable(
                     "Container identity does not match this execution attempt"
                 )
+            if not isinstance(state, dict) or type(state.get("Running")) is not bool:
+                raise ValueError("Docker inspect returned malformed state")
+            if "ExitCode" in state and type(state["ExitCode"]) is not int:
+                raise ValueError("Docker inspect returned malformed exit code")
             return value
         except (ValueError, KeyError, IndexError, TypeError) as exc:
             raise IsolationUnavailable(
@@ -371,7 +505,7 @@ class DockerEvaluator:
             "--ulimit",
             f"fsize={self.output_bytes}:{self.output_bytes}",
             "--log-driver=json-file",
-            "--log-opt=max-size=2m",
+            f"--log-opt=max-size={self.log_bytes + self.wire_log_allowance}",
             "--log-opt=max-file=1",
             "--tmpfs",
             "/tmp:rw,noexec,nosuid,nodev,size=67108864,nr_inodes=4096,mode=1777",
@@ -406,7 +540,19 @@ class DockerEvaluator:
         attempt_id: str,
         cancelled: Callable[[], bool] = lambda: False,
         heartbeat: Callable[[], None] = lambda: None,
+        expected_config_sha256: str | None = None,
     ) -> dict:
+        started = time.monotonic()
+        deadline = started + self.timeout
+
+        def launch_timeout():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise IsolationUnavailable(
+                    "Evaluation runtime budget expired before sandbox launch"
+                )
+            return min(20.0, remaining)
+
         run_id, attempt_id = _identity(run_id), _identity(attempt_id)
         if input_dir.is_symlink() or output_dir.is_symlink():
             raise ValueError("Evaluation paths cannot be symlinks")
@@ -423,6 +569,38 @@ class DockerEvaluator:
         output_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         if any(output_dir.iterdir()):
             raise ValueError("Refusing to reuse a nonempty evaluation output namespace")
+        expected_identity = None
+        capture_allowance = 0
+        if expected_config_sha256 is not None:
+            from packages.tradegrad_adapter.results import (
+                MAX_WIRE_BYTES,
+                artifact_inventory,
+                canonical_json_bytes,
+                sha256_bytes,
+            )
+
+            request_path = input_dir / "request.json"
+            if request_path.stat().st_size > 65536:
+                raise ValueError("Oversized configured evaluator request")
+            request = json.loads(request_path.read_bytes())
+            config = request["evaluation_config"]
+            if config["run_config_sha256"] != expected_config_sha256:
+                raise ValueError("Configured evaluator input hash mismatch")
+            inputs = artifact_inventory(input_dir)
+            expected_identity = {
+                "strategy_sha256": sha256_bytes(
+                    (input_dir / "strategy.py").read_bytes()
+                ),
+                "run_config_sha256": expected_config_sha256,
+                "evaluation_config_sha256": sha256_bytes(canonical_json_bytes(config)),
+                "input_manifest_sha256": sha256_bytes(canonical_json_bytes(inputs)),
+                "inputs": inputs,
+                "task": request["task"],
+                "market": request["market"],
+                "profile": request["profile"],
+            }
+            capture_allowance = 4 * ((MAX_WIRE_BYTES + 2) // 3) + 128
+            self.wire_log_allowance = capture_allowance
         image_id = self._image_id()
         self._preflight()
         # Callbacks can acquire DB row locks. Never call one while holding flock,
@@ -451,7 +629,8 @@ class DockerEvaluator:
                 result = self._command(
                     *self._create_command(
                         image_id, input_dir, output_dir, run_id, attempt_id
-                    )
+                    ),
+                    timeout=launch_timeout(),
                 )
                 if result.returncode or not re.fullmatch(
                     r"[0-9a-f]{64}", result.stdout.strip()
@@ -461,7 +640,9 @@ class DockerEvaluator:
                     )
                 container_id = result.stdout.strip()
                 # Synchronous start under the same lock prevents a delayed start after stop().
-                started_result = self._command("start", container_id)
+                started_result = self._command(
+                    "start", container_id, timeout=launch_timeout()
+                )
                 if started_result.returncode:
                     raise IsolationUnavailable("Failed to start isolated evaluator")
             except IsolationUnavailable:
@@ -482,8 +663,8 @@ class DockerEvaluator:
         error = None
         status = "failed"
         metrics = None
+        bundle = None
         exit_code = None
-        started = time.monotonic()
         watchdog_done = threading.Event()
         watchdog_reason = []
 
@@ -506,7 +687,11 @@ class DockerEvaluator:
         def capture(pipe, name):
             try:
                 while chunk := pipe.read(8192):
-                    remaining = self.log_bytes - len(logs[name])
+                    remaining = (
+                        self.log_bytes
+                        + (capture_allowance if name == "stdout" else 0)
+                        - len(logs[name])
+                    )
                     logs[name].extend(chunk[: max(0, remaining)])
                     if len(chunk) > remaining:
                         exceeded.set()
@@ -572,22 +757,17 @@ class DockerEvaluator:
                 elif exit_code != 0:
                     error = f"Evaluation exited with code {exit_code}"
                 else:
-                    records = [
-                        line[len(RESULT_PREFIX) :]
-                        for line in bytes(logs["stdout"])
-                        .decode("utf-8", errors="replace")
-                        .splitlines()
-                        if line.startswith(RESULT_PREFIX)
-                    ]
-                    if len(records) != 1 or len(records[0]) > 1_400_000:
-                        raise ValueError(
-                            "Missing, duplicated or oversized result protocol record"
-                        )
-                    data = base64.b64decode(records[0], validate=True)
-                    if len(data) > 1_048_576:
-                        raise ValueError("Result protocol exceeded its byte budget")
-                    (output_dir / "metrics.json").write_bytes(data)
-                    metrics = _metrics(output_dir / "metrics.json")
+                    if (
+                        len(_without_protocol(bytes(logs["stdout"])).encode())
+                        > self.log_bytes
+                    ):
+                        raise ValueError("Evaluation exceeded its ordinary log budget")
+                    metrics, bundle = decode_result_protocol(
+                        bytes(logs["stdout"]),
+                        output_dir,
+                        expected_config_sha256=expected_config_sha256,
+                        expected_identity=expected_identity,
+                    )
                     status = "succeeded"
         except (
             OSError,
@@ -625,9 +805,9 @@ class DockerEvaluator:
             "container_id": container_id,
             "image_digest": image_id,
             "metrics": metrics if status == "succeeded" else None,
+            "bundle": bundle if status == "succeeded" else None,
             "logs": {
-                key: bytes(value).decode("utf-8", errors="replace")
-                for key, value in logs.items()
+                key: _without_protocol(bytes(value)) for key, value in logs.items()
             },
             "duration_seconds": time.monotonic() - started,
             "evaluation_mode": "native_akquant",

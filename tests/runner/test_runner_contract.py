@@ -139,17 +139,17 @@ def test_invalid_uuid_cannot_reach_docker(runner):
     ],
 )
 def test_missing_kernel_enforcement_fails_closed(runner, monkeypatch, missing):
-    capabilities = dict(
-        MemoryLimit=True,
-        SwapLimit=True,
-        CpuCfsPeriod=True,
-        CpuCfsQuota=True,
-        PidsLimit=True,
-        CgroupVersion="2",
-        CgroupDriver="systemd",
-        OSType="linux",
-        SecurityOptions=["name=seccomp,profile=builtin"],
-    )
+    capabilities = {
+        "MemoryLimit": True,
+        "SwapLimit": True,
+        "CpuCfsPeriod": True,
+        "CpuCfsQuota": True,
+        "PidsLimit": True,
+        "CgroupVersion": "2",
+        "CgroupDriver": "systemd",
+        "OSType": "linux",
+        "SecurityOptions": ["name=seccomp,profile=builtin"],
+    }
     capabilities.pop(missing)
     monkeypatch.setattr(
         runner,

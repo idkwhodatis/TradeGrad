@@ -10,6 +10,8 @@ RunStatus = Literal[
     "preparing",
     "running",
     "finalizing",
+    "pause_requested",
+    "paused",
     "cancel_requested",
     "cancelled",
     "failed",
@@ -81,6 +83,7 @@ class RunCreate(BaseModel):
 
 class AttemptPublic(PublicModel):
     id: UUID
+    resumed_checkpoint_id: UUID | None = None
     generation: int
     status: str
     sandbox_stopped: bool
@@ -103,6 +106,22 @@ class ResultPublic(BaseModel):
     image_digest: str | None = None
 
 
+class OptimizationResultPublic(BaseModel):
+    execution_mode: Literal["optimization"] = "optimization"
+    stop_reason: str
+    best_candidate_id: UUID | None = None
+    best_candidate_key: str | None = None
+    combined_score: float | None = Field(default=None, allow_inf_nan=False)
+    metrics: dict[str, float] = Field(default_factory=dict)
+    is_synthetic: bool
+    evaluation_mode: Literal["native_akquant"] = "native_akquant"
+    result_trust: Literal["native_strategy_and_engine_share_process"] = (
+        "native_strategy_and_engine_share_process"
+    )
+    image_digest: str | None = None
+    holdout_executed: Literal[False] = False
+
+
 class RunPublic(PublicModel):
     id: UUID
     status: RunStatus
@@ -112,11 +131,11 @@ class RunPublic(PublicModel):
     strategy_version_id: UUID
     active_attempt_id: UUID | None
     next_event_seq: int
-    result: ResultPublic | None
+    result: ResultPublic | OptimizationResultPublic | None
     error: str | None
     created_at: datetime
     updated_at: datetime
-    execution_mode: Literal["seed_evaluation"] = "seed_evaluation"
+    execution_mode: Literal["seed_evaluation", "optimization"] = "seed_evaluation"
 
 
 class RunDetail(RunPublic):

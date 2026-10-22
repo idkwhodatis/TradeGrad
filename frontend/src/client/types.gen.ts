@@ -71,6 +71,10 @@ export type AttemptPublic = {
      */
     id: string;
     /**
+     * Resumed Checkpoint Id
+     */
+    resumed_checkpoint_id?: string | null;
+    /**
      * Sandbox Stopped
      */
     sandbox_stopped: boolean;
@@ -181,6 +185,132 @@ export type BodyUploadDataFile = {
 };
 
 /**
+ * BudgetConfig
+ */
+export type BudgetConfig = {
+    /**
+     * Max Model Calls
+     */
+    max_model_calls?: number;
+    /**
+     * Max Repairs
+     */
+    max_repairs?: number;
+    /**
+     * Max Runtime Seconds
+     */
+    max_runtime_seconds?: number;
+    /**
+     * Max Tokens
+     */
+    max_tokens?: number;
+};
+
+/**
+ * CandidateDetail
+ */
+export type CandidateDetail = {
+    /**
+     * Attempt Id
+     */
+    attempt_id: string;
+    /**
+     * Candidate Key
+     */
+    candidate_key: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Iteration
+     */
+    iteration: number;
+    /**
+     * Kind
+     */
+    kind: 'seed' | 'generated' | 'repair';
+    /**
+     * Parent Id
+     */
+    parent_id: string | null;
+    /**
+     * Repair Index
+     */
+    repair_index: number;
+    /**
+     * Run Id
+     */
+    run_id: string;
+};
+
+/**
+ * CandidatePublic
+ */
+export type CandidatePublic = {
+    /**
+     * Attempt Id
+     */
+    attempt_id: string;
+    /**
+     * Candidate Key
+     */
+    candidate_key: string;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Iteration
+     */
+    iteration: number;
+    /**
+     * Kind
+     */
+    kind: 'seed' | 'generated' | 'repair';
+    /**
+     * Parent Id
+     */
+    parent_id: string | null;
+    /**
+     * Repair Index
+     */
+    repair_index: number;
+    /**
+     * Run Id
+     */
+    run_id: string;
+};
+
+/**
  * Capability
  */
 export type Capability = {
@@ -238,6 +368,128 @@ export type Capability = {
      * Symbols
      */
     symbols?: Array<string>;
+};
+
+/**
+ * CheckpointDetail
+ */
+export type CheckpointDetail = {
+    /**
+     * Attempt Id
+     */
+    attempt_id: string;
+    /**
+     * Complete
+     */
+    complete: boolean;
+    /**
+     * Config Sha256
+     */
+    config_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Input Digest
+     */
+    input_digest: string;
+    /**
+     * Iteration
+     */
+    iteration: number;
+    /**
+     * Manifest Sha256
+     */
+    manifest_sha256: string;
+    /**
+     * Next Stage
+     */
+    next_stage: string;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Schema Version
+     */
+    schema_version: number;
+    /**
+     * Sequence
+     */
+    sequence: number;
+    /**
+     * Summary
+     */
+    summary: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * CheckpointPublic
+ */
+export type CheckpointPublic = {
+    /**
+     * Attempt Id
+     */
+    attempt_id: string;
+    /**
+     * Complete
+     */
+    complete: boolean;
+    /**
+     * Config Sha256
+     */
+    config_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Input Digest
+     */
+    input_digest: string;
+    /**
+     * Iteration
+     */
+    iteration: number;
+    /**
+     * Manifest Sha256
+     */
+    manifest_sha256: string;
+    /**
+     * Next Stage
+     */
+    next_stage: string;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Schema Version
+     */
+    schema_version: number;
+    /**
+     * Sequence
+     */
+    sequence: number;
 };
 
 /**
@@ -325,6 +577,20 @@ export type DatasetPublic = {
 };
 
 /**
+ * DateWindow
+ */
+export type DateWindow = {
+    /**
+     * End
+     */
+    end: string;
+    /**
+     * Start
+     */
+    start: string;
+};
+
+/**
  * ErrorResponse
  */
 export type ErrorResponse = {
@@ -344,6 +610,172 @@ export type ErrorResponse = {
      * Message
      */
     message: string;
+};
+
+/**
+ * EvaluationDetail
+ */
+export type EvaluationDetail = {
+    /**
+     * Attempt Id
+     */
+    attempt_id: string;
+    /**
+     * Candidate Id
+     */
+    candidate_id: string | null;
+    /**
+     * Candidate Key
+     */
+    candidate_key: string;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Finished At
+     */
+    finished_at: string | null;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Image Digest
+     */
+    image_digest: string;
+    /**
+     * Payload
+     */
+    payload: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Payload Sha256
+     */
+    payload_sha256: string | null;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Sandbox Id
+     */
+    sandbox_id: string;
+    /**
+     * Sandbox Stopped
+     */
+    sandbox_stopped: boolean;
+    /**
+     * Split
+     */
+    split: 'train' | 'validation';
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Window
+     */
+    window: {
+        [key: string]: unknown;
+    };
+    /**
+     * Window Sha256
+     */
+    window_sha256: string;
+};
+
+/**
+ * EvaluationPublic
+ */
+export type EvaluationPublic = {
+    /**
+     * Attempt Id
+     */
+    attempt_id: string;
+    /**
+     * Candidate Id
+     */
+    candidate_id: string | null;
+    /**
+     * Candidate Key
+     */
+    candidate_key: string;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Finished At
+     */
+    finished_at: string | null;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Image Digest
+     */
+    image_digest: string;
+    /**
+     * Payload Sha256
+     */
+    payload_sha256: string | null;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Sandbox Id
+     */
+    sandbox_id: string;
+    /**
+     * Sandbox Stopped
+     */
+    sandbox_stopped: boolean;
+    /**
+     * Split
+     */
+    split: 'train' | 'validation';
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Window
+     */
+    window: {
+        [key: string]: unknown;
+    };
+    /**
+     * Window Sha256
+     */
+    window_sha256: string;
 };
 
 /**
@@ -673,6 +1105,390 @@ export type ListingPublic = {
 };
 
 /**
+ * MarketConfig
+ */
+export type MarketConfig = {
+    /**
+     * Assumptions
+     */
+    assumptions?: 'historical_demonstration_not_broker_terms';
+    /**
+     * Calendar
+     */
+    calendar: 'XSHG' | 'XNYS';
+    /**
+     * Calendar Note
+     */
+    calendar_note: string;
+    /**
+     * Commission Rate
+     */
+    commission_rate?: number;
+    /**
+     * Currency
+     */
+    currency: 'CNY' | 'USD';
+    /**
+     * Decision Timing
+     */
+    decision_timing?: 'native_akquant';
+    /**
+     * History Depth
+     */
+    history_depth?: 252;
+    /**
+     * Initial Cash
+     */
+    initial_cash?: number;
+    /**
+     * Lot Size
+     */
+    lot_size?: number | null;
+    /**
+     * Market
+     */
+    market: 'CN' | 'US';
+    risk_config?: RiskConfig | null;
+    slippage?: SlippageConfig;
+    /**
+     * Stamp Tax Rate
+     */
+    stamp_tax_rate: number;
+    /**
+     * T Plus One
+     */
+    t_plus_one: boolean;
+    /**
+     * Timezone
+     */
+    timezone: 'Asia/Shanghai' | 'America/New_York' | null;
+};
+
+/**
+ * ModelCallDetail
+ */
+export type ModelCallDetail = {
+    /**
+     * Adopted
+     */
+    adopted: boolean;
+    /**
+     * Attempt Id
+     */
+    attempt_id: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Error Category
+     */
+    error_category: string | null;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Latency Seconds
+     */
+    latency_seconds: number;
+    /**
+     * Logical Call Id
+     */
+    logical_call_id: string;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Payload
+     */
+    payload: {
+        [key: string]: unknown;
+    };
+    /**
+     * Payload Sha256
+     */
+    payload_sha256: string;
+    /**
+     * Prompt Version
+     */
+    prompt_version: string;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Request Sha256
+     */
+    request_sha256: string;
+    /**
+     * Response Artifact
+     */
+    response_artifact: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Response Sha256
+     */
+    response_sha256: string | null;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Usage
+     */
+    usage: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * ModelCallPublic
+ */
+export type ModelCallPublic = {
+    /**
+     * Adopted
+     */
+    adopted: boolean;
+    /**
+     * Attempt Id
+     */
+    attempt_id: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Error Category
+     */
+    error_category: string | null;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Latency Seconds
+     */
+    latency_seconds: number;
+    /**
+     * Logical Call Id
+     */
+    logical_call_id: string;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Payload Sha256
+     */
+    payload_sha256: string;
+    /**
+     * Prompt Version
+     */
+    prompt_version: string;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Request Sha256
+     */
+    request_sha256: string;
+    /**
+     * Response Artifact
+     */
+    response_artifact: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Response Sha256
+     */
+    response_sha256: string | null;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Usage
+     */
+    usage: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * ModelConfig
+ */
+export type ModelConfig = {
+    /**
+     * Credential Ref
+     */
+    credential_ref?: string | null;
+    /**
+     * Model
+     */
+    model?: string;
+    /**
+     * Provider
+     */
+    provider?: 'fixture' | 'openai' | 'openrouter';
+    /**
+     * Temperature
+     */
+    temperature?: number;
+};
+
+/**
+ * ObjectiveConfig
+ */
+export type ObjectiveConfig = {
+    /**
+     * Ar Reference
+     */
+    ar_reference?: 20;
+    /**
+     * Ar Weight
+     */
+    ar_weight?: 0.5;
+    /**
+     * Definition Version
+     */
+    definition_version?: 'source_reward.v1';
+    /**
+     * Freq Sharpness
+     */
+    freq_sharpness?: 1;
+    /**
+     * Frequency Floor Version
+     */
+    frequency_floor_version?: 'source_market.v1';
+    /**
+     * Mdd Reference
+     */
+    mdd_reference?: 15;
+    /**
+     * Metric Definition Version
+     */
+    metric_definition_version?: 'source_metrics.v1';
+    /**
+     * Reward Rounding
+     */
+    reward_rounding?: 'source_metrics_before_reward';
+    /**
+     * Windowing Definition
+     */
+    windowing_definition?: 'calendar_year_train_full_validation.v1';
+};
+
+/**
+ * OptimizationResultPublic
+ */
+export type OptimizationResultPublic = {
+    /**
+     * Best Candidate Id
+     */
+    best_candidate_id?: string | null;
+    /**
+     * Best Candidate Key
+     */
+    best_candidate_key?: string | null;
+    /**
+     * Combined Score
+     */
+    combined_score?: number | null;
+    /**
+     * Evaluation Mode
+     */
+    evaluation_mode?: 'native_akquant';
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'optimization';
+    /**
+     * Holdout Executed
+     */
+    holdout_executed?: false;
+    /**
+     * Image Digest
+     */
+    image_digest?: string | null;
+    /**
+     * Is Synthetic
+     */
+    is_synthetic: boolean;
+    /**
+     * Metrics
+     */
+    metrics?: {
+        [key: string]: number;
+    };
+    /**
+     * Result Trust
+     */
+    result_trust?: 'native_strategy_and_engine_share_process';
+    /**
+     * Stop Reason
+     */
+    stop_reason: string;
+};
+
+/**
+ * OptimizerConfig
+ */
+export type OptimizerConfig = {
+    /**
+     * Algorithm
+     */
+    algorithm?: 'trade_tgd';
+    /**
+     * Large Revision Prob
+     */
+    large_revision_prob?: number;
+    /**
+     * Max Iterations
+     */
+    max_iterations?: number;
+    /**
+     * Memory Window
+     */
+    memory_window?: number;
+    /**
+     * Sample Method
+     */
+    sample_method?: 'power_law' | 'uniform' | 'top_k';
+    /**
+     * Sample Size
+     */
+    sample_size?: number;
+    /**
+     * Seed
+     */
+    seed?: number;
+    /**
+     * Worst Ratio
+     */
+    worst_ratio?: number;
+};
+
+/**
  * Page[ArtifactPublic]
  */
 export type PageArtifactPublic = {
@@ -687,6 +1503,34 @@ export type PageArtifactPublic = {
 };
 
 /**
+ * Page[CandidatePublic]
+ */
+export type PageCandidatePublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<CandidatePublic>;
+};
+
+/**
+ * Page[CheckpointPublic]
+ */
+export type PageCheckpointPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<CheckpointPublic>;
+};
+
+/**
  * Page[DatasetPublic]
  */
 export type PageDatasetPublic = {
@@ -698,6 +1542,20 @@ export type PageDatasetPublic = {
      * Data
      */
     data: Array<DatasetPublic>;
+};
+
+/**
+ * Page[EvaluationPublic]
+ */
+export type PageEvaluationPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<EvaluationPublic>;
 };
 
 /**
@@ -726,6 +1584,34 @@ export type PageListingPublic = {
      * Data
      */
     data: Array<ListingPublic>;
+};
+
+/**
+ * Page[ModelCallPublic]
+ */
+export type PageModelCallPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<ModelCallPublic>;
+};
+
+/**
+ * Page[ResearchRunPublic]
+ */
+export type PageResearchRunPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<ResearchRunPublic>;
 };
 
 /**
@@ -931,6 +1817,198 @@ export type ProviderPublic = {
 };
 
 /**
+ * ResearchRunCreate
+ */
+export type ResearchRunCreate = {
+    /**
+     * Benchmark
+     */
+    benchmark?: null;
+    budgets?: BudgetConfig;
+    dataset: VersionRef;
+    /**
+     * Environment Digest
+     */
+    environment_digest: string;
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'optimization';
+    market_profile: MarketConfig;
+    model?: ModelConfig;
+    objective?: ObjectiveConfig;
+    optimizer?: OptimizerConfig;
+    /**
+     * Profile
+     */
+    profile?: 'source_compat' | 'corrected_explicit_config';
+    /**
+     * Prompt Version
+     */
+    prompt_version?: 'source_prompts.v1';
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.run.v1';
+    seed_strategy: VersionRef;
+    /**
+     * Task
+     */
+    task: 'cn_time' | 'us_time' | 'cn_cross' | 'us_cross';
+    universe: VersionRef;
+    warmup: WarmupConfig;
+    windows: WindowSet;
+};
+
+/**
+ * ResearchRunDetail
+ */
+export type ResearchRunDetail = {
+    /**
+     * Active Attempt Id
+     */
+    active_attempt_id: string | null;
+    /**
+     * Attempts
+     */
+    attempts: Array<AttemptPublic>;
+    /**
+     * Config
+     */
+    config: {
+        [key: string]: unknown;
+    };
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'seed_evaluation' | 'optimization';
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Latest Checkpoint Id
+     */
+    latest_checkpoint_id?: string | null;
+    /**
+     * Next Event Seq
+     */
+    next_event_seq: number;
+    /**
+     * Research Image Digest
+     */
+    research_image_digest?: string | null;
+    /**
+     * Result
+     */
+    result: ResultPublic | OptimizationResultPublic | null;
+    /**
+     * Resume Checkpoint Id
+     */
+    resume_checkpoint_id?: string | null;
+    /**
+     * Status
+     */
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * ResearchRunPublic
+ */
+export type ResearchRunPublic = {
+    /**
+     * Active Attempt Id
+     */
+    active_attempt_id: string | null;
+    /**
+     * Config
+     */
+    config: {
+        [key: string]: unknown;
+    };
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'seed_evaluation' | 'optimization';
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Latest Checkpoint Id
+     */
+    latest_checkpoint_id?: string | null;
+    /**
+     * Next Event Seq
+     */
+    next_event_seq: number;
+    /**
+     * Research Image Digest
+     */
+    research_image_digest?: string | null;
+    /**
+     * Result
+     */
+    result: ResultPublic | OptimizationResultPublic | null;
+    /**
+     * Resume Checkpoint Id
+     */
+    resume_checkpoint_id?: string | null;
+    /**
+     * Status
+     */
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
  * ResolveCreate
  */
 export type ResolveCreate = {
@@ -982,6 +2060,20 @@ export type ResultPublic = {
      * Result Trust
      */
     result_trust?: 'native_strategy_and_engine_share_process';
+};
+
+/**
+ * RiskConfig
+ */
+export type RiskConfig = {
+    /**
+     * Account Mode
+     */
+    account_mode: 'cash' | 'margin';
+    /**
+     * Enable Short Sell
+     */
+    enable_short_sell: boolean;
 };
 
 /**
@@ -1049,7 +2141,7 @@ export type RunDetail = {
     /**
      * Execution Mode
      */
-    execution_mode?: 'seed_evaluation';
+    execution_mode?: 'seed_evaluation' | 'optimization';
     /**
      * Generation
      */
@@ -1062,11 +2154,14 @@ export type RunDetail = {
      * Next Event Seq
      */
     next_event_seq: number;
-    result: ResultPublic | null;
+    /**
+     * Result
+     */
+    result: ResultPublic | OptimizationResultPublic | null;
     /**
      * Status
      */
-    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
     /**
      * Strategy Version Id
      */
@@ -1106,7 +2201,7 @@ export type RunPublic = {
     /**
      * Execution Mode
      */
-    execution_mode?: 'seed_evaluation';
+    execution_mode?: 'seed_evaluation' | 'optimization';
     /**
      * Generation
      */
@@ -1119,11 +2214,14 @@ export type RunPublic = {
      * Next Event Seq
      */
     next_event_seq: number;
-    result: ResultPublic | null;
+    /**
+     * Result
+     */
+    result: ResultPublic | OptimizationResultPublic | null;
     /**
      * Status
      */
-    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
     /**
      * Strategy Version Id
      */
@@ -1132,6 +2230,20 @@ export type RunPublic = {
      * Updated At
      */
     updated_at: string;
+};
+
+/**
+ * SlippageConfig
+ */
+export type SlippageConfig = {
+    /**
+     * Type
+     */
+    type?: 'percent';
+    /**
+     * Value
+     */
+    value?: number;
 };
 
 /**
@@ -1425,6 +2537,47 @@ export type VendorSymbol = {
     vendor: string;
 };
 
+/**
+ * VersionRef
+ */
+export type VersionRef = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Sha256
+     */
+    sha256: string;
+};
+
+/**
+ * WarmupConfig
+ */
+export type WarmupConfig = {
+    /**
+     * History Policy
+     */
+    history_policy?: 'require' | 'source_cold_start';
+    /**
+     * Lookback Contract
+     */
+    lookback_contract?: 'declared_seed_minimum';
+    /**
+     * Sessions
+     */
+    sessions: number;
+};
+
+/**
+ * WindowSet
+ */
+export type WindowSet = {
+    holdout?: DateWindow | null;
+    train: DateWindow;
+    validation?: DateWindow | null;
+};
+
 export type DownloadArtifactData = {
     body?: never;
     path: {
@@ -1466,6 +2619,48 @@ export type DownloadArtifactResponses = {
 };
 
 export type DownloadArtifactResponse = DownloadArtifactResponses[keyof DownloadArtifactResponses];
+
+export type ReadResearchCandidateData = {
+    body?: never;
+    path: {
+        /**
+         * Candidate Id
+         */
+        candidate_id: string;
+    };
+    query?: never;
+    url: '/api/v1/candidates/{candidate_id}';
+};
+
+export type ReadResearchCandidateErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadResearchCandidateError = ReadResearchCandidateErrors[keyof ReadResearchCandidateErrors];
+
+export type ReadResearchCandidateResponses = {
+    /**
+     * Successful Response
+     */
+    200: CandidateDetail;
+};
+
+export type ReadResearchCandidateResponse = ReadResearchCandidateResponses[keyof ReadResearchCandidateResponses];
 
 export type ListDataImportsData = {
     body?: never;
@@ -2269,6 +3464,48 @@ export type RefreshDataSnapshotResponses = {
 
 export type RefreshDataSnapshotResponse = RefreshDataSnapshotResponses[keyof RefreshDataSnapshotResponses];
 
+export type ReadResearchEvaluationData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/evaluations/{evaluation_id}';
+};
+
+export type ReadResearchEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadResearchEvaluationError = ReadResearchEvaluationErrors[keyof ReadResearchEvaluationErrors];
+
+export type ReadResearchEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    200: EvaluationDetail;
+};
+
+export type ReadResearchEvaluationResponse = ReadResearchEvaluationResponses[keyof ReadResearchEvaluationResponses];
+
 export type HealthLiveData = {
     body?: never;
     path?: never;
@@ -2383,6 +3620,586 @@ export type LoginAccessTokenResponses = {
 };
 
 export type LoginAccessTokenResponse = LoginAccessTokenResponses[keyof LoginAccessTokenResponses];
+
+export type ReadResearchModelCallData = {
+    body?: never;
+    path: {
+        /**
+         * Model Call Id
+         */
+        model_call_id: string;
+    };
+    query?: never;
+    url: '/api/v1/model-calls/{model_call_id}';
+};
+
+export type ReadResearchModelCallErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadResearchModelCallError = ReadResearchModelCallErrors[keyof ReadResearchModelCallErrors];
+
+export type ReadResearchModelCallResponses = {
+    /**
+     * Successful Response
+     */
+    200: ModelCallDetail;
+};
+
+export type ReadResearchModelCallResponse = ReadResearchModelCallResponses[keyof ReadResearchModelCallResponses];
+
+export type ResearchCapabilitiesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/research-capabilities';
+};
+
+export type ResearchCapabilitiesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ResearchCapabilitiesError = ResearchCapabilitiesErrors[keyof ResearchCapabilitiesErrors];
+
+export type ResearchCapabilitiesResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type ReadResearchCheckpointData = {
+    body?: never;
+    path: {
+        /**
+         * Checkpoint Id
+         */
+        checkpoint_id: string;
+    };
+    query?: never;
+    url: '/api/v1/research-checkpoints/{checkpoint_id}';
+};
+
+export type ReadResearchCheckpointErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadResearchCheckpointError = ReadResearchCheckpointErrors[keyof ReadResearchCheckpointErrors];
+
+export type ReadResearchCheckpointResponses = {
+    /**
+     * Successful Response
+     */
+    200: CheckpointDetail;
+};
+
+export type ReadResearchCheckpointResponse = ReadResearchCheckpointResponses[keyof ReadResearchCheckpointResponses];
+
+export type ListResearchRunsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/research-runs';
+};
+
+export type ListResearchRunsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListResearchRunsError = ListResearchRunsErrors[keyof ListResearchRunsErrors];
+
+export type ListResearchRunsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageResearchRunPublic;
+};
+
+export type ListResearchRunsResponse = ListResearchRunsResponses[keyof ListResearchRunsResponses];
+
+export type CreateResearchRunData = {
+    body: ResearchRunCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/research-runs';
+};
+
+export type CreateResearchRunErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateResearchRunError = CreateResearchRunErrors[keyof CreateResearchRunErrors];
+
+export type CreateResearchRunResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResearchRunPublic;
+};
+
+export type CreateResearchRunResponse = CreateResearchRunResponses[keyof CreateResearchRunResponses];
+
+export type ReadResearchRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/research-runs/{run_id}';
+};
+
+export type ReadResearchRunErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadResearchRunError = ReadResearchRunErrors[keyof ReadResearchRunErrors];
+
+export type ReadResearchRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResearchRunDetail;
+};
+
+export type ReadResearchRunResponse = ReadResearchRunResponses[keyof ReadResearchRunResponses];
+
+export type CancelResearchRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/research-runs/{run_id}/cancel';
+};
+
+export type CancelResearchRunErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CancelResearchRunError = CancelResearchRunErrors[keyof CancelResearchRunErrors];
+
+export type CancelResearchRunResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResearchRunPublic;
+};
+
+export type CancelResearchRunResponse = CancelResearchRunResponses[keyof CancelResearchRunResponses];
+
+export type ListResearchCandidatesData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/research-runs/{run_id}/candidates';
+};
+
+export type ListResearchCandidatesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListResearchCandidatesError = ListResearchCandidatesErrors[keyof ListResearchCandidatesErrors];
+
+export type ListResearchCandidatesResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageCandidatePublic;
+};
+
+export type ListResearchCandidatesResponse = ListResearchCandidatesResponses[keyof ListResearchCandidatesResponses];
+
+export type ListResearchCheckpointsData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/research-runs/{run_id}/checkpoints';
+};
+
+export type ListResearchCheckpointsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListResearchCheckpointsError = ListResearchCheckpointsErrors[keyof ListResearchCheckpointsErrors];
+
+export type ListResearchCheckpointsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageCheckpointPublic;
+};
+
+export type ListResearchCheckpointsResponse = ListResearchCheckpointsResponses[keyof ListResearchCheckpointsResponses];
+
+export type ListResearchEvaluationsData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/research-runs/{run_id}/evaluations';
+};
+
+export type ListResearchEvaluationsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListResearchEvaluationsError = ListResearchEvaluationsErrors[keyof ListResearchEvaluationsErrors];
+
+export type ListResearchEvaluationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageEvaluationPublic;
+};
+
+export type ListResearchEvaluationsResponse = ListResearchEvaluationsResponses[keyof ListResearchEvaluationsResponses];
+
+export type ListResearchModelCallsData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/research-runs/{run_id}/model-calls';
+};
+
+export type ListResearchModelCallsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListResearchModelCallsError = ListResearchModelCallsErrors[keyof ListResearchModelCallsErrors];
+
+export type ListResearchModelCallsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageModelCallPublic;
+};
+
+export type ListResearchModelCallsResponse = ListResearchModelCallsResponses[keyof ListResearchModelCallsResponses];
+
+export type PauseResearchRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/research-runs/{run_id}/pause';
+};
+
+export type PauseResearchRunErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PauseResearchRunError = PauseResearchRunErrors[keyof PauseResearchRunErrors];
+
+export type PauseResearchRunResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResearchRunPublic;
+};
+
+export type PauseResearchRunResponse = PauseResearchRunResponses[keyof PauseResearchRunResponses];
+
+export type ResumeResearchRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/research-runs/{run_id}/resume';
+};
+
+export type ResumeResearchRunErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ResumeResearchRunError = ResumeResearchRunErrors[keyof ResumeResearchRunErrors];
+
+export type ResumeResearchRunResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResearchRunPublic;
+};
+
+export type ResumeResearchRunResponse = ResumeResearchRunResponses[keyof ResumeResearchRunResponses];
 
 export type ListRunsData = {
     body?: never;
@@ -2664,6 +4481,48 @@ export type ListRunEventsResponses = {
 };
 
 export type ListRunEventsResponse = ListRunEventsResponses[keyof ListRunEventsResponses];
+
+export type PauseRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/runs/{run_id}/pause';
+};
+
+export type PauseRunErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PauseRunError = PauseRunErrors[keyof PauseRunErrors];
+
+export type PauseRunResponses = {
+    /**
+     * Successful Response
+     */
+    202: ResearchRunPublic;
+};
+
+export type PauseRunResponse = PauseRunResponses[keyof PauseRunResponses];
 
 export type ResumeRunData = {
     body?: never;

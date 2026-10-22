@@ -73,8 +73,17 @@ def run_backtest(
     market: str,
     freq_floor: float | None = None,
     profile: str = "corrected_explicit_config",
+    *,
+    engine_overrides: dict | None = None,
+    result_callback=None,
 ):
     data_map = load_data(data_path, symbol)
+
+    engine_kwargs = backtest_kwargs(market, profile)
+    if engine_overrides is not None:
+        from packages.tradegrad_adapter.results import validate_engine_overrides
+
+        engine_kwargs.update(validate_engine_overrides(engine_overrides))
 
     result = aq.run_backtest(
         data=data_map,
@@ -84,7 +93,7 @@ def run_backtest(
         },
         start_time=start_time,
         end_time=end_time,
-        **backtest_kwargs(market, profile),
+        **engine_kwargs,
     )
 
     metrics_df = result.metrics_df
@@ -115,6 +124,12 @@ def run_backtest(
     os.makedirs(result_dir, exist_ok=True)
     with open(os.path.join(result_dir, "metrics.json"), 'w') as f:
         json.dump(performance, f, indent=4, allow_nan=False)
+
+    # Snapshot while the real native object is alive. This is explicitly opt-in:
+    # original callers retain byte-identical metrics.json and reward semantics.
+    if result_callback is not None:
+        result_callback(result, performance, engine_kwargs)
+    return result
 
 
 if __name__ == "__main__":

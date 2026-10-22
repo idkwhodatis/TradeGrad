@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type ServerSentEventsResult, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { CancelDataImportData, CancelDataImportErrors, CancelDataImportResponses, CancelRunData, CancelRunErrors, CancelRunResponses, CreateDataImportData, CreateDataImportErrors, CreateDataImportResponses, CreateDataUniverseData, CreateDataUniverseErrors, CreateDataUniverseResponses, CreateRunData, CreateRunErrors, CreateRunResponses, DownloadArtifactData, DownloadArtifactErrors, DownloadArtifactResponses, HealthLiveData, HealthLiveErrors, HealthLiveResponses, HealthReadyData, HealthReadyErrors, HealthReadyResponses, ListDataImportsData, ListDataImportsErrors, ListDataImportsResponses, ListDataListingsData, ListDataListingsErrors, ListDataListingsResponses, ListDataProvidersData, ListDataProvidersErrors, ListDataProvidersResponses, ListDatasetsData, ListDatasetsErrors, ListDatasetsResponses, ListDataUniversesData, ListDataUniversesErrors, ListDataUniversesResponses, ListRunArtifactsData, ListRunArtifactsErrors, ListRunArtifactsResponses, ListRunEventsData, ListRunEventsErrors, ListRunEventsResponse, ListRunEventsResponses, ListRunsData, ListRunsErrors, ListRunsResponses, ListStrategiesData, ListStrategiesErrors, ListStrategiesResponses, LoginAccessTokenData, LoginAccessTokenErrors, LoginAccessTokenResponses, PreviewDataSnapshotData, PreviewDataSnapshotErrors, PreviewDataSnapshotResponses, ReadDataCoverageData, ReadDataCoverageErrors, ReadDataCoverageResponses, ReadDataImportData, ReadDataImportErrors, ReadDataImportResponses, ReadDatasetData, ReadDatasetErrors, ReadDatasetResponses, ReadDataUniverseData, ReadDataUniverseErrors, ReadDataUniverseResponses, ReadMeData, ReadMeErrors, ReadMeResponses, ReadRunData, ReadRunErrors, ReadRunResponses, ReadStatusData, ReadStatusErrors, ReadStatusResponses, ReadStrategyData, ReadStrategyErrors, ReadStrategyResponses, RefreshDataSnapshotData, RefreshDataSnapshotErrors, RefreshDataSnapshotResponses, ResolveDataInstrumentsData, ResolveDataInstrumentsErrors, ResolveDataInstrumentsResponses, ResumeRunData, ResumeRunErrors, ResumeRunResponses, RetryDataImportData, RetryDataImportErrors, RetryDataImportResponses, UploadDataFileData, UploadDataFileErrors, UploadDataFileResponses, ValidateUploadMappingData, ValidateUploadMappingErrors, ValidateUploadMappingResponses } from './types.gen';
+import type { CancelDataImportData, CancelDataImportErrors, CancelDataImportResponses, CancelResearchRunData, CancelResearchRunErrors, CancelResearchRunResponses, CancelRunData, CancelRunErrors, CancelRunResponses, CreateDataImportData, CreateDataImportErrors, CreateDataImportResponses, CreateDataUniverseData, CreateDataUniverseErrors, CreateDataUniverseResponses, CreateResearchRunData, CreateResearchRunErrors, CreateResearchRunResponses, CreateRunData, CreateRunErrors, CreateRunResponses, DownloadArtifactData, DownloadArtifactErrors, DownloadArtifactResponses, HealthLiveData, HealthLiveErrors, HealthLiveResponses, HealthReadyData, HealthReadyErrors, HealthReadyResponses, ListDataImportsData, ListDataImportsErrors, ListDataImportsResponses, ListDataListingsData, ListDataListingsErrors, ListDataListingsResponses, ListDataProvidersData, ListDataProvidersErrors, ListDataProvidersResponses, ListDatasetsData, ListDatasetsErrors, ListDatasetsResponses, ListDataUniversesData, ListDataUniversesErrors, ListDataUniversesResponses, ListResearchCandidatesData, ListResearchCandidatesErrors, ListResearchCandidatesResponses, ListResearchCheckpointsData, ListResearchCheckpointsErrors, ListResearchCheckpointsResponses, ListResearchEvaluationsData, ListResearchEvaluationsErrors, ListResearchEvaluationsResponses, ListResearchModelCallsData, ListResearchModelCallsErrors, ListResearchModelCallsResponses, ListResearchRunsData, ListResearchRunsErrors, ListResearchRunsResponses, ListRunArtifactsData, ListRunArtifactsErrors, ListRunArtifactsResponses, ListRunEventsData, ListRunEventsErrors, ListRunEventsResponse, ListRunEventsResponses, ListRunsData, ListRunsErrors, ListRunsResponses, ListStrategiesData, ListStrategiesErrors, ListStrategiesResponses, LoginAccessTokenData, LoginAccessTokenErrors, LoginAccessTokenResponses, PauseResearchRunData, PauseResearchRunErrors, PauseResearchRunResponses, PauseRunData, PauseRunErrors, PauseRunResponses, PreviewDataSnapshotData, PreviewDataSnapshotErrors, PreviewDataSnapshotResponses, ReadDataCoverageData, ReadDataCoverageErrors, ReadDataCoverageResponses, ReadDataImportData, ReadDataImportErrors, ReadDataImportResponses, ReadDatasetData, ReadDatasetErrors, ReadDatasetResponses, ReadDataUniverseData, ReadDataUniverseErrors, ReadDataUniverseResponses, ReadMeData, ReadMeErrors, ReadMeResponses, ReadResearchCandidateData, ReadResearchCandidateErrors, ReadResearchCandidateResponses, ReadResearchCheckpointData, ReadResearchCheckpointErrors, ReadResearchCheckpointResponses, ReadResearchEvaluationData, ReadResearchEvaluationErrors, ReadResearchEvaluationResponses, ReadResearchModelCallData, ReadResearchModelCallErrors, ReadResearchModelCallResponses, ReadResearchRunData, ReadResearchRunErrors, ReadResearchRunResponses, ReadRunData, ReadRunErrors, ReadRunResponses, ReadStatusData, ReadStatusErrors, ReadStatusResponses, ReadStrategyData, ReadStrategyErrors, ReadStrategyResponses, RefreshDataSnapshotData, RefreshDataSnapshotErrors, RefreshDataSnapshotResponses, ResearchCapabilitiesData, ResearchCapabilitiesErrors, ResearchCapabilitiesResponses, ResolveDataInstrumentsData, ResolveDataInstrumentsErrors, ResolveDataInstrumentsResponses, ResumeResearchRunData, ResumeResearchRunErrors, ResumeResearchRunResponses, ResumeRunData, ResumeRunErrors, ResumeRunResponses, RetryDataImportData, RetryDataImportErrors, RetryDataImportResponses, UploadDataFileData, UploadDataFileErrors, UploadDataFileResponses, ValidateUploadMappingData, ValidateUploadMappingErrors, ValidateUploadMappingResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -24,6 +24,15 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 export const downloadArtifact = <ThrowOnError extends boolean = true>(options: Options<DownloadArtifactData, ThrowOnError>): RequestResult<DownloadArtifactResponses, DownloadArtifactErrors, ThrowOnError> => (options.client ?? client).get<DownloadArtifactResponses, DownloadArtifactErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/artifacts/{artifact_id}/download',
+    ...options
+});
+
+/**
+ * Candidate
+ */
+export const readResearchCandidate = <ThrowOnError extends boolean = true>(options: Options<ReadResearchCandidateData, ThrowOnError>): RequestResult<ReadResearchCandidateResponses, ReadResearchCandidateErrors, ThrowOnError> => (options.client ?? client).get<ReadResearchCandidateResponses, ReadResearchCandidateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/candidates/{candidate_id}',
     ...options
 });
 
@@ -211,6 +220,15 @@ export const refreshDataSnapshot = <ThrowOnError extends boolean = true>(options
 });
 
 /**
+ * Evaluation
+ */
+export const readResearchEvaluation = <ThrowOnError extends boolean = true>(options: Options<ReadResearchEvaluationData, ThrowOnError>): RequestResult<ReadResearchEvaluationResponses, ReadResearchEvaluationErrors, ThrowOnError> => (options.client ?? client).get<ReadResearchEvaluationResponses, ReadResearchEvaluationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/evaluations/{evaluation_id}',
+    ...options
+});
+
+/**
  * Health Live
  */
 export const healthLive = <ThrowOnError extends boolean = true>(options?: Options<HealthLiveData, ThrowOnError>): RequestResult<HealthLiveResponses, HealthLiveErrors, ThrowOnError> => (options?.client ?? client).get<HealthLiveResponses, HealthLiveErrors, ThrowOnError>({ url: '/api/v1/health/live', ...options });
@@ -231,6 +249,127 @@ export const loginAccessToken = <ThrowOnError extends boolean = true>(options: O
         'Content-Type': 'application/x-www-form-urlencoded',
         ...options.headers
     }
+});
+
+/**
+ * Model Call
+ */
+export const readResearchModelCall = <ThrowOnError extends boolean = true>(options: Options<ReadResearchModelCallData, ThrowOnError>): RequestResult<ReadResearchModelCallResponses, ReadResearchModelCallErrors, ThrowOnError> => (options.client ?? client).get<ReadResearchModelCallResponses, ReadResearchModelCallErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/model-calls/{model_call_id}',
+    ...options
+});
+
+/**
+ * Research Capabilities
+ */
+export const researchCapabilities = <ThrowOnError extends boolean = true>(options?: Options<ResearchCapabilitiesData, ThrowOnError>): RequestResult<ResearchCapabilitiesResponses, ResearchCapabilitiesErrors, ThrowOnError> => (options?.client ?? client).get<ResearchCapabilitiesResponses, ResearchCapabilitiesErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/research-capabilities',
+    ...options
+});
+
+/**
+ * Checkpoint
+ */
+export const readResearchCheckpoint = <ThrowOnError extends boolean = true>(options: Options<ReadResearchCheckpointData, ThrowOnError>): RequestResult<ReadResearchCheckpointResponses, ReadResearchCheckpointErrors, ThrowOnError> => (options.client ?? client).get<ReadResearchCheckpointResponses, ReadResearchCheckpointErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/research-checkpoints/{checkpoint_id}',
+    ...options
+});
+
+/**
+ * List Research Runs
+ */
+export const listResearchRuns = <ThrowOnError extends boolean = true>(options?: Options<ListResearchRunsData, ThrowOnError>): RequestResult<ListResearchRunsResponses, ListResearchRunsErrors, ThrowOnError> => (options?.client ?? client).get<ListResearchRunsResponses, ListResearchRunsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/research-runs',
+    ...options
+});
+
+/**
+ * Create Research Run
+ */
+export const createResearchRun = <ThrowOnError extends boolean = true>(options: Options<CreateResearchRunData, ThrowOnError>): RequestResult<CreateResearchRunResponses, CreateResearchRunErrors, ThrowOnError> => (options.client ?? client).post<CreateResearchRunResponses, CreateResearchRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/research-runs',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Read Research Run
+ */
+export const readResearchRun = <ThrowOnError extends boolean = true>(options: Options<ReadResearchRunData, ThrowOnError>): RequestResult<ReadResearchRunResponses, ReadResearchRunErrors, ThrowOnError> => (options.client ?? client).get<ReadResearchRunResponses, ReadResearchRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/research-runs/{run_id}',
+    ...options
+});
+
+/**
+ * Cancel Research Run
+ */
+export const cancelResearchRun = <ThrowOnError extends boolean = true>(options: Options<CancelResearchRunData, ThrowOnError>): RequestResult<CancelResearchRunResponses, CancelResearchRunErrors, ThrowOnError> => (options.client ?? client).post<CancelResearchRunResponses, CancelResearchRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/research-runs/{run_id}/cancel',
+    ...options
+});
+
+/**
+ * Candidates
+ */
+export const listResearchCandidates = <ThrowOnError extends boolean = true>(options: Options<ListResearchCandidatesData, ThrowOnError>): RequestResult<ListResearchCandidatesResponses, ListResearchCandidatesErrors, ThrowOnError> => (options.client ?? client).get<ListResearchCandidatesResponses, ListResearchCandidatesErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/research-runs/{run_id}/candidates',
+    ...options
+});
+
+/**
+ * Checkpoints
+ */
+export const listResearchCheckpoints = <ThrowOnError extends boolean = true>(options: Options<ListResearchCheckpointsData, ThrowOnError>): RequestResult<ListResearchCheckpointsResponses, ListResearchCheckpointsErrors, ThrowOnError> => (options.client ?? client).get<ListResearchCheckpointsResponses, ListResearchCheckpointsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/research-runs/{run_id}/checkpoints',
+    ...options
+});
+
+/**
+ * Evaluations
+ */
+export const listResearchEvaluations = <ThrowOnError extends boolean = true>(options: Options<ListResearchEvaluationsData, ThrowOnError>): RequestResult<ListResearchEvaluationsResponses, ListResearchEvaluationsErrors, ThrowOnError> => (options.client ?? client).get<ListResearchEvaluationsResponses, ListResearchEvaluationsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/research-runs/{run_id}/evaluations',
+    ...options
+});
+
+/**
+ * Model Calls
+ */
+export const listResearchModelCalls = <ThrowOnError extends boolean = true>(options: Options<ListResearchModelCallsData, ThrowOnError>): RequestResult<ListResearchModelCallsResponses, ListResearchModelCallsErrors, ThrowOnError> => (options.client ?? client).get<ListResearchModelCallsResponses, ListResearchModelCallsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/research-runs/{run_id}/model-calls',
+    ...options
+});
+
+/**
+ * Pause Research Run
+ */
+export const pauseResearchRun = <ThrowOnError extends boolean = true>(options: Options<PauseResearchRunData, ThrowOnError>): RequestResult<PauseResearchRunResponses, PauseResearchRunErrors, ThrowOnError> => (options.client ?? client).post<PauseResearchRunResponses, PauseResearchRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/research-runs/{run_id}/pause',
+    ...options
+});
+
+/**
+ * Resume Research
+ */
+export const resumeResearchRun = <ThrowOnError extends boolean = true>(options: Options<ResumeResearchRunData, ThrowOnError>): RequestResult<ResumeResearchRunResponses, ResumeResearchRunErrors, ThrowOnError> => (options.client ?? client).post<ResumeResearchRunResponses, ResumeResearchRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/research-runs/{run_id}/resume',
+    ...options
 });
 
 /**
@@ -288,6 +427,15 @@ export const cancelRun = <ThrowOnError extends boolean = true>(options: Options<
 export const listRunEvents = <ThrowOnError extends boolean = true>(options: Options<ListRunEventsData, ThrowOnError, ListRunEventsResponse>): Promise<ServerSentEventsResult<ListRunEventsResponses>> => (options.client ?? client).sse.get<ListRunEventsResponses, ListRunEventsErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/runs/{run_id}/events',
+    ...options
+});
+
+/**
+ * Pause Research Run
+ */
+export const pauseRun = <ThrowOnError extends boolean = true>(options: Options<PauseRunData, ThrowOnError>): RequestResult<PauseRunResponses, PauseRunErrors, ThrowOnError> => (options.client ?? client).post<PauseRunResponses, PauseRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/runs/{run_id}/pause',
     ...options
 });
 

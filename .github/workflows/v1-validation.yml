@@ -56,19 +56,21 @@ jobs:
         run: python -m pip install -r tests/baseline/requirements.lock
       - name: Execute actual AKQuant baseline and regression tests
         run: python -m pytest tests/baseline -q --junitxml=m0-junit.xml
+      - name: Validate actual native four-task bundles and bounded result transport
+        run: python -m pytest tests/tradegrad/test_results.py tests/tradegrad/test_results_entrypoint.py tests/runner/test_research_result_protocol.py -q --junitxml=m3-native-junit.xml
       - name: Export outcome-only baseline evidence
         if: always()
-        run: python script/summarize_ci_junit.py m0-junit.xml
+        run: python script/summarize_ci_junit.py m0-junit.xml m3-native-junit.xml
       - name: Preserve test evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: m0-validation-${{ github.sha }}
-          path: var/ci-evidence/m0-junit.xml
+          path: var/ci-evidence/*.xml
           retention-days: 14
 
   application:
-    name: M1–M2 real application (${{ (inputs.provider_mode == 'live' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]'))) && 'live' || 'fixture' }})
+    name: M1–M3 real application (${{ (inputs.provider_mode == 'live' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]'))) && 'live' || 'fixture' }})
     needs: baseline
     runs-on: ubuntu-22.04
     timeout-minutes: 45
@@ -134,10 +136,21 @@ jobs:
           .venv-data/bin/openbb-build
           python -m script.validate_runtime_split --runtime api
           .venv-data/bin/python -m script.validate_runtime_split --runtime data
+      - name: Install separately hash-locked trusted research runtime
+        run: |
+          python -m venv .venv-research
+          .venv-research/bin/python -m pip install --require-hashes -r runtimes/research/requirements.lock
+          .venv-research/bin/python -m script.validate_runtime_split --runtime research
+      - name: Validate immutable windows, actual TradeTGD and crash-recovery contracts
+        run: .venv-research/bin/python -m pytest tests/tradegrad --ignore=tests/tradegrad/test_results.py --ignore=tests/tradegrad/test_results_entrypoint.py --ignore=tests/tradegrad/test_window_engine_bridge.py -q --junitxml=m3-research-contracts-junit.xml
       - name: Install pinned engine for SHA-pinned original-seed adapter bridges
         run: |
           python -m venv .venv
           .venv/bin/python -m pip install --require-hashes -r runtimes/evaluator/requirements.lock
+      - name: Verify configured warm-up staging against actual original-seed engine
+        env:
+          TRADEGRAD_LOCAL_ENGINE_BRIDGE: "1"
+        run: .venv-research/bin/python -m pytest tests/tradegrad/test_window_engine_bridge.py -q --junitxml=m3-window-engine-junit.xml
       - name: Validate actual SDK schemas and deterministic normalization contracts
         env:
           TRADEGRAD_LOCAL_ENGINE_BRIDGE: "1"
@@ -149,11 +162,13 @@ jobs:
           TRADEGRAD_OPENBB_LIVE: "1"
         run: .venv-data/bin/python -m pytest tests/marketdata/test_live_providers.py tests/marketdata/test_openbb.py -q -k "test_live_resolve_fetch_and_snapshot or optional_live" --junitxml=m2-live-provider-junit.xml
       - name: Validate supervisor contracts
-        run: python -m pytest backend/tests tests/runner -q --junitxml=m1-supervisor-junit.xml
+        run: python -m pytest backend/tests tests/runner --ignore=tests/runner/test_research_result_protocol.py -q --junitxml=m1-supervisor-junit.xml
       - name: Validate real PostgreSQL transactions and Procrastinate schema
         run: .venv-data/bin/python -m pytest tests/integration -q --junitxml=m1-m2-postgres-junit.xml
       - name: Build local evaluator image (never published)
-        run: docker build -t "$EVALUATOR_IMAGE" -f runtimes/evaluator/Dockerfile .
+        run: |
+          digest=$(python -m packages.tradegrad_adapter.environment)
+          docker build --build-arg "TRADEGRAD_ENVIRONMENT_DIGEST=$digest" -t "$EVALUATOR_IMAGE" -f runtimes/evaluator/Dockerfile .
       - name: Require real kernel isolation and unchanged four-task engine results
         run: python -m pytest tests/isolation -q --junitxml=m1-isolation-junit.xml
       - name: Install frontend and verify generated contracts
@@ -180,6 +195,14 @@ jobs:
           TRADEGRAD_REQUIRE_DATA_PROCESS_RECOVERY: "1"
           DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
         run: python -m pytest tests/system -q --junitxml=m1-m2-process-recovery-junit.xml
+      - name: Verify configured optimization against real PostgreSQL and Docker
+        env:
+          TRADEGRAD_REQUIRE_RESEARCH_INTEGRATION: "1"
+          DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
+          RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
+        run: |
+          export API_PYTHON=$(command -v python)
+          .venv-research/bin/python -m pytest tests/system/test_research_optimization.py -q --junitxml=m3-configured-application-junit.xml
       - name: Exercise the real HTTP, queue, engine and browser boundary
         shell: bash
         run: |
@@ -187,7 +210,7 @@ jobs:
           mkdir -p var/ci-logs
           uvicorn backend.app.asgi:app --host 127.0.0.1 --port 8000 >var/ci-logs/api.log 2>&1 & api=$!
           python -m workers.research dispatcher >var/ci-logs/dispatcher.log 2>&1 & dispatcher=$!
-          python -m workers.research worker >var/ci-logs/worker.log 2>&1 & worker=$!
+          .venv-research/bin/python -m workers.research worker >var/ci-logs/worker.log 2>&1 & worker=$!
           python -m workers.research reconciler >var/ci-logs/reconciler.log 2>&1 & reconciler=$!
           .venv-data/bin/python -m workers.data dispatcher >var/ci-logs/data-dispatcher.log 2>&1 & data_dispatcher=$!
           .venv-data/bin/python -m workers.data worker >var/ci-logs/data-worker.log 2>&1 & data_worker=$!
@@ -218,11 +241,11 @@ jobs:
         run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
       - name: Export outcome-only evidence without diagnostic payloads
         if: always()
-        run: python script/summarize_ci_junit.py m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml frontend/test-results/junit.xml
+        run: python script/summarize_ci_junit.py m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml m3-research-contracts-junit.xml m3-window-engine-junit.xml m3-configured-application-junit.xml frontend/test-results/junit.xml
       - name: Preserve bounded test evidence (no traces, credentials or source data)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: m1-m2-${{ env.DATA_PROVIDER_MODE }}-validation-${{ github.sha }}
+          name: m1-m3-${{ env.DATA_PROVIDER_MODE }}-validation-${{ github.sha }}
           path: var/ci-evidence/*.xml
           retention-days: 14

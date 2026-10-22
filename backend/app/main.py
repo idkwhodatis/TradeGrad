@@ -74,7 +74,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
     app = FastAPI(
         title="TradeGrad WebUI",
         version="0.1.0",
-        description="M1 authenticated seed evaluation slice. Synthetic fixtures are not market data. Optimization/checkpoint resume arrives in M3.",
+        description="Authenticated research API with immutable inputs, fenced optimization and verified checkpoint resume. Synthetic fixtures are not market data; final holdout execution is not enabled.",
         responses={
             401: {"model": ErrorResponse},
             404: {"model": ErrorResponse},
@@ -181,7 +181,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
         try:
             session.execute(
                 text(
-                    "SELECT version_num FROM alembic_version WHERE version_num = '002_m2'"
+                    "SELECT version_num FROM alembic_version WHERE version_num = '003_m3'"
                 )
             ).scalar_one()
         except SQLAlchemyError:
@@ -544,4 +544,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
     from backend.app.data_routes import router as data_router
 
     app.include_router(data_router, prefix=PREFIX)
+    from backend.app.research_routes import router as research_router
+
+    app.include_router(research_router, prefix=PREFIX)
     return app

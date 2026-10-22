@@ -18,6 +18,7 @@ from backend.app.core.config import Settings
 from backend.app.models import (
     Artifact,
     DatasetVersion,
+    Evaluation,
     ExecutionAttempt,
     OutboxEvent,
     ResearchRun,
@@ -27,7 +28,7 @@ from backend.app.models import (
 )
 from backend.app.schemas import RunCreate
 
-TERMINAL = {"succeeded", "failed", "cancelled", "interrupted"}
+TERMINAL = {"succeeded", "failed", "cancelled", "interrupted", "paused"}
 
 
 class DomainError(Exception):
@@ -225,7 +226,11 @@ def claim_attempt(
     run = session.scalar(
         select(ResearchRun).where(ResearchRun.id == run_id).with_for_update()
     )
-    if run is None or run.generation != generation or run.status != "queued":
+    if (
+        run is None
+        or run.generation != generation
+        or run.status not in {"queued", "pause_requested"}
+    ):
         return None
     if session.scalar(
         select(ExecutionAttempt.id).where(
@@ -239,6 +244,7 @@ def claim_attempt(
         run_id=run_id,
         generation=generation,
         worker_id=worker_id,
+        resumed_checkpoint_id=run.resume_checkpoint_id,
         lease_token=uuid4(),
         lease_expires_at=now + timedelta(seconds=settings.lease_seconds),
         heartbeat_at=now,
@@ -249,12 +255,13 @@ def claim_attempt(
     session.add(attempt)
     session.flush()
     run.active_attempt_id = attempt_id
-    run.status = "preparing"
+    if run.status != "pause_requested":
+        run.status = "preparing"
     append_event(
         session,
         run,
         "stage_changed",
-        {"status": "preparing", "generation": generation},
+        {"status": run.status, "generation": generation},
         attempt_id,
     )
     session.flush()
@@ -312,8 +319,10 @@ def mark_running(
     run, attempt = fenced_attempt(session, attempt_id, generation, lease_token)
     if run.status == "cancel_requested":
         return False
-    run.status = attempt.status = "running"
-    append_event(session, run, "stage_changed", {"status": "running"}, attempt_id)
+    if run.status != "pause_requested":
+        run.status = "running"
+    attempt.status = "running"
+    append_event(session, run, "stage_changed", {"status": run.status}, attempt_id)
     return True
 
 
@@ -327,6 +336,11 @@ def finish_attempt(
     artifacts: list[dict] | None = None,
 ) -> ResearchRun:
     run, attempt = fenced_attempt(session, attempt_id, generation, lease_token)
+    if run.config.get("schema_version") == "tradegrad.run.v1":
+        raise DomainError(
+            "research_completion_required",
+            "Research attempts require checkpoint-aware completion",
+        )
     if not sandbox_stopped:
         # Leave non-terminal and retain generation. Reconciliation must confirm stop.
         attempt.error = "Sandbox exit could not be confirmed; recovery is blocked until stop succeeds"
@@ -408,6 +422,12 @@ def finish_attempt(
 
 def request_cancel(session: Session, run_id: UUID, owner_id: UUID) -> ResearchRun:
     run = owned_run(session, run_id, owner_id, lock=True)
+    if run.status == "paused":
+        run.status = "cancelled"
+        append_event(
+            session, run, "run_finished", {"status": "cancelled"}, run.active_attempt_id
+        )
+        return run
     if run.status in TERMINAL or run.status == "cancel_requested":
         return run
     run.status = "cancelled" if run.active_attempt_id is None else "cancel_requested"
@@ -426,6 +446,15 @@ def resume_run(
 ) -> ResearchRun:
     advisory_lock(session, f"submit:{owner_id}")
     run = owned_run(session, run_id, owner_id, lock=True)
+    if run.config.get("schema_version") == "tradegrad.run.v1":
+        if settings is None:
+            raise DomainError(
+                "settings_required",
+                "Research resume requires verified storage settings",
+            )
+        from backend.app.research_services import resume_research_run
+
+        return resume_research_run(session, run_id, owner_id, settings)
     if run.status not in {"failed", "cancelled", "interrupted"}:
         raise DomainError(
             "invalid_transition",
@@ -486,7 +515,30 @@ def reconcile_attempt(
         return False
     # Holding the Run lock prevents cancellation/resume/old completion racing stop.
     # Stop is bounded by runner timeout. On False, absolutely no retry is released.
-    if not stop(str(attempt.id)):
+    # A research attempt owns many distinct evaluator sandboxes. Registering them
+    # before create makes this finite DB inventory authoritative, never a dir scan.
+    children = session.scalars(
+        select(Evaluation)
+        .where(
+            Evaluation.attempt_id == attempt.id, Evaluation.sandbox_stopped.is_(False)
+        )
+        .with_for_update()
+    ).all()
+    all_stopped = True
+    for child in children:
+        if stop(str(child.id)):
+            child.sandbox_stopped = True
+            if child.finished_at is None:
+                child.status = "interrupted"
+                child.error = (
+                    "Worker lease expired; registered evaluation sandbox was stopped"
+                )
+                child.finished_at = utcnow()
+        else:
+            all_stopped = False
+    # Legacy attempts may still own the attempt-named sandbox.
+    parent_stopped = stop(str(attempt.id))
+    if not all_stopped or not parent_stopped:
         if run.error != "Recovery blocked: previous sandbox termination is unconfirmed":
             run.error = "Recovery blocked: previous sandbox termination is unconfirmed"
             append_event(

@@ -1,5 +1,9 @@
 # M1 research vertical slice
 
+This page preserves the original M1 seed-only topology. Configured M3 research
+requires the [separate research environment and labelled evaluator image](../runtimes/research/README.md),
+not the API-only worker command below. See [current stage evidence](V1_IMPLEMENTATION.md).
+
 **This is an initial seed-backtest slice, not complete WebUI V1.** It has no
 optimizer/model calls, live-data adapters, portable policy engine, trusted ledger,
 holdout selection, broker connections or live trading. M2–M6 remain gated work.

@@ -75,3 +75,30 @@ def test_data_runtime_matches_the_independent_complete_lock(tmp_path, monkeypatc
     values["psycopg"] = "3.2.1"
     _lock(tmp_path, "runtimes/data/requirements.lock", values)
     assert runtime.validate("data", _installed(values)) == len(values)
+
+
+@pytest.mark.parametrize("leaked", ["numpy", "openai"])
+def test_api_runtime_rejects_research_dependency_leakage(tmp_path, monkeypatch, leaked):
+    monkeypatch.setattr(runtime, "ROOT", tmp_path)
+    _lock(tmp_path, "backend/requirements.lock", {"fastapi": "0.120.0"})
+    with pytest.raises(ValueError, match="must not be installed"):
+        runtime.validate("api", _installed({"fastapi": "0.120.0", leaked: "1.0"}))
+
+
+def test_research_runtime_pins_algorithm_but_rejects_engine_and_providers(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(runtime, "ROOT", tmp_path)
+    values = {"fastapi": "0.120.0", "numpy": "2.3.4", "openai": "2.6.0"}
+    _lock(tmp_path, "runtimes/research/requirements.lock", values)
+    assert runtime.validate("research", _installed(values)) == len(values)
+    for forbidden in ("akquant", "akshare", "pandas", "pyarrow"):
+        with pytest.raises(ValueError, match="must not be installed"):
+            runtime.validate("research", _installed({**values, forbidden: "1.0"}))
+
+
+def test_research_runtime_refuses_unpinned_algorithm_dependency(tmp_path, monkeypatch):
+    monkeypatch.setattr(runtime, "ROOT", tmp_path)
+    _lock(tmp_path, "runtimes/research/requirements.lock", {"fastapi": "0.120.0"})
+    with pytest.raises(ValueError, match="explicitly locked"):
+        runtime.validate("research", _installed({"fastapi": "0.120.0"}))

@@ -118,7 +118,7 @@ def publish_artifacts(root: Path, target: Path, outcome: dict, max_bytes: int):
             json.dumps(
                 {
                     "schema_version": 1,
-                    "execution_mode": "seed_evaluation",
+                    "execution_mode": outcome.get("execution_mode", "seed_evaluation"),
                     "evaluation_mode": "native_akquant",
                     "result_trust": "native_strategy_and_engine_share_process",
                     "image_digest": outcome.get("image_digest"),
@@ -133,6 +133,17 @@ def publish_artifacts(root: Path, target: Path, outcome: dict, max_bytes: int):
             json.dumps(
                 outcome["metrics"], sort_keys=True, allow_nan=False, indent=2
             ).encode(),
+            "application/json",
+        )
+    if isinstance(outcome.get("bundle"), dict):
+        from packages.tradegrad_adapter.results import (
+            canonical_json_bytes,
+            validate_result_bundle,
+        )
+
+        validate_result_bundle(outcome["bundle"])
+        files["result-bundle.json"] = (
+            canonical_json_bytes(outcome["bundle"]),
             "application/json",
         )
     logs = outcome.get("logs") or {}
@@ -169,6 +180,16 @@ def execute(run_id: str, generation: int, settings: Settings | None = None):
 
     settings = settings or get_settings()
     factory = session_factory(create_db_engine(settings))
+    with factory() as session:
+        current = session.get(ResearchRun, UUID(run_id))
+        configured = (
+            current is not None
+            and current.config.get("schema_version") == "tradegrad.run.v1"
+        )
+    if configured:
+        from workers.research.optimization import execute_configured
+
+        return execute_configured(run_id, generation, settings, factory)
     worker_id = f"research:{socket.gethostname()}:{uuid4()}"
     with factory.begin() as session:
         attempt = claim_attempt(session, UUID(run_id), generation, worker_id, settings)

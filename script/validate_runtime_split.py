@@ -8,6 +8,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+RESEARCH_PACKAGES = ("numpy", "openai")
 DATA_PACKAGES = (
     "akshare",
     "yfinance",
@@ -33,11 +34,14 @@ def locked_versions(lock: Path) -> dict[str, str]:
 
 
 def validate(runtime: str, installed=version) -> int:
-    lock = ROOT / (
-        "backend/requirements.lock"
-        if runtime == "api"
-        else "runtimes/data/requirements.lock"
-    )
+    locks = {
+        "api": "backend/requirements.lock",
+        "data": "runtimes/data/requirements.lock",
+        "research": "runtimes/research/requirements.lock",
+    }
+    if runtime not in locks:
+        raise ValueError("Unknown runtime")
+    lock = ROOT / locks[runtime]
     expected = locked_versions(lock)
     for name, wanted in expected.items():
         try:
@@ -46,17 +50,20 @@ def validate(runtime: str, installed=version) -> int:
             raise ValueError(f"Locked runtime package is missing: {name}") from None
         if actual != wanted:
             raise ValueError(f"Installed runtime version differs from lock: {name}")
-    if runtime == "api":
-        for name in DATA_PACKAGES:
+    if runtime in {"api", "research"}:
+        forbidden = DATA_PACKAGES + (
+            ("akquant",) if runtime == "research" else RESEARCH_PACKAGES
+        )
+        for name in forbidden:
             try:
                 installed(name)
             except PackageNotFoundError:
                 continue
             raise ValueError(
-                f"Data SDK must not be installed in the API runtime: {name}"
+                f"Dependency must not be installed in the {runtime} runtime: {name}"
             )
-    else:
-        for name in DATA_PACKAGES:
+    if runtime in {"data", "research"}:
+        for name in DATA_PACKAGES if runtime == "data" else RESEARCH_PACKAGES:
             if name not in expected:
                 raise ValueError(f"Data dependency must be explicitly locked: {name}")
     return len(expected)
@@ -64,7 +71,7 @@ def validate(runtime: str, installed=version) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--runtime", choices=("api", "data"), required=True)
+    parser.add_argument("--runtime", choices=("api", "data", "research"), required=True)
     args = parser.parse_args()
     count = validate(args.runtime)
     print(

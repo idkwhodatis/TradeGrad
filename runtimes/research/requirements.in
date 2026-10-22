@@ -1,0 +1,5 @@
+# Trusted research coordination only; no engine/provider SDKs in this runtime.
+-r ../../backend/requirements.in
+-c ../../backend/requirements.lock
+numpy==2.3.4
+openai==2.6.0
