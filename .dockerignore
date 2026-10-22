@@ -1,0 +1,8 @@
+**
+!src/
+!src/*.py
+!runtimes/
+!runtimes/evaluator/
+!runtimes/evaluator/Dockerfile
+!runtimes/evaluator/*.py
+!runtimes/evaluator/requirements.lock

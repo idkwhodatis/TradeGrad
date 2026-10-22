@@ -1,0 +1,17 @@
+# API and orchestration runtime. Quant SDKs remain in the evaluator runtime.
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+pydantic>=2.10,<3
+pydantic-settings>=2.6,<3
+sqlmodel>=0.0.24,<1
+sqlalchemy>=2.0,<3
+alembic>=1.14,<2
+psycopg[binary]>=3.2,<4
+procrastinate>=3,<4
+pyjwt>=2.9,<3
+pwdlib[argon2]>=0.2,<1
+python-multipart>=0.0.20,<1
+email-validator>=2.2,<3
+httpx>=0.28,<1
+pytest==8.4.2
+ruff>=0.13,<1

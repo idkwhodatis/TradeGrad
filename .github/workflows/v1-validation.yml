@@ -7,7 +7,14 @@ on:
   pull_request:
     paths:
       - "src/**"
+      - "script/**"
       - "tests/**"
+      - "backend/**"
+      - "frontend/**"
+      - "workers/**"
+      - "runtimes/**"
+      - "packages/**"
+      - "infra/**"
       - "requirements*.txt"
       - ".github/workflows/v1-validation.yml"
 
@@ -42,10 +49,135 @@ jobs:
         run: python -m pip install -r tests/baseline/requirements.lock
       - name: Execute actual AKQuant baseline and regression tests
         run: python -m pytest tests/baseline -q --junitxml=m0-junit.xml
+      - name: Export outcome-only baseline evidence
+        if: always()
+        run: python script/summarize_ci_junit.py m0-junit.xml
       - name: Preserve test evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: m0-validation-${{ github.sha }}
-          path: m0-junit.xml
+          path: var/ci-evidence/m0-junit.xml
+          retention-days: 14
+
+  application:
+    name: M1 PostgreSQL, isolated engine and real browser
+    needs: baseline
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    env:
+      # Credentials are generated and masked on this disposable runner only.
+      POSTGRES_USER: tradegrad_ci
+      POSTGRES_DB: tradegrad_ci
+      STORAGE_ROOT: ${{ github.workspace }}/var/storage
+      TRADEGRAD_RUNNER_STATE_DIR: ${{ github.workspace }}/var/runner
+      EVALUATOR_IMAGE: tradegrad-evaluator:v1
+      TRADEGRAD_REQUIRE_DOCKER: "1"
+      E2E_EMAIL: first@example.com
+      E2E_OTHER_EMAIL: second@example.com
+      WORKER_CONCURRENCY: "1"
+      HEARTBEAT_SECONDS: "1"
+      LEASE_SECONDS: "20"
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Generate masked job-local fixture credentials
+        run: python script/ci_test_environment.py
+      - name: Start authenticated disposable PostgreSQL on loopback only
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --detach --name tradegrad-ci-postgres \
+            --label io.tradegrad.ci=postgres --publish 127.0.0.1:5432:5432 \
+            --env POSTGRES_USER --env POSTGRES_PASSWORD --env POSTGRES_DB \
+            --tmpfs /var/lib/postgresql:rw,size=1g,nosuid \
+            --health-cmd 'pg_isready -U tradegrad_ci -d tradegrad_ci' \
+            --health-interval 2s --health-timeout 5s --health-retries 30 postgres:18.6
+          for attempt in $(seq 1 90); do
+            state=$(docker inspect --format '{{.State.Health.Status}}' tradegrad-ci-postgres)
+            if [ "$state" = healthy ]; then exit 0; fi
+            if [ "$state" = unhealthy ]; then break; fi
+            sleep 1
+          done
+          echo 'Disposable PostgreSQL did not become healthy' >&2
+          exit 1
+      - name: Install separately locked API runtime
+        run: python -m pip install --require-hashes -r backend/requirements.lock
+      - name: Validate supervisor contracts
+        run: python -m pytest backend/tests tests/runner -q --junitxml=m1-supervisor-junit.xml
+      - name: Validate real PostgreSQL transactions and Procrastinate schema
+        run: python -m pytest tests/integration -q --junitxml=m1-postgres-junit.xml
+      - name: Build local evaluator image (never published)
+        run: docker build -t "$EVALUATOR_IMAGE" -f runtimes/evaluator/Dockerfile .
+      - name: Require real kernel isolation and unchanged four-task engine results
+        run: python -m pytest tests/isolation -q --junitxml=m1-isolation-junit.xml
+      - name: Install frontend and verify generated contracts
+        run: |
+          python -m backend.app.export_openapi
+          npm ci --prefix frontend
+          npm run generate-client --prefix frontend
+          git diff --exit-code -- packages/contracts frontend/src/client
+          npm run format:check --prefix frontend
+          npm run typecheck --prefix frontend
+          npm test --prefix frontend
+          npm run build --prefix frontend
+      - name: Install matched Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Migrate and explicitly provision disposable synthetic accounts
+        run: |
+          alembic -c backend/alembic.ini upgrade head
+          python -m backend.app.bootstrap --email "$E2E_EMAIL" --password-env E2E_PASSWORD --with-synthetic-fixtures --with-e2e-fixtures
+          python -m backend.app.bootstrap --email "$E2E_OTHER_EMAIL" --password-env E2E_OTHER_PASSWORD --with-synthetic-fixtures
+      - name: Exercise the real HTTP, queue, engine and browser boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p var/ci-logs
+          uvicorn backend.app.asgi:app --host 127.0.0.1 --port 8000 >var/ci-logs/api.log 2>&1 & api=$!
+          python -m workers.research dispatcher >var/ci-logs/dispatcher.log 2>&1 & dispatcher=$!
+          python -m workers.research worker >var/ci-logs/worker.log 2>&1 & worker=$!
+          python -m workers.research reconciler >var/ci-logs/reconciler.log 2>&1 & reconciler=$!
+          cleanup() {
+            kill "$api" "$dispatcher" "$worker" "$reconciler" 2>/dev/null || true
+            docker ps -aq --filter label=io.tradegrad.managed=evaluator-v1 | xargs -r docker rm -f >/dev/null
+          }
+          trap cleanup EXIT
+          python - <<'PY'
+          import time, urllib.request
+          for attempt in range(60):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=2) as response:
+                      if response.status == 200:
+                          break
+              except OSError:
+                  time.sleep(1)
+          else:
+              raise SystemExit('API readiness failed; real browser gate cannot run')
+          PY
+          npm run test:e2e --prefix frontend
+      - name: Remove the disposable database
+        if: always()
+        run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
+      - name: Export outcome-only evidence without diagnostic payloads
+        if: always()
+        run: python script/summarize_ci_junit.py m1-supervisor-junit.xml m1-postgres-junit.xml m1-isolation-junit.xml frontend/test-results/junit.xml
+      - name: Preserve bounded test evidence (no traces, credentials or source data)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: m1-validation-${{ github.sha }}
+          path: var/ci-evidence/*.xml
           retention-days: 14

@@ -1,4 +1,5 @@
 import json
+import secrets
 import sys
 from pathlib import Path
 
@@ -56,8 +57,8 @@ def test_timeout_reaps_descendant_processes(tmp_path):
 
 
 def test_credentials_are_not_inherited(tmp_path,monkeypatch):
-    monkeypatch.setenv("OPENROUTER_API_KEY","fake-secret-for-regression")
-    monkeypatch.setenv("DATABASE_URL","postgres://secret")
+    monkeypatch.setenv("OPENROUTER_API_KEY",secrets.token_hex(32))
+    monkeypatch.setenv("DATABASE_URL","postgres://" + secrets.token_hex(32))
     monkeypatch.setenv("TRADEGRAD_DATA_WORKERS","200")
     environment=evaluator_environment()
     assert "OPENROUTER_API_KEY" not in environment
@@ -66,7 +67,7 @@ def test_credentials_are_not_inherited(tmp_path,monkeypatch):
     _,error=run_job(tmp_path,command(tmp_path,"assert 'OPENROUTER_API_KEY' not in os.environ; assert 'DATABASE_URL' not in os.environ"))
     assert not error
     with pytest.raises(ValueError):
-        evaluator_environment({"OPENROUTER_API_KEY":"no"})
+        evaluator_environment({"OPENROUTER_API_KEY":secrets.token_hex(32)})
 
 
 def test_timeout_must_be_positive(tmp_path):

@@ -26,4 +26,7 @@ Keep phase commits separate. No merge, deployment, paid model call, new credenti
 
 ## Evidence status
 
-Implementation is in progress. Gate outcomes and exact commands are maintained in phase-specific validation reports. An absent report means the phase has not passed.
+M0 is locally validated at `933d95da035939c7cef7577f0ca41c3c98c7f7e2` (32 tests).
+M1 is a prepared initial vertical slice, not yet runtime-gated. See
+[staged evidence](M1_VALIDATION.md) and [development operations](M1_OPERATIONS.md).
+M2–M6 have not started. An absent or pending report means the phase has not passed.

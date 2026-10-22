@@ -1,5 +1,11 @@
 # TradeGrad
 
+> **WebUI V1 branch status:** M0's four-task engine baseline is validated. The M1
+> synthetic, seed-only web application is prepared, but its real PostgreSQL,
+> Docker-isolation and Playwright gates are not yet passed. This is not complete
+> V1 and has no live trading. See [staged validation](docs/M1_VALIDATION.md),
+> [development setup](docs/M1_OPERATIONS.md) and [remaining gates](docs/V1_IMPLEMENTATION.md).
+
 This is the implementation of our paper *Trading Strategy Optimization via Textual Gradient*.
 
 TradeGrad uses an LLM to iteratively rewrite a trading strategy's source code, guided by textual

@@ -1,0 +1,2341 @@
+{
+  "components": {
+    "schemas": {
+      "ArtifactPublic": {
+        "properties": {
+          "attempt_id": {
+            "format": "uuid",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "media_type": {
+            "title": "Media Type",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "attempt_id",
+          "name",
+          "media_type",
+          "sha256",
+          "size_bytes",
+          "created_at"
+        ],
+        "title": "ArtifactPublic",
+        "type": "object"
+      },
+      "AttemptPublic": {
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "exit_code": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit Code"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "generation": {
+            "title": "Generation",
+            "type": "integer"
+          },
+          "heartbeat_at": {
+            "format": "date-time",
+            "title": "Heartbeat At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "sandbox_stopped": {
+            "title": "Sandbox Stopped",
+            "type": "boolean"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "generation",
+          "status",
+          "sandbox_stopped",
+          "exit_code",
+          "error",
+          "heartbeat_at",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "AttemptPublic",
+        "type": "object"
+      },
+      "Body_login_access_token": {
+        "properties": {
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "client_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "format": "password",
+            "title": "Client Secret"
+          },
+          "grant_type": {
+            "anyOf": [
+              {
+                "pattern": "^password$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Type"
+          },
+          "password": {
+            "format": "password",
+            "title": "Password",
+            "type": "string"
+          },
+          "scope": {
+            "default": "",
+            "title": "Scope",
+            "type": "string"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Body_login_access_token",
+        "type": "object"
+      },
+      "DatasetPublic": {
+        "properties": {
+          "content_sha256": {
+            "title": "Content Sha256",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "end_date": {
+            "description": "Exclusive end date, [start_date, end_date)",
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_synthetic": {
+            "title": "Is Synthetic",
+            "type": "boolean"
+          },
+          "manifest": {
+            "additionalProperties": true,
+            "title": "Manifest",
+            "type": "object"
+          },
+          "market": {
+            "enum": [
+              "CN",
+              "US"
+            ],
+            "title": "Market",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "market",
+          "start_date",
+          "end_date",
+          "source",
+          "is_synthetic",
+          "content_sha256",
+          "manifest",
+          "created_at"
+        ],
+        "title": "DatasetPublic",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "correlation_id": {
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "details": {
+            "title": "Details"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "correlation_id"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "EventPublic": {
+        "properties": {
+          "attempt_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempt Id"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "run_id",
+          "attempt_id",
+          "seq",
+          "occurred_at",
+          "type",
+          "payload"
+        ],
+        "title": "EventPublic",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "properties": {
+          "database": {
+            "title": "Database",
+            "type": "boolean"
+          },
+          "queue_pending": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue Pending"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "workers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Workers",
+            "type": "object"
+          }
+        },
+        "required": [
+          "status",
+          "database"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "Page_ArtifactPublic_": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ArtifactPublic"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data",
+          "count"
+        ],
+        "title": "Page[ArtifactPublic]",
+        "type": "object"
+      },
+      "Page_DatasetPublic_": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetPublic"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data",
+          "count"
+        ],
+        "title": "Page[DatasetPublic]",
+        "type": "object"
+      },
+      "Page_RunPublic_": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/RunPublic"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data",
+          "count"
+        ],
+        "title": "Page[RunPublic]",
+        "type": "object"
+      },
+      "Page_StrategyPublic_": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/StrategyPublic"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data",
+          "count"
+        ],
+        "title": "Page[StrategyPublic]",
+        "type": "object"
+      },
+      "ResultPublic": {
+        "properties": {
+          "combined_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Combined Score"
+          },
+          "evaluation_mode": {
+            "const": "native_akquant",
+            "default": "native_akquant",
+            "title": "Evaluation Mode",
+            "type": "string"
+          },
+          "execution_mode": {
+            "const": "seed_evaluation",
+            "default": "seed_evaluation",
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "image_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Digest"
+          },
+          "is_synthetic": {
+            "title": "Is Synthetic",
+            "type": "boolean"
+          },
+          "metrics": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Metrics",
+            "type": "object"
+          },
+          "result_trust": {
+            "const": "native_strategy_and_engine_share_process",
+            "default": "native_strategy_and_engine_share_process",
+            "title": "Result Trust",
+            "type": "string"
+          }
+        },
+        "required": [
+          "metrics",
+          "is_synthetic"
+        ],
+        "title": "ResultPublic",
+        "type": "object"
+      },
+      "RunCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset_version_id": {
+            "format": "uuid",
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "end_date": {
+            "description": "Exclusive end date",
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "profile": {
+            "const": "corrected_explicit_config",
+            "default": "corrected_explicit_config",
+            "title": "Profile",
+            "type": "string"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "strategy_version_id": {
+            "format": "uuid",
+            "title": "Strategy Version Id",
+            "type": "string"
+          },
+          "task": {
+            "enum": [
+              "cn_time",
+              "us_time",
+              "cn_cross",
+              "us_cross"
+            ],
+            "title": "Task",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task",
+          "dataset_version_id",
+          "strategy_version_id",
+          "start_date",
+          "end_date"
+        ],
+        "title": "RunCreate",
+        "type": "object"
+      },
+      "RunDetail": {
+        "properties": {
+          "active_attempt_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Attempt Id"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/AttemptPublic"
+            },
+            "title": "Attempts",
+            "type": "array"
+          },
+          "config": {
+            "additionalProperties": true,
+            "title": "Config",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "dataset_version_id": {
+            "format": "uuid",
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "execution_mode": {
+            "const": "seed_evaluation",
+            "default": "seed_evaluation",
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "generation": {
+            "title": "Generation",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "next_event_seq": {
+            "title": "Next Event Seq",
+            "type": "integer"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResultPublic"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "preparing",
+              "running",
+              "finalizing",
+              "cancel_requested",
+              "cancelled",
+              "failed",
+              "interrupted",
+              "succeeded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "strategy_version_id": {
+            "format": "uuid",
+            "title": "Strategy Version Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "generation",
+          "config",
+          "dataset_version_id",
+          "strategy_version_id",
+          "active_attempt_id",
+          "next_event_seq",
+          "result",
+          "error",
+          "created_at",
+          "updated_at",
+          "attempts"
+        ],
+        "title": "RunDetail",
+        "type": "object"
+      },
+      "RunPublic": {
+        "properties": {
+          "active_attempt_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Attempt Id"
+          },
+          "config": {
+            "additionalProperties": true,
+            "title": "Config",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "dataset_version_id": {
+            "format": "uuid",
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "execution_mode": {
+            "const": "seed_evaluation",
+            "default": "seed_evaluation",
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "generation": {
+            "title": "Generation",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "next_event_seq": {
+            "title": "Next Event Seq",
+            "type": "integer"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResultPublic"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "preparing",
+              "running",
+              "finalizing",
+              "cancel_requested",
+              "cancelled",
+              "failed",
+              "interrupted",
+              "succeeded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "strategy_version_id": {
+            "format": "uuid",
+            "title": "Strategy Version Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "generation",
+          "config",
+          "dataset_version_id",
+          "strategy_version_id",
+          "active_attempt_id",
+          "next_event_seq",
+          "result",
+          "error",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "RunPublic",
+        "type": "object"
+      },
+      "StrategyDetail": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "content_sha256": {
+            "title": "Content Sha256",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mode": {
+            "const": "native_akquant",
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "task": {
+            "enum": [
+              "cn_time",
+              "us_time",
+              "cn_cross",
+              "us_cross"
+            ],
+            "title": "Task",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "task",
+          "mode",
+          "content_sha256",
+          "parent_id",
+          "created_at",
+          "code"
+        ],
+        "title": "StrategyDetail",
+        "type": "object"
+      },
+      "StrategyPublic": {
+        "properties": {
+          "content_sha256": {
+            "title": "Content Sha256",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mode": {
+            "const": "native_akquant",
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "task": {
+            "enum": [
+              "cn_time",
+              "us_time",
+              "cn_cross",
+              "us_cross"
+            ],
+            "title": "Task",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "task",
+          "mode",
+          "content_sha256",
+          "parent_id",
+          "created_at"
+        ],
+        "title": "StrategyPublic",
+        "type": "object"
+      },
+      "Token": {
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "expires_in": {
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "token_type": {
+            "const": "bearer",
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token",
+          "expires_in"
+        ],
+        "title": "Token",
+        "type": "object"
+      },
+      "UserPublic": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_superuser": {
+            "title": "Is Superuser",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "full_name",
+          "is_active",
+          "is_superuser"
+        ],
+        "title": "UserPublic",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "OAuth2PasswordBearer": {
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "/api/v1/login/access-token"
+          }
+        },
+        "type": "oauth2"
+      }
+    }
+  },
+  "info": {
+    "description": "M1 authenticated seed evaluation slice. Synthetic fixtures are not market data. Optimization/checkpoint resume arrives in M3.",
+    "title": "TradeGrad WebUI",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/artifacts/{artifact_id}/download": {
+      "get": {
+        "operationId": "download_artifact",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "artifact_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Artifact Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Download Artifact"
+      }
+    },
+    "/api/v1/datasets": {
+      "get": {
+        "operationId": "list_datasets",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_DatasetPublic_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Datasets"
+      }
+    },
+    "/api/v1/datasets/{dataset_id}": {
+      "get": {
+        "operationId": "read_dataset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Dataset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Dataset"
+      }
+    },
+    "/api/v1/health/live": {
+      "get": {
+        "operationId": "health_live",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Live",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Health Live"
+      }
+    },
+    "/api/v1/health/ready": {
+      "get": {
+        "operationId": "health_ready",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Health Ready"
+      }
+    },
+    "/api/v1/login/access-token": {
+      "post": {
+        "operationId": "login_access_token",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_login_access_token"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Login Access Token"
+      }
+    },
+    "/api/v1/runs": {
+      "get": {
+        "operationId": "list_runs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_RunPublic_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Runs"
+      },
+      "post": {
+        "operationId": "create_run",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Run"
+      }
+    },
+    "/api/v1/runs/{run_id}": {
+      "get": {
+        "operationId": "read_run",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Run"
+      }
+    },
+    "/api/v1/runs/{run_id}/artifacts": {
+      "get": {
+        "operationId": "list_run_artifacts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ArtifactPublic_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Run Artifacts"
+      }
+    },
+    "/api/v1/runs/{run_id}/cancel": {
+      "post": {
+        "operationId": "cancel_run",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Cancel Run"
+      }
+    },
+    "/api/v1/runs/{run_id}/events": {
+      "get": {
+        "operationId": "list_run_events",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after_seq",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "After Seq",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "follow",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Follow",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Durable EventPublic envelopes, SSE id = seq. Reconnect with after_seq or Last-Event-ID; Bearer header only."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Run Events"
+      }
+    },
+    "/api/v1/runs/{run_id}/resume": {
+      "post": {
+        "operationId": "resume_run",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Resume"
+      }
+    },
+    "/api/v1/status": {
+      "get": {
+        "operationId": "read_status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Status"
+      }
+    },
+    "/api/v1/strategy-versions": {
+      "get": {
+        "operationId": "list_strategies",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_StrategyPublic_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Strategies"
+      }
+    },
+    "/api/v1/strategy-versions/{strategy_id}": {
+      "get": {
+        "operationId": "read_strategy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "strategy_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Strategy Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StrategyDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Strategy"
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "operationId": "read_me",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Me"
+      }
+    }
+  }
+}

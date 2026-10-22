@@ -25,3 +25,6 @@ frontend/dist/
 .env
 .env.*
 !.env.example
+
+# Trusted local application state
+var/

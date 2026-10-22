@@ -1,0 +1,6 @@
+src/client/
+package-lock.json
+dist/
+node_modules/
+playwright-report/
+test-results/

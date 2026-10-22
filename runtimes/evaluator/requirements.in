@@ -1,0 +1,4 @@
+# Deliberately independent from the API/queue runtime.
+akquant==0.3.27
+pandas==2.3.3
+numpy==2.3.4
