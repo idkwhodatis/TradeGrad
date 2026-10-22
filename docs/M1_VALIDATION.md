@@ -11,7 +11,28 @@
 - Focused Ruff, Python compilation, shell syntax and staged whitespace checks
   passed. See `baseline.md` for semantic differences and frozen versions.
 
-## M1: prepared, runtime gate NOT passed
+## M1: hosted database/isolation passed, browser gate NOT passed
+
+The [first hosted gate](https://github.com/idkwhodatis/TradeGrad/actions/runs/39796648672)
+ran on exact head `e5eb72e3cd234d4e4f383ba2c0dd50a8768805b3`, tree
+`3bffcc345e2b5cace704d25eec2b7be1e9915c09`:
+
+- M0: **32 passed**, including the actual four unchanged seeds.
+- Backend/supervisor/hygiene: **55 passed in 1.37 seconds**.
+- Actual PostgreSQL/Procrastinate: **77 passed in 22.89 seconds**, no skips.
+- Actual Docker kernel isolation and four-task engine: **11 passed in 30.18 seconds**, no skips.
+- Frontend: **25 passed**, contract drift, typecheck, build and format checks passed.
+- Real Chromium: **8 passed, 1 failed**. The offline/retry flow recovered, but its
+  final assertion selected the first strategy row (the deliberate syntax-error
+  fixture) while expecting original seed source. The fix selects the named seed
+  deterministically and must pass a new exact-head hosted run before M2.
+
+Downloaded outcome-only ZIPs were checked against GitHub's SHA256 digests:
+M0 `81c39eb6d7125d0e94995ab0603efcc376f620eb1bf7d38064992afe669b76ad`;
+M1 `ce27e964e4ad95a7665a83f41f942fd22a34b4fdfa80cd86280c9ee2ab8e3fd3`.
+Their parsed case counts and failure counts match the job logs.
+
+### Earlier local-only preparation record
 
 The current executor prohibits the sockets required by PostgreSQL and Chromium,
 and cannot provide a permitted container-isolation execution environment. The
@@ -35,7 +56,7 @@ useful preparation, **not** evidence of the database/browser/isolation boundary.
 - Frontend formatting, generated-client drift, YAML parsing and every workflow
   shell block syntax check passed.
 
-Required runtime checks remain:
+The original runtime checks, now exercised by the hosted run above, were:
 
 1. Real PostgreSQL migration, concurrency, outbox, Procrastinate, ownership,
    durable events, fencing, cancel/recovery and artifact integrity tests.
@@ -47,7 +68,7 @@ Required runtime checks remain:
 The GitHub Actions workflow prepares these gates using only ephemeral test
 accounts, synthetic fixtures and a locally built evaluator image. It uses no
 repository secrets or paid model endpoints. Workflow preparation is not a claim
-that it was published or run.
+that it passed. Hosted outcomes are recorded above.
 
 Fixture passwords and signing material are generated freshly in memory for tests,
 and on the disposable hosted runner for full-stack CI. The CI job registers log

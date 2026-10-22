@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { test, expect } from "@playwright/test";
 import {
   account,
@@ -362,25 +364,50 @@ test("real network interruption exposes an error and retry recovers", async ({
   page,
   context,
 }) => {
+  const seedName = "Original cn_time seed";
+  const originalSource = await readFile(
+    new URL("../../../seed_strategies/cn_time.py", import.meta.url),
+  );
+  const expectedHash = createHash("sha256")
+    .update(originalSource)
+    .digest("hex");
   await signIn(page);
   await page
     .getByRole("link", { name: "Strategy library", exact: true })
     .click();
-  await expect(
-    page.getByRole("button", { name: "View source", exact: true }).first(),
-  ).toBeVisible();
+  // Fixture creation order is not a selection contract: the library also contains
+  // deliberately slow and syntactically invalid E2E strategies.
+  const seedCard = page.getByRole("article").filter({
+    has: page.getByRole("heading", { name: seedName, exact: true }),
+  });
+  await expect(seedCard).toHaveCount(1);
+  await expect(seedCard.getByText(expectedHash, { exact: true })).toBeVisible();
+  const viewSource = seedCard.getByRole("button", {
+    name: "View source",
+    exact: true,
+  });
+  await expect(viewSource).toBeVisible();
   await context.setOffline(true);
-  await page
-    .getByRole("button", { name: "View source", exact: true })
-    .first()
-    .click();
-  await expect(page.getByRole("alert")).toBeVisible({ timeout: 30_000 });
+  await viewSource.click();
+  const sourceRegion = seedCard.getByRole("region", {
+    name: `${seedName} source`,
+    exact: true,
+  });
+  await expect(sourceRegion.getByRole("alert")).toBeVisible({
+    timeout: 30_000,
+  });
   await context.setOffline(false);
-  await page.getByRole("button", { name: "Close source" }).click();
-  await page
-    .getByRole("button", { name: "View source", exact: true })
-    .first()
-    .click();
-  await expect(page.getByText("Read-only strategy source")).toBeVisible();
-  await expect(page.locator("pre.preview")).toContainText("class ");
+  await sourceRegion.getByRole("button", { name: "Close source" }).click();
+  await viewSource.click();
+  await expect(
+    sourceRegion.getByText("Read-only strategy source"),
+  ).toBeVisible();
+  const preview = sourceRegion.locator("pre.preview");
+  await expect(preview).toContainText("class TimeStrategy(Strategy):");
+  // Verify the recovered response is the complete original source, not merely
+  // nonempty content from a different (or deliberately broken) fixture.
+  const recoveredSource = (await preview.textContent()) ?? "";
+  expect(createHash("sha256").update(recoveredSource).digest("hex")).toBe(
+    expectedHash,
+  );
 });

@@ -1,8 +1,8 @@
 # TradeGrad
 
 > **WebUI V1 branch status:** M0's four-task engine baseline is validated. The M1
-> synthetic, seed-only web application is prepared, but its real PostgreSQL,
-> Docker-isolation and Playwright gates are not yet passed. This is not complete
+> synthetic, seed-only web application passed real PostgreSQL and Docker isolation
+> gates; its Playwright gate is still pending a fixture-selection fix. This is not complete
 > V1 and has no live trading. See [staged validation](docs/M1_VALIDATION.md),
 > [development setup](docs/M1_OPERATIONS.md) and [remaining gates](docs/V1_IMPLEMENTATION.md).
 
