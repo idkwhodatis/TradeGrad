@@ -10,7 +10,6 @@ Usage
     python -m src.eval_runs --task cn_cross
 """
 import argparse
-import os
 import glob
 import logging
 from pathlib import Path
@@ -19,36 +18,36 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from .loss import TimeStrategyReward, StrategyReward
 from .strategy import Strategy
 from .tasks import TASKS, TEST_START, TEST_END
+from .resources import bounded_workers
+from .job import load_performance
 
 logging.basicConfig(level=logging.WARNING)
 
 
 def evaluate_one(task_name, strategy_path, out_dir):
     task = TASKS[task_name]
-    # Both settings are read by the evaluator subprocess, which inherits this environment.
-    os.environ["AKQUANT_MARKET"] = task["market"]
-    # The trade-frequency gate shapes what training optimises towards; it is not part of how a
-    # finished strategy is judged, so the test score is computed with it off.
-    os.environ["AKQUANT_FREQ_FLOOR"] = "0"
     if task["mode"] == "time":
-        loss = TimeStrategyReward(None, task["evaluate"], task["loss_kwargs"]["data_path"], TEST_START, TEST_END)
+        loss = TimeStrategyReward(None, task["evaluate"], task["loss_kwargs"]["data_path"], TEST_START, TEST_END, market=task["market"], freq_floor=0)
     else:
         loss = StrategyReward(
             None, task["evaluate"],
             task["loss_kwargs"]["date2symbol_dir"], task["loss_kwargs"]["data_dir"],
-            TEST_START, TEST_END,
+            TEST_START, TEST_END, market=task["market"], freq_floor=0,
         )
-    loss.forward(Strategy(
+    performance = loss.forward(Strategy(
         id=Path(strategy_path).parent.name,
         code=Path(strategy_path).read_text(),
         strategy_dir=out_dir,
     ))
+    if performance.get("error"):
+        raise RuntimeError(performance["error"])
+    return performance
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", required=True, choices=sorted(TASKS))
-    ap.add_argument("--workers", type=int, default=40)
+    ap.add_argument("--workers", type=int, default=1)
     args = ap.parse_args()
 
     root = Path(TASKS[args.task]["result_root"])
@@ -58,23 +57,31 @@ def main():
     jobs = []
     for strategy_path in glob.glob(str(root / "checkpoint" / "*" / "strategy.py")):
         out_dir = out_root / Path(strategy_path).parent.name
-        if (out_dir / "metrics.json").exists():
+        try:
+            load_performance(out_dir / "metrics.json")
+        except (ValueError, OSError):
+            pass
+        else:
             continue
         jobs.append((args.task, strategy_path, out_dir))
 
     print(f"{len(jobs)} evaluations queued ({args.task})", flush=True)
     done = 0
-    with ProcessPoolExecutor(max_workers=args.workers) as executor:
+    failures = 0
+    with ProcessPoolExecutor(max_workers=bounded_workers(args.workers, jobs=len(jobs))) as executor:
         futures = [executor.submit(evaluate_one, *job) for job in jobs]
         for future in as_completed(futures):
             try:
                 future.result()
             except Exception as e:
+                failures += 1
                 print(f"eval failed: {e}", flush=True)
             done += 1
             if done % 100 == 0:
                 print(f"  {done}/{len(jobs)}", flush=True)
-    print("=== eval done ===", flush=True)
+    print(f"=== eval done: {failures} failed ===", flush=True)
+    if failures:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

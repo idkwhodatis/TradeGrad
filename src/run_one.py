@@ -27,22 +27,23 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def build_loss(task, llm, worst_ratio):
+def build_loss(task, llm, worst_ratio, max_workers=1):
     if task["mode"] == "time":
         return WindowTimeStrategyReward(
             llm, task["evaluate"], task["loss_kwargs"]["data_path"],
-            TRAIN_START, TRAIN_END, worst_ratio=worst_ratio,
+            TRAIN_START, TRAIN_END, worst_ratio=worst_ratio, market=task["market"], max_workers=max_workers,
         )
     return WindowStrategyReward(
         llm, task["evaluate"],
         task["loss_kwargs"]["date2symbol_dir"], task["loss_kwargs"]["data_dir"],
-        TRAIN_START, TRAIN_END, worst_ratio=worst_ratio,
+        TRAIN_START, TRAIN_END, worst_ratio=worst_ratio, market=task["market"], max_workers=max_workers,
     )
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", required=True, choices=sorted(TASKS))
+    ap.add_argument("--window-workers", type=int, default=1)
     ap.add_argument("--max-steps", type=int, default=100)
     ap.add_argument("--worst-ratio", type=float, default=0.3)
     # TradeTGD hyperparameters -- defaults match the class's own defaults.
@@ -64,7 +65,7 @@ def main():
     project_dir = Path(task["result_root"])
 
     llm = LLMClient(base_url=args.base_url, api_key=api_key, model_name=args.model)
-    loss_train = build_loss(task, llm, args.worst_ratio)
+    loss_train = build_loss(task, llm, args.worst_ratio, args.window_workers)
     optimizer = TradeTGD(
         llm,
         sample_size=args.sample_size,

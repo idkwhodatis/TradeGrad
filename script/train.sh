@@ -9,6 +9,8 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 
 export AKQUANT_DATA_ROOT=YOUR_DATA_ROOT
+export TRADEGRAD_WORKERS=1
+export TRADEGRAD_DATA_WORKERS=1
 export OPENROUTER_API_KEY=YOUR_API_KEY
 PY=python
 
@@ -22,7 +24,7 @@ LARGE_REVISION_PROB=0.7
 MEMORY_WINDOW=5
 VERBOSE=0                # 1 to write per-step traces/gradients/memory summaries to disk
 
-WORKERS=24                # parallel workers for the test-window scoring pass
+WORKERS=1                # parallel workers for the test-window scoring pass
 
 if [ "$AKQUANT_DATA_ROOT" = "YOUR_DATA_ROOT" ]; then
     echo "Set AKQUANT_DATA_ROOT (edit this script) first." >&2

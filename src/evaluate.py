@@ -1,12 +1,8 @@
 import os
 import re
-import pickle
 import argparse
-import time
-import glob
 import json
 import math
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 import bisect
 import pandas as pd
@@ -15,8 +11,10 @@ import akquant as aq
 
 try:
     from .market import MARKETS, backtest_kwargs
+    from .data_cache import load_data
 except ImportError:  # run as a script by the loss layer
     from market import MARKETS, backtest_kwargs
+    from data_cache import load_data
 
 
 def parse_args():
@@ -27,90 +25,11 @@ def parse_args():
     parser.add_argument("--data_dir", type=str, help="Path to market data directory.")
     parser.add_argument("--start_time", type=str, help="Start time for backtesting.")
     parser.add_argument("--end_time", type=str, help="End time for backtesting.")
+    parser.add_argument("--market", required=True, choices=sorted(MARKETS))
+    parser.add_argument("--profile", choices=("source_compat", "corrected_explicit_config"), default="corrected_explicit_config")
+    parser.add_argument("--freq_floor", type=float, default=None)
     return parser.parse_args()
 
-def _read_one_csv(path: str):
-    symbol = Path(path).stem
-    df = pd.read_csv(path, parse_dates=["date"])
-    df["symbol"] = symbol
-    return symbol, df
-
-def _cache_path(data_dir: str, symbols: list[str]) -> Path:
-    """Cache file keyed by the symbol set and the newest source file, so it self-invalidates."""
-    import hashlib
-    d = Path(data_dir)
-    newest = max((p.stat().st_mtime for p in d.glob("*.csv")), default=0)
-    key = hashlib.md5(f"{d.resolve()}|{newest}|{','.join(sorted(symbols))}".encode()).hexdigest()
-    cache_dir = Path(os.environ.get("AKQUANT_DATA_CACHE", "/tmp/akquant_data_cache"))
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    return cache_dir / f"{key}.pkl"
-
-
-def load_data(
-    data_dir: str,
-    max_workers: int | None = None,
-    symbols: list[str] | None = None,
-) -> dict[str, pd.DataFrame]:
-    """Read the per-symbol csvs.
-
-    `symbols` restricts the read to the symbols actually used. The caller filters to the index
-    constituents immediately afterwards anyway, and the data directory holds far more symbols than
-    any one universe uses, so reading all of them throws away most of the work on every single
-    evaluation -- which matters because each evaluation is its own process.
-
-    Results are also pickled, keyed by the symbol set and the newest csv mtime, so repeated
-    evaluations over the same universe skip csv parsing entirely.
-    """
-    time_start = time.time()
-
-    if symbols is not None:
-        cache = _cache_path(data_dir, symbols)
-        if cache.exists():
-            try:
-                with open(cache, "rb") as f:
-                    data_map = pickle.load(f)
-                print(f"Loaded {len(data_map)} symbols from cache in "
-                      f"{time.time() - time_start:.2f} seconds")
-                return data_map
-            except Exception:
-                pass  # fall through and rebuild
-        paths = [str(Path(data_dir) / f"{symbol}.csv") for symbol in symbols]
-        paths = [p for p in paths if os.path.exists(p)]
-    else:
-        cache = None
-        paths = sorted(glob.glob(str(Path(data_dir) / "*.csv")))
-
-    if max_workers is None:
-        max_workers = os.cpu_count() or 1
-        max_workers = min(max_workers, len(paths))
-
-    data_map: dict[str, pd.DataFrame] = {}
-    if max_workers <= 1 or len(paths) == 1:
-        for path in paths:
-            symbol, df = _read_one_csv(path)
-            data_map[symbol] = df
-    else:
-        with ProcessPoolExecutor(max_workers=max_workers) as ex:
-            futures = [ex.submit(_read_one_csv, path) for path in paths]
-            for future in as_completed(futures):
-                try:
-                    symbol, df = future.result()
-                    data_map[symbol] = df
-                except Exception as e:
-                    print(f"Error loading {path}: {e}")
-                    continue
-
-    if symbols is not None and cache is not None:
-        try:
-            tmp = cache.with_suffix(".tmp")
-            with open(tmp, "wb") as f:
-                pickle.dump(data_map, f, protocol=pickle.HIGHEST_PROTOCOL)
-            os.replace(tmp, cache)   # atomic, so concurrent evaluations never read a partial file
-        except Exception:
-            pass
-
-    print(f"Loaded {len(data_map)} symbols in {time.time() - time_start:.2f} seconds (workers={max_workers})")
-    return data_map
 
 
 class Date2Symbols(dict[int, set[str]]):
@@ -207,7 +126,7 @@ class Date2Symbols(dict[int, set[str]]):
         merged = {}
 
         for path in paths:
-            df = pd.read_csv(path)
+            df = pd.read_csv(path, dtype={"code": str})
 
             # Which column carries the snapshot date differs by market. The HS300 files stamp every
             # row with that file's rebalance date, so `updateDate` is the snapshot. The S&P files
@@ -243,9 +162,6 @@ class Date2Symbols(dict[int, set[str]]):
 # Trade-frequency floor for the cross-sectional task: 0.25x the initial strategy's own trade rate
 # (see market.py's freq_floor). Loose enough to leave room for genuinely lower-turnover designs,
 # tight enough to kill the reward-hacking route of trading less to flatten drawdown.
-MARKET = os.environ.get("AKQUANT_MARKET", "CN")
-_floor = MARKETS[MARKET]["freq_floor"]["cross"]
-FREQ_FLOOR = float(os.environ.get("AKQUANT_FREQ_FLOOR", _floor if _floor is not None else 0.0))
 FREQ_SHARPNESS = float(os.environ.get("AKQUANT_FREQ_SHARPNESS", 1.0))
 # Weight on the AR term vs MDD in reward_function's geometric mean; 0.5 = equal weight, raising it trades less emphasis on drawdown for more on return.
 AR_WEIGHT = float(os.environ.get("AKQUANT_AR_WEIGHT", 0.5))
@@ -256,6 +172,9 @@ def reward_function(
     ar_weight: float = AR_WEIGHT,
     ar_reference: float = 20,
     mdd_reference: float = 15,
+    *,
+    market: str,
+    freq_floor: float | None = None,
 ) -> float:
     ar_score = 1.0 / (
         1.0 + math.exp(-0.11 * (metrics['annualized_return'] - ar_reference))
@@ -266,8 +185,9 @@ def reward_function(
     base = ar_score ** ar_weight * mdd_score ** (1 - ar_weight)
 
     gate = 1.0
-    if FREQ_FLOOR > 0:
-        gate = min(1.0, metrics['trade_per_day'] / FREQ_FLOOR) ** FREQ_SHARPNESS
+    floor = MARKETS[market]["freq_floor"]["cross"] if freq_floor is None else freq_floor
+    if floor > 0:
+        gate = min(1.0, metrics['trade_per_day'] / floor) ** FREQ_SHARPNESS
 
     return 100 * base * gate
 
@@ -279,6 +199,9 @@ def run_backtest(
     data_dir: str,
     start_time: str,
     end_time: str,
+    market: str,
+    freq_floor: float | None = None,
+    profile: str = "corrected_explicit_config",
 ):
     date2symbols = Date2Symbols.from_date2symbol_dir(date2symbol_dir)
     all_symbols = set()
@@ -286,7 +209,7 @@ def run_backtest(
         all_symbols.update(symbols)
     all_symbols = list(sorted(all_symbols))
 
-    data_map = load_data(data_dir, max_workers=12, symbols=all_symbols)
+    data_map = load_data(data_dir, symbols=all_symbols)
     data_map = {symbol: data_map[symbol] for symbol in all_symbols if symbol in data_map}
 
     result = aq.run_backtest(
@@ -298,7 +221,7 @@ def run_backtest(
         },
         start_time=start_time,
         end_time=end_time,
-        **backtest_kwargs(MARKET),
+        **backtest_kwargs(market, profile),
     )
 
     metrics_df = result.metrics_df
@@ -320,12 +243,15 @@ def run_backtest(
             metrics[k] = round(v, 2)
 
     performance = {
-        "combined_score": round(reward_function(metrics), 2),
-        "metrics": metrics
+        "combined_score": round(reward_function(metrics, market=market, freq_floor=freq_floor), 2),
+        "metrics": metrics,
+        "market": market,
+        "profile": profile,
     }
 
+    os.makedirs(result_dir, exist_ok=True)
     with open(os.path.join(result_dir, "metrics.json"), 'w') as f:
-        json.dump(performance, f, indent=4)
+        json.dump(performance, f, indent=4, allow_nan=False)
 
 
 if __name__ == "__main__":

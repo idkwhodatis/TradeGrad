@@ -8,3 +8,20 @@ __pycache__/
 /script/my_*
 
 .env
+
+# WebUI development and reproducible test outputs
+.venv*/
+node_modules/
+.pytest_cache/
+__pycache__/
+*.pyc
+.coverage
+htmlcov/
+.runtime/
+artifacts/
+playwright-report/
+test-results/
+frontend/dist/
+.env
+.env.*
+!.env.example

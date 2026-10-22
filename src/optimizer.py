@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from .prompt import *
+from .resources import bounded_workers
 from .strategy import Strategy
 from .llm_client import LLMClient
 from .util import retry_on_exception, parse_code, parse_diffs, apply_diffs
@@ -240,7 +241,7 @@ class TradeTGD(Optimizer):
 
     def update_memory_summary(self):
         logger.info('Updating memory summary based on recent strategies...')
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=bounded_workers(limit_var="TRADEGRAD_LLM_WORKERS")) as executor:
             futures = {
                 executor.submit(self.summarize_strategy, strategy): strategy
                 for strategy in self.memory_storage

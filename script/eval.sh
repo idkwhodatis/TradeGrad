@@ -8,10 +8,12 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 
 export AKQUANT_DATA_ROOT=YOUR_DATA_ROOT
+export TRADEGRAD_WORKERS=1
+export TRADEGRAD_DATA_WORKERS=1
 PY=python
 
 TASK=cn_cross           # cn_cross | cn_time | us_cross | us_time
-WORKERS=24
+WORKERS=1
 
 if [ "$AKQUANT_DATA_ROOT" = "YOUR_DATA_ROOT" ]; then
     echo "Set AKQUANT_DATA_ROOT (edit this script) first." >&2

@@ -19,6 +19,9 @@ def parse_args():
     parser.add_argument("--symbol", type=str, default="target_symbol", help="Symbol name used inside the strategy/data.")
     parser.add_argument("--start_time", type=str, help="Start time for backtesting.")
     parser.add_argument("--end_time", type=str, help="End time for backtesting.")
+    parser.add_argument("--market", required=True, choices=sorted(MARKETS))
+    parser.add_argument("--profile", choices=("source_compat", "corrected_explicit_config"), default="corrected_explicit_config")
+    parser.add_argument("--freq_floor", type=float, default=None)
     return parser.parse_args()
 
 def load_data(data_path: str, symbol: str) -> dict[str, pd.DataFrame]:
@@ -29,9 +32,6 @@ def load_data(data_path: str, symbol: str) -> dict[str, pd.DataFrame]:
 # Trade-frequency floor for the cross-sectional task: 0.25x the initial strategy's own trade rate
 # (see market.py's freq_floor). Loose enough to leave room for genuinely lower-turnover designs,
 # tight enough to kill the reward-hacking route of trading less to flatten drawdown.
-MARKET = os.environ.get("AKQUANT_MARKET", "CN")
-_floor = MARKETS[MARKET]["freq_floor"]["time"]
-FREQ_FLOOR = float(os.environ.get("AKQUANT_FREQ_FLOOR", _floor if _floor is not None else 0.0))
 FREQ_SHARPNESS = float(os.environ.get("AKQUANT_FREQ_SHARPNESS", 1.0))
 
 # Weight on the AR term vs MDD in reward_function's geometric mean; 0.5 = equal weight, raising it trades less emphasis on drawdown for more on return.
@@ -43,6 +43,9 @@ def reward_function(
     ar_weight: float = AR_WEIGHT,
     ar_reference: float = 20,
     mdd_reference: float = 15,
+    *,
+    market: str,
+    freq_floor: float | None = None,
 ) -> float:
     ar_score = 1.0 / (
         1.0 + math.exp(-0.11 * (metrics['annualized_return'] - ar_reference))
@@ -53,8 +56,9 @@ def reward_function(
     base = ar_score ** ar_weight * mdd_score ** (1 - ar_weight)
 
     gate = 1.0
-    if FREQ_FLOOR > 0:
-        gate = min(1.0, metrics['trade_per_day'] / FREQ_FLOOR) ** FREQ_SHARPNESS
+    floor = MARKETS[market]["freq_floor"]["time"] if freq_floor is None else freq_floor
+    if floor > 0:
+        gate = min(1.0, metrics['trade_per_day'] / floor) ** FREQ_SHARPNESS
 
     return 100 * base * gate
 
@@ -66,6 +70,9 @@ def run_backtest(
     symbol: str,
     start_time: str,
     end_time: str,
+    market: str,
+    freq_floor: float | None = None,
+    profile: str = "corrected_explicit_config",
 ):
     data_map = load_data(data_path, symbol)
 
@@ -77,7 +84,7 @@ def run_backtest(
         },
         start_time=start_time,
         end_time=end_time,
-        **backtest_kwargs(MARKET),
+        **backtest_kwargs(market, profile),
     )
 
     metrics_df = result.metrics_df
@@ -99,12 +106,15 @@ def run_backtest(
             metrics[k] = round(v, 2)
 
     performance = {
-        "combined_score": round(reward_function(metrics), 2),
-        "metrics": metrics
+        "combined_score": round(reward_function(metrics, market=market, freq_floor=freq_floor), 2),
+        "metrics": metrics,
+        "market": market,
+        "profile": profile,
     }
 
+    os.makedirs(result_dir, exist_ok=True)
     with open(os.path.join(result_dir, "metrics.json"), 'w') as f:
-        json.dump(performance, f, indent=4)
+        json.dump(performance, f, indent=4, allow_nan=False)
 
 
 if __name__ == "__main__":

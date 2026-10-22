@@ -1,0 +1,62 @@
+{
+  "cn_time": {
+    "combined_score": 0.14,
+    "metrics": {
+      "sharpe_ratio": -11.49,
+      "annualized_return": -68.55,
+      "max_drawdown": 30.55,
+      "trade_per_day": 0.08,
+      "win_rate": 16.67,
+      "return_per_trade": -7.35
+    },
+    "market": "CN",
+    "profile": "corrected_explicit_config",
+    "start_time": "2024-01-02",
+    "end_time": "2024-04-26"
+  },
+  "cn_cross": {
+    "combined_score": 69.06,
+    "metrics": {
+      "sharpe_ratio": 50.28,
+      "annualized_return": 279.22,
+      "max_drawdown": 0.12,
+      "trade_per_day": 2.89,
+      "win_rate": 87.78,
+      "return_per_trade": 7.3
+    },
+    "market": "CN",
+    "profile": "corrected_explicit_config",
+    "start_time": "2024-01-02",
+    "end_time": "2024-04-26"
+  },
+  "us_time": {
+    "combined_score": 0.09,
+    "metrics": {
+      "sharpe_ratio": -13.14,
+      "annualized_return": -72.02,
+      "max_drawdown": 32.82,
+      "trade_per_day": 1.03,
+      "win_rate": 35.9,
+      "return_per_trade": -1.87
+    },
+    "market": "US",
+    "profile": "corrected_explicit_config",
+    "start_time": "2024-01-02",
+    "end_time": "2024-04-26"
+  },
+  "us_cross": {
+    "combined_score": 0.0,
+    "metrics": {
+      "sharpe_ratio": -96.17,
+      "annualized_return": -90.39,
+      "max_drawdown": 51.89,
+      "trade_per_day": 35.77,
+      "win_rate": 30.42,
+      "return_per_trade": -2.32
+    },
+    "market": "US",
+    "profile": "corrected_explicit_config",
+    "start_time": "2024-01-02",
+    "end_time": "2024-04-26"
+  }
+}

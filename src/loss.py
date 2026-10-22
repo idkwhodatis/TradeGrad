@@ -8,6 +8,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .job import run_job
+from .resources import bounded_workers
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,9 @@ class StrategyReward(TextLoss):
         data_dir: str,
         start_time: str,
         end_time: str,
+        *,
+        market: str,
+        freq_floor: float | None = None,
     ):
         super().__init__(llm)
         self.evaluate_script = evaluate_script
@@ -40,6 +44,10 @@ class StrategyReward(TextLoss):
         self.data_dir = data_dir
         self.start_time = start_time
         self.end_time = end_time
+        if market not in ("CN", "US"):
+            raise ValueError("market must be CN or US")
+        self.market = market
+        self.freq_floor = freq_floor
 
     def forward(self, strategy):
         cmd = [
@@ -51,6 +59,9 @@ class StrategyReward(TextLoss):
             "--start_time", self.start_time,
             "--end_time", self.end_time,
         ]
+        cmd.extend(["--market", self.market])
+        if self.freq_floor is not None:
+            cmd.extend(["--freq_floor", str(self.freq_floor)])
         run_time, error = run_job(strategy.strategy_dir, cmd)
 
         if error:
@@ -71,6 +82,8 @@ def split_time_windows_by_year(start_time: str, end_time: str):
     """Split [start_time, end_time] (both "YYYY-MM-DD") into one window per calendar year."""
     start_date = datetime.strptime(start_time, "%Y-%m-%d").date()
     end_date = datetime.strptime(end_time, "%Y-%m-%d").date()
+    if end_date < start_date:
+        raise ValueError("end_time must not precede start_time")
     windows = []
     for year in range(start_date.year, end_date.year + 1):
         window_start = max(start_date, date(year, 1, 1))
@@ -79,7 +92,7 @@ def split_time_windows_by_year(start_time: str, end_time: str):
     return windows
 
 
-def run_window_backtest(strategy_path, window_dir, evaluate_script, date2symbol_dir, data_dir, start_time, end_time):
+def run_window_backtest(strategy_path, window_dir, evaluate_script, date2symbol_dir, data_dir, start_time, end_time, market, freq_floor=None):
     window_dir = Path(window_dir)
     cmd = [
         sys.executable, evaluate_script,
@@ -90,6 +103,9 @@ def run_window_backtest(strategy_path, window_dir, evaluate_script, date2symbol_
         "--start_time", start_time,
         "--end_time", end_time,
     ]
+    cmd.extend(["--market", market])
+    if freq_floor is not None:
+        cmd.extend(["--freq_floor", str(freq_floor)])
     run_time, error = run_job(window_dir, cmd)
 
     if error:
@@ -122,7 +138,10 @@ class WindowStrategyReward(TextLoss):
         start_time: str,
         end_time: str,
         worst_ratio: float = 0.3,
-        max_workers: int = 4,
+        max_workers: int = 1,
+        *,
+        market: str,
+        freq_floor: float | None = None,
     ):
         super().__init__(llm)
         self.evaluate_script = evaluate_script
@@ -130,8 +149,14 @@ class WindowStrategyReward(TextLoss):
         self.data_dir = data_dir
         self.start_time = start_time
         self.end_time = end_time
+        if market not in ("CN", "US"):
+            raise ValueError("market must be CN or US")
+        self.market = market
+        self.freq_floor = freq_floor
+        if not 0 < worst_ratio <= 1:
+            raise ValueError("worst_ratio must be in (0, 1]")
         self.worst_ratio = worst_ratio
-        self.max_workers = max_workers
+        self.max_workers = bounded_workers(max_workers)
         self.windows = split_time_windows_by_year(start_time, end_time)
 
     def forward(self, strategy):
@@ -146,6 +171,8 @@ class WindowStrategyReward(TextLoss):
                     self.data_dir,
                     w_start,
                     w_end,
+                    self.market,
+                    self.freq_floor,
                 ): i
                 for i, (w_start, w_end) in enumerate(self.windows)
             }
@@ -184,6 +211,9 @@ class TimeStrategyReward(TextLoss):
         start_time: str,
         end_time: str,
         symbol: str = "target_symbol",
+        *,
+        market: str,
+        freq_floor: float | None = None,
     ):
         super().__init__(llm)
         self.evaluate_script = evaluate_script
@@ -191,6 +221,10 @@ class TimeStrategyReward(TextLoss):
         self.symbol = symbol
         self.start_time = start_time
         self.end_time = end_time
+        if market not in ("CN", "US"):
+            raise ValueError("market must be CN or US")
+        self.market = market
+        self.freq_floor = freq_floor
 
     def forward(self, strategy):
         cmd = [
@@ -202,6 +236,9 @@ class TimeStrategyReward(TextLoss):
             "--start_time", self.start_time,
             "--end_time", self.end_time,
         ]
+        cmd.extend(["--market", self.market])
+        if self.freq_floor is not None:
+            cmd.extend(["--freq_floor", str(self.freq_floor)])
         run_time, error = run_job(strategy.strategy_dir, cmd)
 
         if error:
@@ -218,7 +255,7 @@ class TimeStrategyReward(TextLoss):
         return performance
 
 
-def run_time_window_backtest(strategy_path, window_dir, evaluate_script, data_path, symbol, start_time, end_time):
+def run_time_window_backtest(strategy_path, window_dir, evaluate_script, data_path, symbol, start_time, end_time, market, freq_floor=None):
     window_dir = Path(window_dir)
     cmd = [
         sys.executable, evaluate_script,
@@ -229,6 +266,9 @@ def run_time_window_backtest(strategy_path, window_dir, evaluate_script, data_pa
         "--start_time", start_time,
         "--end_time", end_time,
     ]
+    cmd.extend(["--market", market])
+    if freq_floor is not None:
+        cmd.extend(["--freq_floor", str(freq_floor)])
     run_time, error = run_job(window_dir, cmd)
 
     if error:
@@ -257,7 +297,10 @@ class WindowTimeStrategyReward(TextLoss):
         end_time: str,
         symbol: str = "target_symbol",
         worst_ratio: float = 0.3,
-        max_workers: int = 4,
+        max_workers: int = 1,
+        *,
+        market: str,
+        freq_floor: float | None = None,
     ):
         super().__init__(llm)
         self.evaluate_script = evaluate_script
@@ -265,8 +308,14 @@ class WindowTimeStrategyReward(TextLoss):
         self.symbol = symbol
         self.start_time = start_time
         self.end_time = end_time
+        if market not in ("CN", "US"):
+            raise ValueError("market must be CN or US")
+        self.market = market
+        self.freq_floor = freq_floor
+        if not 0 < worst_ratio <= 1:
+            raise ValueError("worst_ratio must be in (0, 1]")
         self.worst_ratio = worst_ratio
-        self.max_workers = max_workers
+        self.max_workers = bounded_workers(max_workers)
         self.windows = split_time_windows_by_year(start_time, end_time)
 
     def forward(self, strategy):
@@ -281,6 +330,8 @@ class WindowTimeStrategyReward(TextLoss):
                     self.symbol,
                     w_start,
                     w_end,
+                    self.market,
+                    self.freq_floor,
                 ): i
                 for i, (w_start, w_end) in enumerate(self.windows)
             }

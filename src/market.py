@@ -54,7 +54,11 @@ MARKETS = {
 }
 
 
-def backtest_kwargs(market: str) -> dict:
+def backtest_kwargs(market: str, profile: str = "corrected_explicit_config") -> dict:
+    if market not in MARKETS:
+        raise ValueError("market must be CN or US")
+    if profile not in ("source_compat", "corrected_explicit_config"):
+        raise ValueError("Unsupported engine profile")
     m = MARKETS[market]
     extra = {}
     if m.get("risk"):
@@ -63,12 +67,16 @@ def backtest_kwargs(market: str) -> dict:
         # a RiskConfig instance fails silently and shorting stays disabled; the dict branch sets the
         # fields one by one and works.
         extra["risk_config"] = dict(m["risk"])
+    if profile == "corrected_explicit_config":
+        extra.update(timezone="Asia/Shanghai" if market == "CN" else "America/New_York",
+                     lot_size=100 if market == "CN" else 1)
     return dict(
         **extra,
         initial_cash=1_000_000.0,
+        show_progress=False,
         commission_rate=m["commission_rate"],
         stamp_tax_rate=m["stamp_tax_rate"],
-        slippage=m["slippage"],
+        slippage=dict(m["slippage"]),
         history_depth=252,
         t_plus_one=m["t_plus_one"],
     )
