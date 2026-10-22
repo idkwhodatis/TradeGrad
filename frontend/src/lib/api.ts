@@ -9,6 +9,8 @@ export function describeError(error: unknown): {
   message: string;
   correlationId?: string;
 } {
+  const unreachableMessage =
+    "The service could not be reached. Check your connection and try again.";
   if (error && typeof error === "object") {
     const value = error as {
       message?: unknown;
@@ -16,24 +18,36 @@ export function describeError(error: unknown): {
       code?: unknown;
       name?: unknown;
     };
-    if (typeof value.message === "string")
-      return {
-        message: value.message,
-        correlationId:
-          typeof value.correlation_id === "string"
-            ? value.correlation_id
-            : undefined,
-      };
+    const correlationId =
+      typeof value.correlation_id === "string"
+        ? value.correlation_id
+        : undefined;
     if (value.name === "AbortError" || value.name === "TimeoutError")
       return {
         message:
           "The request timed out. Retry to check the same submission; a timeout does not mean the operation was not accepted.",
+        correlationId,
+      };
+    // Fetch uses TypeError for network failures, but unrelated programming
+    // errors and structured backend errors must retain their own messages.
+    if (
+      value.name === "TypeError" &&
+      value.code === undefined &&
+      typeof value.message === "string" &&
+      [
+        "Failed to fetch",
+        "NetworkError when attempting to fetch resource.",
+        "Load failed",
+      ].includes(value.message)
+    )
+      return { message: unreachableMessage, correlationId };
+    if (typeof value.message === "string")
+      return {
+        message: value.message,
+        correlationId,
       };
   }
-  return {
-    message:
-      "The service could not be reached. Check your connection and try again.",
-  };
+  return { message: unreachableMessage };
 }
 
 // A single transport covers ordinary requests, downloads, and authenticated SSE.
