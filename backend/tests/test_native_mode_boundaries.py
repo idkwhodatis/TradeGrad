@@ -109,7 +109,7 @@ def test_readiness_requires_current_settings_schema(fake_api):
     client, session, _ = fake_api
     assert client.get("/api/v1/health/ready").status_code == 200
     statement = str(session.execute.call_args.args[0])
-    assert "version_num = '005_settings'" in statement
+    assert "version_num = '006_provider_connections'" in statement
 
 
 def test_readiness_fails_closed_on_stale_schema(fake_api):

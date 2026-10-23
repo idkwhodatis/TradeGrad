@@ -11,7 +11,9 @@ class BackupReceipt(BaseModel):
     format: Literal["tradegrad.backup-receipt.v1"] = "tradegrad.backup-receipt.v1"
     operation: Literal["create", "verify", "restore"]
     application_ref: str = Field(pattern=r"^(?:[a-f0-9]{40}|[a-f0-9]{64})$")
-    schema_revision: Literal["003_m3", "004_m5", "005_settings"]
+    schema_revision: Literal[
+        "003_m3", "004_m5", "005_settings", "006_provider_connections"
+    ]
     manifest_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     backup_created_at: datetime
     observed_at: datetime

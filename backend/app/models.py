@@ -63,6 +63,27 @@ class UserWorkspaceSettings(Base):
     )
 
 
+class ProviderConnection(Base):
+    """Each row is an immutable revision; newest owner/provider row is current."""
+
+    __tablename__ = "provider_connections"
+    connection_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    revision: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
+    provider: Mapped[str] = mapped_column(String(20))
+    config: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    config_sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    __table_args__ = (
+        UniqueConstraint("owner_id", "provider", "revision"),
+        CheckConstraint("revision > 0"),
+        CheckConstraint("provider IN ('akshare', 'yfinance', 'openbb')"),
+        Index("ix_provider_connections_owner", "owner_id", "provider", "revision"),
+    )
+
+
 class DatasetVersion(Base):
     __tablename__ = "dataset_versions"
     id: Mapped[UUID] = mapped_column(

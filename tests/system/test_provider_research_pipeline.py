@@ -40,7 +40,7 @@ START, END = "2023-07-03", "2024-01-02"
 
 
 @pytest.fixture
-def provider_harness(tmp_path):
+def provider_harness(tmp_path, request):
     if os.getenv("TRADEGRAD_REQUIRE_PROVIDER_RESEARCH") != "1":
         pytest.skip("Real provider-to-research acceptance was not explicitly requested")
     url = os.getenv("TEST_DATABASE_URL")
@@ -50,8 +50,9 @@ def provider_harness(tmp_path):
         harness = ResearchProcessHarness(tmp_path, url, runtime_paths())
         harness.deadline = time.monotonic() + 360
         harness.setup()
-        for role in ("dispatcher", "worker"):
-            harness.spawn(f"data-{role}", ["-m", "workers.data", role])
+        if getattr(request, "param", None) != "deferred-data-worker":
+            for role in ("dispatcher", "worker"):
+                harness.spawn(f"data-{role}", ["-m", "workers.data", role])
         yield harness
     finally:
         if harness is not None:
@@ -108,6 +109,19 @@ def test_actual_provider_download_to_corrected_optimizer_and_persisted_result(
         client, "GET", f"/datasets/{ready['dataset_version_id']}"
     ).json()
     manifest = dataset["manifest"]
+    binding = job["request"].get("_provider_connection")
+    require(
+        binding is not None
+        and binding["provider"] == provider
+        and binding["revision"] >= 1
+        and binding["auth_mode"] == "public_no_auth"
+        and manifest.get("provider_connection") == binding,
+        "Actual worker omitted or changed frozen provider connection evidence",
+    )
+    require(
+        job["request"]["_execution"]["worker_contract"] == "data-import.v3",
+        "Provider connection job did not use the fail-closed worker contract",
+    )
     require(
         dataset["source"] == provider and dataset["is_synthetic"],
         "Provider fixture mislabeled",
@@ -367,3 +381,141 @@ def test_actual_provider_download_to_corrected_optimizer_and_persisted_result(
             fingerprint_tree(snapshot) == before,
             "Repair modified original provider snapshot",
         )
+
+
+@pytest.mark.parametrize("provider_harness", ["deferred-data-worker"], indirect=True)
+@pytest.mark.parametrize(
+    "case",
+    [
+        "disabled_after_admission",
+        "missing_revision",
+        "wrong_owner",
+        "wrong_provider",
+        "missing_pin",
+        "downgraded_pin",
+    ],
+)
+def test_actual_worker_honors_frozen_connection_before_any_provider_or_checkpoint_access(
+    provider_harness, case
+):
+    """No data workers exist until after disable/corruption, eliminating races."""
+    from packages.marketdata.connections import make_snapshot
+
+    h = provider_harness
+    client = h.clients[0]
+    admitted = h.request(
+        client,
+        "POST",
+        "/data/imports",
+        status=202,
+        headers={"Idempotency-Key": uuid4().hex},
+        json={
+            "provider": "yfinance",
+            "market": "US",
+            "symbols": ["AAPL"],
+            "start_date": "2024-01-02",
+            "end_date": "2024-01-06",
+        },
+    ).json()
+    binding = admitted["request"]["_provider_connection"]
+    require(
+        admitted["status"] == "requested",
+        "Data worker started before the ordering barrier",
+    )
+    with h.connection(private=True) as connection:
+        owner = connection.execute(
+            "SELECT owner_id FROM data_imports WHERE id=%s", (admitted["id"],)
+        ).fetchone()[0]
+        require(
+            connection.execute(
+                "SELECT count(*) FROM data_blocks WHERE import_id=%s", (admitted["id"],)
+            ).fetchone()[0]
+            == 0,
+            "Data access occurred before worker startup",
+        )
+        if case != "disabled_after_admission":
+            changed = json.loads(json.dumps(admitted["request"]))
+            if case == "missing_revision":
+                changed["_provider_connection"] = make_snapshot(
+                    owner, "yfinance", 999
+                ).model_dump(mode="json")
+            elif case == "wrong_owner":
+                changed["_provider_connection"] = make_snapshot(
+                    uuid4(), "yfinance", 1
+                ).model_dump(mode="json")
+            elif case == "wrong_provider":
+                changed["_provider_connection"] = make_snapshot(
+                    owner, "openbb", 1
+                ).model_dump(mode="json")
+            elif case == "missing_pin":
+                changed.pop("_provider_connection")
+            else:
+                changed["_execution"]["worker_contract"] = "data-import.v2"
+            # Test-only corruption in the harness-owned PostgreSQL schema. Never
+            # mutate production settings/history or the immutable connection table.
+            connection.execute(
+                "UPDATE data_imports SET request=%s::jsonb WHERE id=%s",
+                (json.dumps(changed), admitted["id"]),
+            )
+            connection.commit()
+    h.request(
+        client,
+        "POST",
+        "/data/provider-connections/yfinance",
+        json={
+            "expected_revision": binding["revision"],
+            "enabled": False,
+            "is_default": False,
+            "default_price_mode": "provider_native",
+        },
+    )
+    for role in ("dispatcher", "worker"):
+        h.spawn(f"data-{role}", ["-m", "workers.data", role])
+
+    def terminal():
+        value = h.request(client, "GET", f"/data/imports/{admitted['id']}").json()
+        return (
+            value
+            if value["status"] in {"ready", "partial", "failed", "cancelled"}
+            else None
+        )
+
+    done = h.until(
+        terminal, "Connection-bound data worker did not terminate", timeout=80
+    )
+    if case == "disabled_after_admission":
+        require(
+            done["status"] == "ready",
+            "A later preference change incorrectly revoked the frozen job",
+        )
+        dataset = h.request(
+            client, "GET", f"/datasets/{done['dataset_version_id']}"
+        ).json()
+        require(
+            dataset["manifest"].get("provider_connection") == binding,
+            "Published snapshot changed its accepted configuration",
+        )
+        require(done["request"] == admitted["request"], "Worker rewrote frozen request")
+    else:
+        require(
+            done["status"] == "failed" and done["dataset_version_id"] is None,
+            "Invalid persisted binding was executed",
+        )
+        require(
+            not done["listing_ids"]
+            and not done["progress"].get("resolution_provenance"),
+            "Provider resolution happened before binding rejection",
+        )
+        require(
+            done["blocks_total"] == 0,
+            "Blocks/checkpoints were accessed before binding rejection",
+        )
+        with h.connection(private=True) as connection:
+            require(
+                connection.execute(
+                    "SELECT count(*) FROM data_blocks WHERE import_id=%s",
+                    (admitted["id"],),
+                ).fetchone()[0]
+                == 0,
+                "Invalid binding created persisted data blocks",
+            )

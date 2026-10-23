@@ -551,11 +551,22 @@ def _publish(factory, item_id, generation, token, settings, listings, results):
             import_request={
                 k: v
                 for k, v in config.items()
-                if k not in {"upload", "_execution", "_derivation"}
+                if k
+                not in {
+                    "upload",
+                    "_execution",
+                    "_derivation",
+                    "_provider_connection",
+                    "expected_connection_revision",
+                }
             }
             if source != "upload"
             else None,
         )
+        if config.get("_provider_connection") is not None:
+            # Add a separate owner-configuration binding; do not rewrite provider
+            # provenance identities or hash/relabel older unbound evidence.
+            manifest["provider_connection"] = config["_provider_connection"]
         manifest["quality"] = {
             "warnings": [w.model_dump(mode="json") for w in combined.warnings],
             "unknown_flags": config.get("unknown_flags", []),
@@ -736,6 +747,24 @@ def execute(import_id, generation, settings=None, factory=None):
                 error="Pinned import execution policy is incompatible with this worker; no data was fetched or reused",
             )
             return
+        from packages.marketdata.connections import validate_request_connection
+
+        binding = validate_request_connection(config, provider_name, owner_id)
+        if binding is not None:
+            from backend.app.models import ProviderConnection
+
+            with factory() as session:
+                saved = session.get(
+                    ProviderConnection, (binding.connection_id, binding.revision)
+                )
+                if (
+                    saved is None
+                    or saved.owner_id != owner_id
+                    or saved.config != binding.model_dump(mode="json")
+                ):
+                    raise ValueError(
+                        "Frozen provider connection revision is unavailable or mismatched"
+                    )
         _verify_repair_parent(factory, item_id, settings)
         with budget_scope(lambda key: reserve_budget(factory, key, 1.0)):
             provider = (

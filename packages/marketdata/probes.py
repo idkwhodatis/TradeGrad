@@ -35,7 +35,7 @@ def build_probe_receipt(
         if errors
         else "incomplete"
     )
-    return {
+    receipt = {
         "schema_version": "provider-test.v1",
         "import_id": str(import_id),
         "provider": provider,
@@ -57,3 +57,8 @@ def build_probe_receipt(
         "error_codes": errors,
         "note": "Only this public symbol, daily endpoint, package combination and closed date interval were tested. No global provider, credentials, data-use rights or current availability claim. Fixture results never verify live connectivity.",
     }
+
+    if request.get("_provider_connection") is not None:
+        receipt["provider_connection"] = request["_provider_connection"]
+        receipt["price_mode"] = request["price_mode"]
+    return receipt

@@ -449,7 +449,8 @@ def execution_policy_compatible(
     return (
         policy.get("schema_version") == SCHEMA_VERSION
         and policy.get("transform_version") == TRANSFORM_VERSION
-        and policy.get("worker_contract") in {"data-import.v1", "data-import.v2"}
+        and policy.get("worker_contract")
+        in {"data-import.v1", "data-import.v2", "data-import.v3"}
         and policy.get("provider_mode") == provider_mode
         and policy.get("fixture_version")
         == (fixture if provider_mode == "fixture" else None)

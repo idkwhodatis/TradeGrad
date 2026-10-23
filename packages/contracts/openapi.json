@@ -231,7 +231,8 @@
             "enum": [
               "003_m3",
               "004_m5",
-              "005_settings"
+              "005_settings",
+              "006_provider_connections"
             ],
             "title": "Schema Revision",
             "type": "string"
@@ -960,6 +961,76 @@
           "values"
         ],
         "title": "ComparisonDifference",
+        "type": "object"
+      },
+      "ConnectionSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "auth_mode": {
+            "const": "public_no_auth",
+            "default": "public_no_auth",
+            "title": "Auth Mode",
+            "type": "string"
+          },
+          "config_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Config Sha256",
+            "type": "string"
+          },
+          "connection_id": {
+            "format": "uuid",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "default_price_mode": {
+            "enum": [
+              "provider_native",
+              "raw",
+              "qfq",
+              "hfq"
+            ],
+            "title": "Default Price Mode",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "is_default": {
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "provider": {
+            "enum": [
+              "akshare",
+              "yfinance",
+              "openbb"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 0.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "schema_version": {
+            "const": "provider-connection.v1",
+            "default": "provider-connection.v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connection_id",
+          "provider",
+          "revision",
+          "enabled",
+          "is_default",
+          "default_price_mode",
+          "config_sha256"
+        ],
+        "title": "ConnectionSnapshot",
         "type": "object"
       },
       "CoveragePublic": {
@@ -3150,6 +3221,18 @@
             "title": "End Date",
             "type": "string"
           },
+          "expected_connection_revision": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Connection Revision"
+          },
           "listing_ids": {
             "items": {
               "format": "uuid",
@@ -3175,26 +3258,39 @@
             "type": "string"
           },
           "price_mode": {
-            "default": "provider_native",
-            "enum": [
-              "provider_native",
-              "raw",
-              "qfq",
-              "hfq",
-              "repair"
+            "anyOf": [
+              {
+                "enum": [
+                  "provider_native",
+                  "raw",
+                  "qfq",
+                  "hfq",
+                  "repair"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Price Mode",
-            "type": "string"
+            "title": "Price Mode"
           },
           "provider": {
-            "enum": [
-              "akshare",
-              "yfinance",
-              "openbb",
-              "portable_fixture"
+            "anyOf": [
+              {
+                "enum": [
+                  "akshare",
+                  "yfinance",
+                  "openbb",
+                  "portable_fixture"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Provider",
-            "type": "string"
+            "title": "Provider"
           },
           "start_date": {
             "format": "date",
@@ -3223,7 +3319,6 @@
           }
         },
         "required": [
-          "provider",
           "market",
           "start_date",
           "end_date"
@@ -8987,6 +9082,124 @@
         "title": "ProfileDefault",
         "type": "object"
       },
+      "ProviderConnectionPublic": {
+        "additionalProperties": false,
+        "properties": {
+          "auth_mode": {
+            "const": "public_no_auth",
+            "default": "public_no_auth",
+            "title": "Auth Mode",
+            "type": "string"
+          },
+          "config_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Config Sha256",
+            "type": "string"
+          },
+          "connection_id": {
+            "format": "uuid",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "default_price_mode": {
+            "enum": [
+              "provider_native",
+              "raw",
+              "qfq",
+              "hfq"
+            ],
+            "title": "Default Price Mode",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "is_default": {
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "provider": {
+            "enum": [
+              "akshare",
+              "yfinance",
+              "openbb"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 0.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "schema_version": {
+            "const": "provider-connection.v1",
+            "default": "provider-connection.v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connection_id",
+          "provider",
+          "revision",
+          "enabled",
+          "is_default",
+          "default_price_mode",
+          "config_sha256"
+        ],
+        "title": "ProviderConnectionPublic",
+        "type": "object"
+      },
+      "ProviderConnectionUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "default_price_mode": {
+            "enum": [
+              "provider_native",
+              "raw",
+              "qfq",
+              "hfq"
+            ],
+            "title": "Default Price Mode",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "is_default": {
+            "title": "Is Default",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "enabled",
+          "is_default",
+          "default_price_mode"
+        ],
+        "title": "ProviderConnectionUpdate",
+        "type": "object"
+      },
       "ProviderProbeCreate": {
         "additionalProperties": false,
         "properties": {
@@ -8994,6 +9207,18 @@
             "format": "date",
             "title": "End Date",
             "type": "string"
+          },
+          "expected_connection_revision": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Connection Revision"
           },
           "start_date": {
             "format": "date",
@@ -9024,6 +9249,16 @@
             },
             "title": "Capabilities",
             "type": "array"
+          },
+          "connection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProviderConnectionPublic"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "fixture_notice": {
             "anyOf": [
@@ -9170,9 +9405,30 @@
             "title": "Package Versions",
             "type": "object"
           },
+          "price_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Mode"
+          },
           "provider": {
             "title": "Provider",
             "type": "string"
+          },
+          "provider_connection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConnectionSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "schema_version": {
             "const": "provider-test.v1",
@@ -10160,6 +10416,18 @@
       "ResolveCreate": {
         "additionalProperties": false,
         "properties": {
+          "expected_connection_revision": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Connection Revision"
+          },
           "market": {
             "enum": [
               "CN",
@@ -10169,14 +10437,21 @@
             "type": "string"
           },
           "provider": {
-            "enum": [
-              "akshare",
-              "yfinance",
-              "openbb",
-              "portable_fixture"
+            "anyOf": [
+              {
+                "enum": [
+                  "akshare",
+                  "yfinance",
+                  "openbb",
+                  "portable_fixture"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Provider",
-            "type": "string"
+            "title": "Provider"
           },
           "symbols": {
             "items": {
@@ -10189,7 +10464,6 @@
           }
         },
         "required": [
-          "provider",
           "symbols",
           "market"
         ],
@@ -14316,6 +14590,173 @@
           }
         ],
         "summary": "Listings"
+      }
+    },
+    "/api/v1/data/provider-connections/{provider}": {
+      "post": {
+        "operationId": "update_provider_connection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "title": "Provider",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderConnectionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderConnectionPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Provider Connection"
+      }
+    },
+    "/api/v1/data/provider-connections/{provider}/revisions/{revision}": {
+      "get": {
+        "operationId": "read_provider_connection_revision",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "title": "Provider",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "title": "Revision",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderConnectionPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Provider Connection Revision"
       }
     },
     "/api/v1/data/providers": {

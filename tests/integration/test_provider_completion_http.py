@@ -107,7 +107,7 @@ def test_yahoo_repair_is_explicit_parent_pinned_and_idempotent(
     job = first.json()
     assert job["parent_version_id"] == parent["id"]
     assert job["request"]["price_mode"] == "repair"
-    assert job["request"]["_execution"]["worker_contract"] == "data-import.v2"
+    assert job["request"]["_execution"]["worker_contract"] == "data-import.v3"
     assert job["request"]["symbols"] == []
     assert job["request"]["listing_ids"] == [parent["listing_id"]]
     assert job["request"]["_derivation"]["manifest_sha256"] == parent["sha256"]
@@ -198,7 +198,7 @@ def test_probe_admission_is_durable_and_idempotent(
     assert second.json()["id"] == first.json()["id"]
     job = first.json()
     assert job["kind"] == "probe" and job["dataset_version_id"] is None
-    assert job["request"]["_execution"]["worker_contract"] == "data-import.v2"
+    assert job["request"]["_execution"]["worker_contract"] == "data-import.v3"
     assert (
         api.get(f"/api/v1/data/imports/{job['id']}", headers=other_headers).status_code
         == 404

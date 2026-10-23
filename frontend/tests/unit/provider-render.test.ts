@@ -19,7 +19,10 @@ beforeEach(() => {
   vi.stubGlobal("window", { location: { origin: "http://provider.test" } });
 });
 afterEach(() => vi.unstubAllGlobals());
-async function markup(receipt: ProviderPublic["latest_test"]) {
+async function markup(
+  receipt: ProviderPublic["latest_test"],
+  connection?: ProviderPublic["connection"],
+) {
   const { DataSourcesPage } = await import("../../src/features/data-sources");
   const query = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
@@ -48,6 +51,7 @@ async function markup(receipt: ProviderPublic["latest_test"]) {
         runtime_mode: "fixture",
         fixture_notice: "Not live market evidence",
         latest_test: receipt,
+        connection,
       } satisfies ProviderPublic,
     ],
   );
@@ -99,4 +103,28 @@ it("labels fixture receipts and exact historical scope instead of verified capab
   expect(html).toContain("Open connection test record");
   expect(html).not.toContain("Live connectivity is unknown");
   expect(html).not.toContain(">verified<");
+});
+
+it("renders owner-local public connection controls without credential fields", async () => {
+  const html = await markup(null, {
+    schema_version: "provider-connection.v1",
+    connection_id: "00000000-0000-0000-0000-000000000001",
+    provider: "yfinance",
+    revision: 3,
+    enabled: false,
+    is_default: false,
+    default_price_mode: "provider_native",
+    auth_mode: "public_no_auth",
+    config_sha256: "a".repeat(64),
+    created_at: "2026-10-23T00:00:00Z",
+  });
+  expect(html).toContain("My provider connection");
+  expect(html).toContain("public_no_auth");
+  expect(html).toContain("Save connection settings");
+  expect(html).toContain("Discard unsaved changes");
+  expect(html).toContain("Existing selections are retained");
+  expect(html.replaceAll("<!-- -->", "")).toContain(
+    "Connection default (provider_native)",
+  );
+  expect(html).not.toContain('type="password"');
 });

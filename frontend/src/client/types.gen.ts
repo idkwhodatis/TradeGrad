@@ -138,7 +138,7 @@ export type BackupReceipt = {
     /**
      * Schema Revision
      */
-    schema_revision: '003_m3' | '004_m5' | '005_settings';
+    schema_revision: '003_m3' | '004_m5' | '005_settings' | '006_provider_connections';
 };
 
 /**
@@ -580,6 +580,48 @@ export type ComparisonDifference = {
      * Values
      */
     values: Array<DifferenceValue>;
+};
+
+/**
+ * ConnectionSnapshot
+ */
+export type ConnectionSnapshot = {
+    /**
+     * Auth Mode
+     */
+    auth_mode?: 'public_no_auth';
+    /**
+     * Config Sha256
+     */
+    config_sha256: string;
+    /**
+     * Connection Id
+     */
+    connection_id: string;
+    /**
+     * Default Price Mode
+     */
+    default_price_mode: 'provider_native' | 'raw' | 'qfq' | 'hfq';
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Is Default
+     */
+    is_default: boolean;
+    /**
+     * Provider
+     */
+    provider: 'akshare' | 'yfinance' | 'openbb';
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'provider-connection.v1';
 };
 
 /**
@@ -1866,6 +1908,10 @@ export type ImportCreate = {
      */
     end_date: string;
     /**
+     * Expected Connection Revision
+     */
+    expected_connection_revision?: number | null;
+    /**
      * Listing Ids
      */
     listing_ids?: Array<string>;
@@ -1880,11 +1926,11 @@ export type ImportCreate = {
     /**
      * Price Mode
      */
-    price_mode?: 'provider_native' | 'raw' | 'qfq' | 'hfq' | 'repair';
+    price_mode?: 'provider_native' | 'raw' | 'qfq' | 'hfq' | 'repair' | null;
     /**
      * Provider
      */
-    provider: 'akshare' | 'yfinance' | 'openbb' | 'portable_fixture';
+    provider?: 'akshare' | 'yfinance' | 'openbb' | 'portable_fixture' | null;
     /**
      * Start Date
      */
@@ -5137,6 +5183,74 @@ export type ProfileDefault = {
 };
 
 /**
+ * ProviderConnectionPublic
+ */
+export type ProviderConnectionPublic = {
+    /**
+     * Auth Mode
+     */
+    auth_mode?: 'public_no_auth';
+    /**
+     * Config Sha256
+     */
+    config_sha256: string;
+    /**
+     * Connection Id
+     */
+    connection_id: string;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Default Price Mode
+     */
+    default_price_mode: 'provider_native' | 'raw' | 'qfq' | 'hfq';
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Is Default
+     */
+    is_default: boolean;
+    /**
+     * Provider
+     */
+    provider: 'akshare' | 'yfinance' | 'openbb';
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'provider-connection.v1';
+};
+
+/**
+ * ProviderConnectionUpdate
+ */
+export type ProviderConnectionUpdate = {
+    /**
+     * Default Price Mode
+     */
+    default_price_mode: 'provider_native' | 'raw' | 'qfq' | 'hfq';
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Expected Revision
+     */
+    expected_revision: number;
+    /**
+     * Is Default
+     */
+    is_default: boolean;
+};
+
+/**
  * ProviderProbeCreate
  */
 export type ProviderProbeCreate = {
@@ -5144,6 +5258,10 @@ export type ProviderProbeCreate = {
      * End Date
      */
     end_date: string;
+    /**
+     * Expected Connection Revision
+     */
+    expected_connection_revision?: number | null;
     /**
      * Start Date
      */
@@ -5162,6 +5280,7 @@ export type ProviderPublic = {
      * Capabilities
      */
     capabilities: Array<Capability>;
+    connection?: ProviderConnectionPublic | null;
     /**
      * Fixture Notice
      */
@@ -5240,9 +5359,14 @@ export type ProviderTestReceipt = {
         [key: string]: string;
     };
     /**
+     * Price Mode
+     */
+    price_mode?: string | null;
+    /**
      * Provider
      */
     provider: string;
+    provider_connection?: ConnectionSnapshot | null;
     /**
      * Schema Version
      */
@@ -5725,13 +5849,17 @@ export type ResearchUsagePublic = {
  */
 export type ResolveCreate = {
     /**
+     * Expected Connection Revision
+     */
+    expected_connection_revision?: number | null;
+    /**
      * Market
      */
     market: 'CN' | 'US';
     /**
      * Provider
      */
-    provider: 'akshare' | 'yfinance' | 'openbb' | 'portable_fixture';
+    provider?: 'akshare' | 'yfinance' | 'openbb' | 'portable_fixture' | null;
     /**
      * Symbols
      */
@@ -7942,6 +8070,94 @@ export type ListDataListingsResponses = {
 };
 
 export type ListDataListingsResponse = ListDataListingsResponses[keyof ListDataListingsResponses];
+
+export type UpdateProviderConnectionData = {
+    body: ProviderConnectionUpdate;
+    path: {
+        /**
+         * Provider
+         */
+        provider: string;
+    };
+    query?: never;
+    url: '/api/v1/data/provider-connections/{provider}';
+};
+
+export type UpdateProviderConnectionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateProviderConnectionError = UpdateProviderConnectionErrors[keyof UpdateProviderConnectionErrors];
+
+export type UpdateProviderConnectionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProviderConnectionPublic;
+};
+
+export type UpdateProviderConnectionResponse = UpdateProviderConnectionResponses[keyof UpdateProviderConnectionResponses];
+
+export type ReadProviderConnectionRevisionData = {
+    body?: never;
+    path: {
+        /**
+         * Provider
+         */
+        provider: string;
+        /**
+         * Revision
+         */
+        revision: number;
+    };
+    query?: never;
+    url: '/api/v1/data/provider-connections/{provider}/revisions/{revision}';
+};
+
+export type ReadProviderConnectionRevisionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadProviderConnectionRevisionError = ReadProviderConnectionRevisionErrors[keyof ReadProviderConnectionRevisionErrors];
+
+export type ReadProviderConnectionRevisionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProviderConnectionPublic;
+};
+
+export type ReadProviderConnectionRevisionResponse = ReadProviderConnectionRevisionResponses[keyof ReadProviderConnectionRevisionResponses];
 
 export type ListDataProvidersData = {
     body?: never;

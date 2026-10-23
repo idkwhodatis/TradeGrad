@@ -421,13 +421,16 @@ def _rows(connection, table: str, columns: list[str]) -> list[tuple]:
     quote = connection.dialect.identifier_preparer.quote
     projection = ", ".join(quote(column) for column in columns)
     # All migrated tables have an id, except worker_heartbeats/provider_budgets.
-    key = "id" if "id" in columns else columns[0]
+    keys = (
+        ["connection_id", "revision"]
+        if table == "provider_connections"
+        else ["id" if "id" in columns else columns[0]]
+    )
+    ordering = ", ".join(quote(key) for key in keys)
     return [
         tuple(row)
         for row in connection.execute(
-            text(
-                f"SELECT {projection} FROM public.{quote(table)} ORDER BY {quote(key)}"
-            )
+            text(f"SELECT {projection} FROM public.{quote(table)} ORDER BY {ordering}")
         )
     ]
 
@@ -673,6 +676,25 @@ def test_real_m3_backup_restore_then_current_upgrade_preserves_history(
         _assert_historical_snapshot(restored, old_rows)
         assert _config_identity(restored) == config_identity
         _assert_storage(restored_storage, expected_files)
+        # ProviderConnection adds configuration history without backfilling or
+        # relabeling any existing job/provenance or published manifest.
+        _upgrade(restored, "006_provider_connections")
+        with restored.connect() as connection:
+            assert (
+                connection.execute(
+                    text("SELECT version_num FROM alembic_version")
+                ).scalar_one()
+                == "006_provider_connections"
+            )
+            assert (
+                connection.execute(
+                    text("SELECT count(*) FROM provider_connections")
+                ).scalar_one()
+                == 0
+            )
+        _assert_historical_snapshot(restored, old_rows)
+        assert _config_identity(restored) == config_identity
+        _assert_storage(restored_storage, expected_files)
         # Original database and immutable backup remain usable and unchanged.
         _assert_historical_snapshot(source, old_rows)
         assert (
@@ -684,9 +706,11 @@ def test_real_m3_backup_restore_then_current_upgrade_preserves_history(
         restored.dispose()
 
 
+@pytest.mark.parametrize("revision", ["005_settings", "006_provider_connections"])
 def test_real_settings_backup_restores_management_and_immutable_history(
     drill_databases: DrillDatabases,
     tmp_path: Path,
+    revision: str,
 ) -> None:
     from backend.app.operations_backup import (
         BackupLimits,
@@ -714,7 +738,7 @@ def test_real_settings_backup_restores_management_and_immutable_history(
         _upgrade(source, "003_m3")
         files = _seed_m3(source, storage)
         identity = _config_identity(source)
-        _upgrade(source, "005_settings")
+        _upgrade(source, revision)
         with source.begin() as connection:
             connection.execute(
                 text("""INSERT INTO user_workspace_settings
@@ -722,6 +746,39 @@ def test_real_settings_backup_restores_management_and_immutable_history(
                 SELECT id, '{"initial_cash":250000,"model_profile_id":"fixture"}'::jsonb,
                 1, 2, '["existing-disabled-profile"]'::jsonb FROM users""")
             )
+        if revision == "006_provider_connections":
+            from sqlalchemy.orm import Session
+
+            from backend.app.data_schemas import ProviderConnectionUpdate
+            from backend.app.provider_connections import update_connection
+
+            with Session(source) as session:
+                owner_id = session.execute(
+                    text("SELECT id FROM users LIMIT 1")
+                ).scalar_one()
+                first = update_connection(
+                    session,
+                    owner_id,
+                    "akshare",
+                    ProviderConnectionUpdate(
+                        expected_revision=0,
+                        enabled=True,
+                        is_default=True,
+                        default_price_mode="raw",
+                    ),
+                )
+                update_connection(
+                    session,
+                    owner_id,
+                    "akshare",
+                    ProviderConnectionUpdate(
+                        expected_revision=first["revision"],
+                        enabled=True,
+                        is_default=True,
+                        default_price_mode="qfq",
+                    ),
+                )
+                session.commit()
         expected = _historical_snapshot(source)
         manifest = create_backup(
             database=PostgresDatabase(
@@ -735,7 +792,7 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             tools=tools,
             limits=limits,
         )
-        assert manifest["schema_revision"] == "005_settings"
+        assert manifest["schema_revision"] == revision
         assert (
             restore_backup(
                 database=PostgresDatabase(
@@ -770,8 +827,7 @@ def test_real_settings_backup_restores_management_and_immutable_history(
                 destination=tmp_path / f"settings-{operation}-receipt.json",
             )
             assert (
-                receipt.schema_revision == "005_settings"
-                and receipt.operation == operation
+                receipt.schema_revision == revision and receipt.operation == operation
             )
             assert receipt.manifest_sha256 == _sha(
                 (backup_root / "manifest.json").read_bytes()

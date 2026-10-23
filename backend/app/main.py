@@ -194,7 +194,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
         try:
             session.execute(
                 text(
-                    "SELECT version_num FROM alembic_version WHERE version_num = '005_settings'"
+                    "SELECT version_num FROM alembic_version WHERE version_num = '006_provider_connections'"
                 )
             ).scalar_one()
         except SQLAlchemyError:

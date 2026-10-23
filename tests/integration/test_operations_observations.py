@@ -199,7 +199,7 @@ def test_receipts_are_admin_only_version_bound_historical_observations(
         BackupReceipt(
             operation="create",
             application_ref="a" * 40,
-            schema_revision="005_settings",
+            schema_revision="006_provider_connections",
             manifest_sha256="b" * 64,
             backup_created_at=now,
             observed_at=now,

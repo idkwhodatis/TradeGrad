@@ -8,6 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
 
 from backend.app.schemas import PublicModel
+from packages.marketdata.connections import ConnectionSnapshot
 from packages.marketdata.contracts import (
     Capability,
     Listing,
@@ -34,6 +35,25 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ProviderConnectionPublic(ConnectionSnapshot):
+    created_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def valid_config(self):
+        # created_at is descriptive metadata, not part of the frozen content hash.
+        ConnectionSnapshot.model_validate(
+            self.model_dump(mode="json", exclude={"created_at"})
+        )
+        return self
+
+
+class ProviderConnectionUpdate(StrictModel):
+    expected_revision: int = Field(ge=0)
+    enabled: bool
+    is_default: bool
+    default_price_mode: Literal["provider_native", "raw", "qfq", "hfq"]
+
+
 class ProviderTestReceipt(StrictModel):
     schema_version: Literal["provider-test.v1"] = "provider-test.v1"
     import_id: UUID
@@ -49,9 +69,12 @@ class ProviderTestReceipt(StrictModel):
     package_versions: dict[str, str]
     error_codes: list[str]
     note: str
+    provider_connection: ConnectionSnapshot | None = None
+    price_mode: str | None = None
 
 
 class ProviderProbeCreate(StrictModel):
+    expected_connection_revision: int | None = Field(default=None, ge=0)
     symbol: str = Field(min_length=1, max_length=10)
     start_date: date
     end_date: date
@@ -77,25 +100,26 @@ class ProviderPublic(StrictModel):
     runtime_mode: Literal["live", "fixture"]
     fixture_notice: str | None = None
     latest_test: ProviderTestReceipt | None = None
+    connection: ProviderConnectionPublic | None = None
 
 
 class ResolveCreate(StrictModel):
-    provider: ProviderName
+    provider: ProviderName | None = None
+    expected_connection_revision: int | None = Field(default=None, ge=0)
     symbols: list[str] = Field(min_length=1, max_length=100)
     market: Literal["CN", "US"]
 
 
 class ImportCreate(StrictModel):
-    provider: ProviderName
+    provider: ProviderName | None = None
+    expected_connection_revision: int | None = Field(default=None, ge=0)
     name: str = Field(default="Market data snapshot", min_length=1, max_length=255)
     market: Literal["CN", "US"]
     symbols: list[str] = Field(default_factory=list, max_length=100)
     listing_ids: list[UUID] = Field(default_factory=list, max_length=100)
     start_date: date
     end_date: date = Field(description="Exclusive end date [start_date,end_date)")
-    price_mode: Literal["provider_native", "raw", "qfq", "hfq", "repair"] = (
-        "provider_native"
-    )
+    price_mode: Literal["provider_native", "raw", "qfq", "hfq", "repair"] | None = None
     universe_version_id: UUID | None = None
 
     @model_validator(mode="after")

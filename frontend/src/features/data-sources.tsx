@@ -6,6 +6,7 @@ import type {
   Capability,
   ImportCreate,
   ProviderPublic,
+  ProviderConnectionUpdate,
   ResolveCreate,
 } from "@/client/types.gen";
 import * as sdk from "@/client/sdk.gen";
@@ -29,13 +30,39 @@ import {
 } from "@/lib/data-api";
 import {
   asRecord,
-  clearDataSubmission,
-  dataSubmissionKey,
   dateWindowError,
   parseSymbols,
   universeLabels,
 } from "@/lib/data-utils";
 import { useDataAction } from "@/lib/use-data-action";
+import {
+  providerSubmission,
+  hasPendingProviderSubmission,
+  clearProviderSubmission,
+  connectionAdmissionRejected,
+} from "@/lib/provider-submission";
+
+async function submitProviderJob<
+  T extends { expected_connection_revision?: number | null },
+>(
+  owner: string,
+  operation: string,
+  body: T,
+  submit: (body: T, key: string) => Promise<{ id: string }>,
+) {
+  const frozen = providerSubmission(owner, operation, body);
+  try {
+    const result = await submit(frozen.body, frozen.key);
+    clearProviderSubmission(owner, operation);
+    return result;
+  } catch (error) {
+    if (connectionAdmissionRejected(error)) {
+      clearProviderSubmission(owner, operation);
+      await queryClient.invalidateQueries({ queryKey: ["data-providers"] });
+    }
+    throw error;
+  }
+}
 
 export function DataSourcesPage() {
   const providers = useQuery(providersOptions);
@@ -123,12 +150,158 @@ function ProviderCard({
         title="Inspect endpoints, versions and verification scope"
         value={provider.capabilities}
       />
+      {provider.connection && (
+        <ProviderConnectionSettings provider={provider} />
+      )}
       {provider.id !== "portable_fixture" && (
         <ProviderConnectionTest provider={provider} owner={owner} />
       )}
     </article>
   );
 }
+function ProviderConnectionSettings({
+  provider,
+}: {
+  provider: ProviderPublic;
+}) {
+  const config = provider.connection!;
+  const [editingRevision, setEditingRevision] = useState(config.revision);
+  const [enabled, setEnabled] = useState(config.enabled);
+  const [isDefault, setDefault] = useState(config.is_default);
+  const [mode, setMode] = useState<
+    ProviderConnectionUpdate["default_price_mode"]
+  >(config.default_price_mode);
+  const action = useDataAction(async () => {
+    try {
+      const saved = (
+        await sdk.updateProviderConnection({
+          path: { provider: provider.id },
+          body: {
+            expected_revision: editingRevision,
+            enabled,
+            is_default: isDefault,
+            default_price_mode: mode,
+          },
+        })
+      ).data;
+      setEditingRevision(saved.revision);
+    } finally {
+      // Refetch on conflicts as well; never silently overwrite another tab's edit.
+      await queryClient.invalidateQueries({ queryKey: ["data-providers"] });
+    }
+  });
+  return (
+    <section className="mt-5" aria-label={`${provider.id} connection settings`}>
+      <h3>My provider connection</h3>
+      <p className="notice mt-3">
+        Public access · public_no_auth. No credentials are required or stored.
+        Model secret references remain separate in Settings. Disabling blocks
+        new jobs, not already frozen jobs.
+      </p>
+      <p
+        className="text-xs muted mt-3"
+        data-testid={`${provider.id}-connection-revision`}
+      >
+        Revision {config.revision}
+        {config.revision === 0
+          ? " · Unsaved defaults; persisted on first save or use"
+          : " · Saved immutable configuration"}
+        .{" "}
+        {config.is_default
+          ? `Default for ${provider.markets.join(", ")}`
+          : "Not the market default"}
+      </p>
+      <JsonDetails
+        title="Inspect connection identity and hash"
+        value={config}
+      />
+      <form
+        className="form mt-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void action.run();
+        }}
+      >
+        <label className="data-check">
+          <input
+            type="checkbox"
+            aria-label={`${provider.name} enabled`}
+            checked={enabled}
+            disabled={action.pending}
+            onChange={(event) => {
+              setEnabled(event.target.checked);
+              if (!event.target.checked) setDefault(false);
+            }}
+          />
+          Enabled for new jobs
+        </label>
+        <label className="data-check">
+          <input
+            type="checkbox"
+            aria-label={`${provider.name} market default`}
+            checked={isDefault}
+            disabled={action.pending || !enabled}
+            onChange={(event) => setDefault(event.target.checked)}
+          />
+          Default for {provider.markets.join(", ")}
+        </label>
+        <Field
+          label="Default price mode"
+          id={`${provider.id}-default-price-mode`}
+        >
+          <select
+            id={`${provider.id}-default-price-mode`}
+            value={mode}
+            disabled={action.pending}
+            onChange={(event) =>
+              setMode(
+                event.target
+                  .value as ProviderConnectionUpdate["default_price_mode"],
+              )
+            }
+          >
+            {[...new Set(["provider_native", ...provider.price_modes])]
+              .filter((value) => value !== "repair")
+              .map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+          </select>
+        </Field>
+        {editingRevision !== config.revision && (
+          <p className="notice" role="alert">
+            Connection changed since this form opened. Discard unsaved changes
+            to load the latest settings before saving.
+          </p>
+        )}
+        <Button
+          type="submit"
+          variant="outline"
+          disabled={action.pending || editingRevision !== config.revision}
+        >
+          {action.pending ? "Saving connection…" : "Save connection settings"}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={action.pending}
+          onClick={() => {
+            setEditingRevision(config.revision);
+            setEnabled(config.enabled);
+            setDefault(config.is_default);
+            setMode(config.default_price_mode);
+            action.resetError();
+          }}
+        >
+          Discard unsaved changes
+        </Button>
+        {Boolean(action.error) && <ErrorState error={action.error} />}
+      </form>
+    </section>
+  );
+}
+
 function ProviderConnectionTest({
   provider,
   owner,
@@ -142,18 +315,35 @@ function ProviderConnectionTest({
   );
   const [start, setStart] = useState("2024-01-02");
   const [end, setEnd] = useState("2024-01-06");
+  const probeBody = {
+    symbol,
+    start_date: start,
+    end_date: end,
+    expected_connection_revision: provider.connection?.revision,
+  };
+  const recoverProbe = hasPendingProviderSubmission(
+    owner,
+    `provider-test:${provider.id}`,
+    probeBody,
+  );
   const action = useDataAction(async () => {
-    const body = { symbol, start_date: start, end_date: end };
+    const body = probeBody;
     const scope = `provider-test:${provider.id}`;
-    const result = (
-      await sdk.testDataProvider({
-        path: { provider: provider.id },
-        body,
-        headers: { "Idempotency-Key": dataSubmissionKey(owner, scope, body) },
-      })
-    ).data;
-    clearDataSubmission(owner, scope);
+    const result = await submitProviderJob(
+      owner,
+      scope,
+      body,
+      async (frozen, key) =>
+        (
+          await sdk.testDataProvider({
+            path: { provider: provider.id },
+            body: frozen,
+            headers: { "Idempotency-Key": key },
+          })
+        ).data,
+    );
     await queryClient.invalidateQueries({ queryKey: ["data-imports"] });
+    await queryClient.invalidateQueries({ queryKey: ["data-providers"] });
     await navigate({
       to: "/imports/$importId",
       params: { importId: result.id },
@@ -178,6 +368,14 @@ function ProviderConnectionTest({
             {receipt.checked_at}. Scope: {receipt.symbol} [{receipt.start_date},{" "}
             {receipt.end_date}).
           </p>
+          {provider.connection &&
+            receipt.provider_connection?.revision !==
+              provider.connection.revision && (
+              <p className="notice mt-3">
+                This test predates the current connection revision. It does not
+                verify these settings.
+              </p>
+            )}
           <JsonDetails
             title="Inspect scoped connection receipt"
             value={receipt}
@@ -237,8 +435,19 @@ function ProviderConnectionTest({
             disabled={action.pending}
           />
         </Field>
-        <Button type="submit" variant="outline" disabled={action.pending}>
-          {action.pending ? "Submitting test…" : "Test connection"}
+        <Button
+          type="submit"
+          variant="outline"
+          disabled={
+            action.pending ||
+            (provider.connection?.enabled === false && !recoverProbe)
+          }
+        >
+          {action.pending
+            ? "Submitting test…"
+            : recoverProbe
+              ? "Recover connection test"
+              : "Test connection"}
         </Button>
         {Boolean(action.error) && <ErrorState error={action.error} />}
       </form>
@@ -265,10 +474,15 @@ function SourceForm({
     })(),
   ).current;
   const initialProvider =
-    providers.find((item) => item.id === draft.providerId) || providers[0];
-  const [providerId, setProviderId] = useState<ResolveCreate["provider"]>(
-    initialProvider?.id || "akshare",
-  );
+    providers.find((item) => item.id === draft.providerId) ||
+    providers.find(
+      (item) => item.connection?.is_default && item.connection.enabled,
+    ) ||
+    providers.find((item) => item.connection?.enabled !== false) ||
+    providers[0];
+  const [providerId, setProviderId] = useState<
+    NonNullable<ResolveCreate["provider"]>
+  >(initialProvider?.id || "akshare");
   const provider = providers.find((item) => item.id === providerId);
   const [market, setMarket] = useState<ResolveCreate["market"]>(
     (draft.market === "CN" || draft.market === "US") &&
@@ -298,11 +512,14 @@ function SourceForm({
   const [end, setEnd] = useState(
     typeof draft.end === "string" ? draft.end : "2024-07-01",
   );
-  const [priceMode, setPriceMode] = useState<ImportCreate["price_mode"]>(
+  const [priceMode, setPriceMode] = useState<
+    NonNullable<ImportCreate["price_mode"]> | ""
+  >(
     (initialProvider?.price_modes.includes(String(draft.priceMode))
       ? draft.priceMode
-      : initialProvider?.price_modes[0] ||
-        "provider_native") as ImportCreate["price_mode"],
+      : initialProvider?.id === "portable_fixture"
+        ? "raw"
+        : "") as NonNullable<ImportCreate["price_mode"]> | "",
   );
   const [universe, setUniverse] = useState(
     typeof draft.universe === "string" ? draft.universe : "",
@@ -354,7 +571,40 @@ function SourceForm({
     listings.data?.data.filter((listing) =>
       resolution.data?.listing_ids.includes(listing.listing_id),
     ) || [];
+  const resolveBody: ResolveCreate = {
+    provider: providerId,
+    expected_connection_revision: provider?.connection?.revision,
+    symbols: parseSymbols(symbols),
+    market,
+  };
+  const importBody: ImportCreate = {
+    provider: providerId,
+    expected_connection_revision: provider?.connection?.revision,
+    name,
+    market,
+    listing_ids: selected,
+    start_date: start,
+    end_date: end,
+    price_mode: priceMode || null,
+    universe_version_id: universe || null,
+  };
+  const recoverResolve = hasPendingProviderSubmission(
+    owner,
+    "resolve",
+    resolveBody,
+  );
+  const recoverImport = hasPendingProviderSubmission(
+    owner,
+    "import",
+    importBody,
+  );
   const resolve = useDataAction(async () => {
+    if (provider?.connection?.enabled === false && !recoverResolve) {
+      setValidation(
+        "This provider is disabled. Enable it or explicitly select another provider.",
+      );
+      return;
+    }
     const requested = parseSymbols(symbols);
     if (!requested.length || requested.length > 100) {
       setValidation("Enter between 1 and 100 vendor symbols.");
@@ -362,49 +612,50 @@ function SourceForm({
     }
     setValidation("");
     setSelected([]);
-    const body: ResolveCreate = {
-      provider: providerId,
-      symbols: requested,
-      market,
-    };
-    const result = (
-      await sdk.resolveDataInstruments({
-        body,
-        headers: {
-          "Idempotency-Key": dataSubmissionKey(owner, "resolve", body),
-        },
-      })
-    ).data;
-    clearDataSubmission(owner, "resolve");
+    const body = resolveBody;
+    const result = await submitProviderJob(
+      owner,
+      "resolve",
+      body,
+      async (frozen, key) =>
+        (
+          await sdk.resolveDataInstruments({
+            body: frozen,
+            headers: { "Idempotency-Key": key },
+          })
+        ).data,
+    );
+    await queryClient.invalidateQueries({ queryKey: ["data-providers"] });
     setJobId(result.id);
   });
   const create = useDataAction(async () => {
+    if (provider?.connection?.enabled === false && !recoverImport) {
+      setValidation(
+        "This provider is disabled. Enable it or explicitly select another provider.",
+      );
+      return;
+    }
     const issue = dateWindowError(start, end);
     if (issue || !selected.length) {
       setValidation(issue || "Select at least one resolved listing.");
       return;
     }
     setValidation("");
-    const body: ImportCreate = {
-      provider: providerId,
-      name,
-      market,
-      listing_ids: selected,
-      start_date: start,
-      end_date: end,
-      price_mode: priceMode,
-      universe_version_id: universe || null,
-    };
-    const result = (
-      await sdk.createDataImport({
-        body,
-        headers: {
-          "Idempotency-Key": dataSubmissionKey(owner, "import", body),
-        },
-      })
-    ).data;
-    clearDataSubmission(owner, "import");
+    const body = importBody;
+    const result = await submitProviderJob(
+      owner,
+      "import",
+      body,
+      async (frozen, key) =>
+        (
+          await sdk.createDataImport({
+            body: frozen,
+            headers: { "Idempotency-Key": key },
+          })
+        ).data,
+    );
     await queryClient.invalidateQueries({ queryKey: ["data-imports"] });
+    await queryClient.invalidateQueries({ queryKey: ["data-providers"] });
     await navigate({
       to: "/imports/$importId",
       params: { importId: result.id },
@@ -425,7 +676,9 @@ function SourceForm({
               id="provider"
               value={providerId}
               onChange={(event) => {
-                setProviderId(event.target.value as ResolveCreate["provider"]);
+                setProviderId(
+                  event.target.value as NonNullable<ResolveCreate["provider"]>,
+                );
                 setMarket(
                   providers
                     .find((item) => item.id === event.target.value)
@@ -437,16 +690,23 @@ function SourceForm({
                 setJobId("");
                 setSelected([]);
                 setPriceMode(
-                  (providers.find((item) => item.id === event.target.value)
-                    ?.price_modes[0] ||
-                    "provider_native") as ImportCreate["price_mode"],
+                  event.target.value === "portable_fixture" ? "raw" : "",
                 );
               }}
               disabled={resolve.pending || create.pending}
             >
               {providers.map((item) => (
-                <option value={item.id} key={item.id}>
+                <option
+                  value={item.id}
+                  key={item.id}
+                  disabled={item.connection?.enabled === false}
+                >
                   {item.name}
+                  {item.connection?.enabled === false
+                    ? " · disabled"
+                    : item.connection?.is_default
+                      ? " · market default"
+                      : ""}
                 </option>
               ))}
             </select>
@@ -489,9 +749,26 @@ function SourceForm({
               disabled={resolve.pending || create.pending}
             />
           </Field>
-          <Button type="submit" disabled={resolve.pending || create.pending}>
+          {provider?.connection?.enabled === false && (
+            <p role="alert" className="notice error">
+              This provider is disabled. Existing selections are retained;
+              enable it or choose another provider explicitly.
+            </p>
+          )}
+          <Button
+            type="submit"
+            disabled={
+              resolve.pending ||
+              create.pending ||
+              (provider?.connection?.enabled === false && !recoverResolve)
+            }
+          >
             <Search />
-            {resolve.pending ? "Requesting resolution…" : "Resolve securities"}
+            {resolve.pending
+              ? "Requesting resolution…"
+              : recoverResolve
+                ? "Recover security resolution"
+                : "Resolve securities"}
           </Button>
         </form>
         {validation && !selected.length && (
@@ -635,14 +912,24 @@ function SourceForm({
               id="price-mode"
               value={priceMode}
               onChange={(event) =>
-                setPriceMode(event.target.value as ImportCreate["price_mode"])
+                setPriceMode(
+                  event.target.value as
+                    NonNullable<ImportCreate["price_mode"]> | "",
+                )
               }
             >
-              {provider?.price_modes.map((mode) => (
-                <option key={mode} value={mode}>
-                  {mode}
+              {provider?.connection && (
+                <option value="">
+                  Connection default ({provider.connection.default_price_mode})
                 </option>
-              ))}
+              )}
+              {provider?.price_modes
+                .filter((mode) => mode !== "repair")
+                .map((mode) => (
+                  <option key={mode} value={mode}>
+                    {mode}
+                  </option>
+                ))}
             </select>
           </Field>
           <p className="notice">
@@ -680,10 +967,19 @@ function SourceForm({
           {Boolean(create.error) && <ErrorState error={create.error} />}
           <Button
             type="submit"
-            disabled={create.pending || resolve.pending || !selected.length}
+            disabled={
+              create.pending ||
+              resolve.pending ||
+              !selected.length ||
+              (provider?.connection?.enabled === false && !recoverImport)
+            }
           >
             <Database />
-            {create.pending ? "Submitting…" : "Import selected listings"}
+            {create.pending
+              ? "Submitting…"
+              : recoverImport
+                ? "Recover snapshot import"
+                : "Import selected listings"}
           </Button>
           <small className="muted">
             Repeated clicks are guarded. Retry unchanged inputs after a network

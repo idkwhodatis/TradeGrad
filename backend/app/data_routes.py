@@ -21,6 +21,8 @@ from backend.app.data_schemas import (
     ImportPublic,
     ListingPublic,
     PreviewPage,
+    ProviderConnectionPublic,
+    ProviderConnectionUpdate,
     ProviderProbeCreate,
     ProviderPublic,
     ResolveCreate,
@@ -80,6 +82,9 @@ def providers(user: CurrentUser, request: Request, session: SessionDep):
         for item in provider_catalog()
     ]
     mode = request.app.state.settings.data_provider_mode
+    from backend.app.provider_connections import current_connections
+
+    connections = current_connections(session, user.id)
     latest = {}
     for p in catalog:
         job = session.scalar(
@@ -99,6 +104,7 @@ def providers(user: CurrentUser, request: Request, session: SessionDep):
         {
             **p,
             "latest_test": latest[p["id"]],
+            "connection": connections.get(p["id"]),
             "runtime_mode": mode,
             "fixture_notice": "Explicit synthetic SDK-schema fixture mode; not live provider evidence or investment data."
             if mode == "fixture"
@@ -107,6 +113,37 @@ def providers(user: CurrentUser, request: Request, session: SessionDep):
         for p in catalog
         if p["id"] != "portable_fixture" or mode == "fixture"
     ]
+
+
+@router.post(
+    "/data/provider-connections/{provider}",
+    response_model=ProviderConnectionPublic,
+    operation_id="update_provider_connection",
+)
+def update_provider_connection(
+    provider: str,
+    body: ProviderConnectionUpdate,
+    user: CurrentUser,
+    session: SessionDep,
+):
+    from backend.app.provider_connections import update_connection
+
+    value = update_connection(session, user.id, provider, body)
+    session.commit()
+    return value
+
+
+@router.get(
+    "/data/provider-connections/{provider}/revisions/{revision}",
+    response_model=ProviderConnectionPublic,
+    operation_id="read_provider_connection_revision",
+)
+def read_provider_connection_revision(
+    provider: str, revision: int, user: CurrentUser, session: SessionDep
+):
+    from backend.app.provider_connections import read_revision
+
+    return read_revision(session, user.id, provider, revision)
 
 
 @router.post(
@@ -141,7 +178,7 @@ def test_provider(
         symbols=[body.symbol],
         start_date=body.start_date,
         end_date=body.end_date,
-        price_mode="provider_native",
+        expected_connection_revision=body.expected_connection_revision,
     )
     item = submit_import(
         session,

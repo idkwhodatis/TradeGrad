@@ -390,7 +390,7 @@ def test_workspace_schema_round_trip_never_rewrites_immutable_runs(
     with migrated_engine.begin() as connection:
         config.attributes["connection"] = connection
         command.downgrade(config, "004_m5")
-        command.upgrade(config, "005_settings")
+        command.upgrade(config, "head")
         after = connection.execute(
             text("SELECT config::text, request_sha256 FROM research_runs WHERE id=:id"),
             {"id": run_id},
@@ -401,7 +401,7 @@ def test_workspace_schema_round_trip_never_rewrites_immutable_runs(
 def test_status_never_invents_backup_receipt(api, owner_headers):
     result = api.get("/api/v1/settings/status", headers=owner_headers)
     assert result.status_code == 200
-    assert result.json()["schema_revision"] == "005_settings"
+    assert result.json()["schema_revision"] == "006_provider_connections"
     assert result.json()["backup_status"] == "restricted"
     assert result.json()["backup_evidence"] == []
     assert "administrators" in result.json()["backup_note"]

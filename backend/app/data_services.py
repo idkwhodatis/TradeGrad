@@ -177,6 +177,9 @@ def submit_import(
             422,
         )
     request = body.model_dump(mode="json")
+    # Do not alter the old request hash for clients that omit the new concurrency field.
+    if request.get("expected_connection_revision") is None:
+        request.pop("expected_connection_revision", None)
     if upload is not None:
         request["upload"] = upload
     if derivation is not None:
@@ -196,7 +199,27 @@ def submit_import(
         )
     )
     if previous:
-        if previous.request_sha256 != fingerprint:
+        compatible = previous.request_sha256 == fingerprint
+        if not compatible and "_provider_connection" not in previous.request:
+            # Pre-006 imports defaulted omitted price_mode to provider_native.
+            # Preserve their original hashes, retries and evidence rather than rewriting.
+            legacy = dict(request)
+            if (
+                kind != "resolve"
+                and "price_mode" in legacy
+                and legacy["price_mode"] is None
+            ):
+                legacy["price_mode"] = "provider_native"
+            compatible = previous.request_sha256 == digest(
+                {
+                    "kind": kind,
+                    "request": legacy,
+                    "parent_version_id": str(parent_version_id)
+                    if parent_version_id
+                    else None,
+                }
+            )
+        if not compatible:
             raise DomainError(
                 "idempotency_conflict",
                 "Idempotency-Key was used for a different request",
@@ -204,6 +227,10 @@ def submit_import(
         return previous
     if parent_version_id:
         owned_dataset(session, parent_version_id, owner_id)
+    if kind != "upload":
+        from backend.app.provider_connections import bind_connection
+
+        request = bind_connection(session, owner_id, request, kind)
     provider = request.get("provider", "upload")
     if kind != "upload":
         if provider == "portable_fixture":
@@ -330,7 +357,9 @@ def submit_import(
         "transform_version": TRANSFORM_VERSION,
         # Older workers must reject probe/repair jobs rather than treating a
         # connection test as an ordinary publishing import.
-        "worker_contract": "data-import.v2"
+        "worker_contract": "data-import.v3"
+        if "_provider_connection" in request
+        else "data-import.v2"
         if kind == "probe" or derivation
         else "data-import.v1",
         "fixture_version": (

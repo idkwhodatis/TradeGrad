@@ -103,7 +103,7 @@ Use the separate operator cold-backup and restore rehearsal gates.
 
 Migration `005_settings` follows `004_m5` and adds only mutable settings. It does
 not update historical research configuration/hash or published evidence rows.
-Readiness now requires `005_settings`. Downgrade removes only these mutable
+Current readiness requires `006_provider_connections`; see [provider connections](V1_PROVIDER_CONNECTIONS.md). Downgrade removes only these mutable
 preferences, losing them; do not use it as a replacement for backup. The parent
 integration owns adding `005_settings` to supported cold-backup revisions and
 running the real old-revision restore/upgrade drill before release. Existing

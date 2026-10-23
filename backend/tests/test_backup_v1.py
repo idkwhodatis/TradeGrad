@@ -1210,7 +1210,9 @@ def test_relative_home_profile_fails_before_inspection_or_client_invocation(
         database.empty_target_major()
 
 
-@pytest.mark.parametrize("revision", ["003_m3", "004_m5", "005_settings"])
+@pytest.mark.parametrize(
+    "revision", ["003_m3", "004_m5", "005_settings", "006_provider_connections"]
+)
 def test_supported_revisions_backup_roundtrip_without_relabeling(
     tmp_path, source, revision
 ):
@@ -1221,7 +1223,9 @@ def test_supported_revisions_backup_roundtrip_without_relabeling(
     assert restore(tmp_path, source, clients=clients) == manifest
 
 
-@pytest.mark.parametrize("revision", ["004_m5", "005_settings"])
+@pytest.mark.parametrize(
+    "revision", ["004_m5", "005_settings", "006_provider_connections"]
+)
 def test_source_inventory_retains_strategy_packages_after_settings_revision(
     monkeypatch, revision
 ):
