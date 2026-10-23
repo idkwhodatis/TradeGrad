@@ -17,6 +17,17 @@ export function DataNotice() {
   );
 }
 
+export function UploadEvidenceNotice({ evidence }: { evidence: unknown }) {
+  if (evidence !== "user_declaration_unverified") return null;
+  return (
+    <p className="notice" data-testid="upload-evidence-notice">
+      Raw prices and no corporate actions are the uploader’s research
+      assumption, not independently verified. This immutable declaration is not
+      provider, runtime or cross-framework certification.
+    </p>
+  );
+}
+
 export function Metadata({ values }: { values: Record<string, unknown> }) {
   return (
     <dl className="data-metadata">

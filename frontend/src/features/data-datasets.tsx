@@ -14,6 +14,7 @@ import {
   JsonDetails,
   Metadata,
   Pagination,
+  UploadEvidenceNotice,
 } from "@/components/data-common";
 import { DataTable } from "@/components/data-table";
 import { currentUserOptions } from "@/lib/api";
@@ -198,6 +199,7 @@ function SnapshotContent({ dataset }: { dataset: DatasetPublic }) {
       <DataNotice />
       <div className="stack mt-6">
         <Panel title="Price basis and provenance">
+          <UploadEvidenceNotice evidence={dataset.manifest.data_evidence} />
           <Metadata
             values={{
               "Native mode": prices.native_mode,

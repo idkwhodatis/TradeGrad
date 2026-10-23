@@ -7,6 +7,7 @@ import type {
   WorkspaceDefaults,
 } from "@/client/types.gen";
 import { ErrorState, Loading, Panel } from "@/components/common";
+import { Field } from "@/components/data-common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { currentUserOptions, queryClient } from "@/lib/api";
@@ -478,9 +479,9 @@ function UserManagement() {
         <ErrorState error={users.error} retry={() => void users.refetch()} />
       ) : (
         <>
-          <label>
-            Manage account
+          <Field id="managed-account-selector" label="Manage account">
             <select
+              id="managed-account-selector"
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
             >
@@ -491,7 +492,7 @@ function UserManagement() {
                 </option>
               ))}
             </select>
-          </label>
+          </Field>
           <div className="flex gap-3 mt-3">
             <Button
               variant="outline"
