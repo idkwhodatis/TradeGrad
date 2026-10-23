@@ -657,7 +657,7 @@ def test_retry_preserves_frozen_request_and_hash_after_connection_changes(
             record.request_sha256,
         )
     cancelled = api.post(f"{path}/{job['id']}/cancel", headers=owner_headers)
-    assert cancelled.status_code == 200, cancelled.text
+    assert cancelled.status_code == 202, cancelled.text
     save(
         api,
         owner_headers,
