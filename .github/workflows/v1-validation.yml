@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       validation_scope:
-        description: "Full acceptance, or targeted native-final browser diagnosis only"
+        description: "Full acceptance, native-final browser diagnosis, or bounded live SDK diagnosis only"
         required: true
         default: full
         type: choice
-        options: [full, native-final-diagnostic]
+        options: [full, native-final-diagnostic, live-sdk-diagnostic]
       provider_mode:
         description: "fixture is deterministic; live explicitly checks public upstreams without fallback"
         required: true
@@ -41,7 +41,7 @@ concurrency:
 jobs:
   baseline:
     # A diagnostic run never substitutes for the subsequent complete gate.
-    if: ${{ !((github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'native-final-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[native-final-diagnostic]'))) }}
+    if: ${{ !((github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'native-final-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[native-final-diagnostic]')) || (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'live-sdk-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-sdk-diagnostic]'))) }}
     name: M0 four-task engine and semantics
     runs-on: ubuntu-22.04
     timeout-minutes: 15
@@ -78,6 +78,7 @@ jobs:
           retention-days: 14
 
   application:
+    if: ${{ !((github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'native-final-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[native-final-diagnostic]')) || (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'live-sdk-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-sdk-diagnostic]'))) }}
     name: M1–M6 real application (${{ (inputs.provider_mode == 'live' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]'))) && 'live' || 'fixture' }})
     needs: baseline
     runs-on: ubuntu-22.04
@@ -533,7 +534,7 @@ jobs:
     # this acceptance evidence when the ordinary application stack fails.
     # Both jobs remain required for a successful full workflow.
     needs: baseline
-    if: inputs.provider_mode != 'live' && !(github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]'))
+    if: ${{ !((github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'native-final-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[native-final-diagnostic]')) || (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'live-sdk-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-sdk-diagnostic]'))) && inputs.provider_mode != 'live' && !(github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]')) }}
     runs-on: ubuntu-22.04
     timeout-minutes: 75
     env:
@@ -580,8 +581,47 @@ jobs:
             var/ci-evidence/v1-service-log-policy.json
           retention-days: 14
 
+  live_sdk_diagnostic:
+    # Targeted public upstream evidence only. This cannot replace full fixture
+    # acceptance or the independent application/browser and Compose gates.
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'live-sdk-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-sdk-diagnostic]')) }}
+    name: Live SDK diagnostic ONLY, not full acceptance
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Install separately hash-locked data worker and generate lean OpenBB client
+        run: |
+          python -m venv .venv-data
+          .venv-data/bin/python -m pip install --require-hashes -r runtimes/data/requirements.lock
+          .venv-data/bin/openbb-build
+          .venv-data/bin/python -m script.validate_runtime_split --runtime data
+      - name: Diagnose public SDK acquisition without fixtures or fallback
+        env:
+          TRADEGRAD_MARKETDATA_LIVE: "1"
+          TRADEGRAD_OPENBB_LIVE: "1"
+        run: .venv-data/bin/python -m script.probe_v1_live_sources --report var/ci-evidence/v1-live-source-diagnostic.json
+      - name: Preserve only bounded live SDK diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: live-sdk-DIAGNOSTIC-${{ github.sha }}
+          path: var/ci-evidence/v1-live-source-diagnostic.json
+          if-no-files-found: error
+          retention-days: 14
+
   native_final_diagnostic:
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'native-final-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[native-final-diagnostic]')) }}
+    if: ${{ !((github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'live-sdk-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-sdk-diagnostic]'))) && ((github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'native-final-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[native-final-diagnostic]'))) }}
     name: Native final Chromium diagnostic ONLY, not full acceptance
     runs-on: ubuntu-22.04
     timeout-minutes: 35
