@@ -33,6 +33,7 @@ from packages.tradegrad_adapter.config import MarketConfig, RunConfig
 from packages.tradegrad_adapter.final_config import FinalEvaluationConfig
 from packages.tradegrad_adapter.results import validate_result_bundle
 from packages.tradegrad_adapter.strategy_package import validate_environment_evidence
+from script.ci_owned_group import peek_owned_group, signal_owned_group, wait_owned_group
 
 GATE_SECONDS = 420
 
@@ -117,14 +118,14 @@ class FinalProcessHarness(ResearchProcessHarness):
                 any(item is process for _, item in self.processes),
                 "Worker is not owned",
             )
-            require(process.poll() is None, "Owned worker already exited")
+            require(peek_owned_group(process) is None, "Owned worker already exited")
             require(
                 os.getpgid(process.pid) == process.pid != os.getpgrp(),
                 "Worker group is not exclusive",
             )
             self.expected_alive.discard(process)
-            os.killpg(process.pid, signal.SIGTERM)
-            process.wait(timeout=self.remaining(10))
+            signal_owned_group(process, signal.SIGTERM)
+            wait_owned_group(process, timeout=self.remaining(10))
         self.workers = []
 
 
