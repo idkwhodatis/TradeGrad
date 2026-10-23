@@ -583,3 +583,48 @@ def test_unknown_stage_never_silently_skips_gates(tmp_path):
     env["TRADEGRAD_APPLICATION_STAGE"] = "typo"
     with pytest.raises(ValueError, match="stage"):
         gate.validate_source(env, tmp_path)
+
+
+def test_native_final_diagnostic_is_explicit_fixture_only_and_fixed_target(
+    tmp_path, monkeypatch
+):
+    env = source(tmp_path)
+    env.update(
+        TRADEGRAD_APPLICATION_STAGE="m5", TRADEGRAD_BROWSER_DIAGNOSTIC="native-final"
+    )
+    assert gate.validate_source(env, tmp_path) == "fixture"
+    for update in (
+        {"DATA_PROVIDER_MODE": "live", "E2E_LIVE_PROVIDERS": "1"},
+        {"TRADEGRAD_APPLICATION_STAGE": "completion"},
+        {"TRADEGRAD_BROWSER_DIAGNOSTIC": "arbitrary"},
+    ):
+        with pytest.raises(ValueError):
+            gate.validate_source({**env, **update}, tmp_path)
+    private = tmp_path / "private"
+    private.mkdir()
+    value = FakeOwner()
+    monkeypatch.setattr(gate, "wait_ready", lambda *_: None)
+    gate.exercise(value, tmp_path, env, private, "node", "fixture")
+    browser = next(
+        arguments
+        for arguments, kwargs in value.ran
+        if "PLAYWRIGHT_JUNIT_OUTPUT_FILE" in kwargs["env"]
+    )
+    assert browser[3] == "tests/e2e/final-test-workflow.spec.ts"
+    assert "--forbid-only" in browser and "--retries=0" in browser
+    assert not any("script.benchmark_v1" in arguments for arguments, _ in value.ran)
+
+
+def test_diagnostic_workflow_cannot_be_mistaken_for_full_gate():
+    workflow = (ROOT / ".github/workflows/v1-validation.yml").read_text()
+    baseline = workflow.split("  baseline:\n", 1)[1].split("  application:\n", 1)[0]
+    diagnostic = workflow.split("  native_final_diagnostic:\n", 1)[1]
+    assert "if: ${{ !(" in baseline and "[native-final-diagnostic]" in baseline
+    assert "Native final Chromium diagnostic ONLY, not full acceptance" in diagnostic
+    assert "TRADEGRAD_BROWSER_DIAGNOSTIC: native-final" in diagnostic
+    assert "DATA_PROVIDER_MODE: fixture" in diagnostic
+    assert "native-final-DIAGNOSTIC-${{ github.sha }}" in diagnostic
+    assert "persist-credentials: false" in diagnostic
+    assert "pytest tests/system" not in diagnostic
+    assert "Build local evaluator image (never published)" in diagnostic
+    assert "TRADEGRAD_APPLICATION_STAGE: m5" in diagnostic

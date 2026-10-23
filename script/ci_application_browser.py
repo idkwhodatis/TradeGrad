@@ -20,6 +20,7 @@ from urllib.error import HTTPError
 from urllib.request import HTTPRedirectHandler, ProxyHandler, build_opener
 from xml.etree import ElementTree as ET
 
+from script.ci_browser_diagnostics import failure_sites
 from script.ci_process_owner import ProcessOwner
 from script.ci_test_environment import SECRET_FIELDS
 from script.compose_bounds import alarm_deadline, read_capped
@@ -60,6 +61,20 @@ def acceptance_stage(source):
     return stage
 
 
+def diagnostic_target(source):
+    value = source.get("TRADEGRAD_BROWSER_DIAGNOSTIC", "")
+    if value not in {"", "native-final"}:
+        raise ValueError("Unknown browser diagnostic profile")
+    if value and (
+        source.get("DATA_PROVIDER_MODE") != "fixture"
+        or acceptance_stage(source) != "m5"
+    ):
+        raise ValueError(
+            "Native final diagnostic is fixture-only and not stage acceptance"
+        )
+    return value
+
+
 def validate_source(source, root):
     if (
         source.get("GITHUB_ACTIONS") != "true"
@@ -67,6 +82,7 @@ def validate_source(source, root):
     ):
         raise ValueError("Explicit disposable hosted application gate required")
     stage = acceptance_stage(source)
+    diagnostic_target(source)
     mode = source.get("DATA_PROVIDER_MODE")
     if mode not in {"fixture", "live"} or source.get("E2E_LIVE_PROVIDERS") != (
         "1" if mode == "live" else "0"
@@ -230,7 +246,7 @@ def wait_ready(owner):
     raise TimeoutError("Explicit API and owned Vite did not become ready")
 
 
-def export_junit(source, destination, *, live=False):
+def export_junit(source, destination, *, live=False, diagnostic_root=None):
     """Raw private reports never enter uploaded paths. Missing/empty is failure."""
     if (
         source.is_symlink()
@@ -255,6 +271,11 @@ def export_junit(source, destination, *, live=False):
     )
     # Even failure evidence is useful, but its free text is never public.
     summarize(source, destination)
+    if diagnostic_root is not None:
+        print(
+            "BROWSER_SOURCE_DIAGNOSTICS_V1:"
+            + json.dumps(failure_sites(source, diagnostic_root), sort_keys=True)
+        )
     if (
         not passed
         or failed
@@ -302,6 +323,9 @@ def exercise(owner, root, source, private, node, mode):
         "--output",
         str(private / "browser-output"),
     ]
+    if diagnostic_target(source):
+        # Fixed repository file, never an arbitrary user-supplied selector.
+        command[3] = "tests/e2e/final-test-workflow.spec.ts"
     if mode == "live":
         command += ["--grep", "@provider-flow"]
     try:
@@ -313,7 +337,10 @@ def exercise(owner, root, source, private, node, mode):
         )
     finally:
         export_junit(
-            report, root / "frontend/test-results/junit.xml", live=mode == "live"
+            report,
+            root / "frontend/test-results/junit.xml",
+            live=mode == "live",
+            diagnostic_root=root,
         )
     if mode == "live" or acceptance_stage(source) == "m5":
         return
@@ -501,6 +528,7 @@ def run(source, root):
         except BaseException:  # noqa: BLE001 - private failures still require owned cleanup
             passed = False
         finally:
+            cleanup_confirmed = False
             try:
                 # Workers must be confirmed stopped BEFORE inventory/removal:
                 # otherwise they could still create new evaluator containers.
@@ -508,14 +536,21 @@ def run(source, root):
                     passed = False
                 else:
                     cleanup_containers(owner, root, source, private)
+                    cleanup_confirmed = True
             except BaseException:  # noqa: BLE001 - private failures still require owned cleanup
                 passed = False
             finally:
                 try:
                     if not owner.cleanup():
                         passed = False
+                        cleanup_confirmed = False
                 except BaseException:  # noqa: BLE001 - private failures still require owned cleanup
                     passed = False
+                    cleanup_confirmed = False
+            print(
+                "OWNED_BROWSER_CLEANUP_V1:"
+                + ("confirmed" if cleanup_confirmed else "unconfirmed")
+            )
     return 0 if passed and not owner.interrupted else 1
 
 
@@ -537,8 +572,14 @@ def main():
             if os.environ["DATA_PROVIDER_MODE"] == "live"
             else "full fixture Chromium (" + acceptance_stage(os.environ) + " stage)"
         )
+        if diagnostic_target(os.environ):
+            mode = "native-final Chromium DIAGNOSTIC ONLY (NOT full stage acceptance)"
         print(
-            "Hosted acceptance passed: "
+            (
+                "Hosted diagnostic passed: "
+                if diagnostic_target(os.environ)
+                else "Hosted acceptance passed: "
+            )
             + mode
             + "; owned process/container absence confirmed"
         )

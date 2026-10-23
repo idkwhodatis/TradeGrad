@@ -3,6 +3,12 @@ name: V1 staged validation
 on:
   workflow_dispatch:
     inputs:
+      validation_scope:
+        description: "Full acceptance, or targeted native-final browser diagnosis only"
+        required: true
+        default: full
+        type: choice
+        options: [full, native-final-diagnostic]
       provider_mode:
         description: "fixture is deterministic; live explicitly checks public upstreams without fallback"
         required: true
@@ -34,6 +40,8 @@ concurrency:
 
 jobs:
   baseline:
+    # A diagnostic run never substitutes for the subsequent complete gate.
+    if: ${{ !((github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'native-final-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[native-final-diagnostic]'))) }}
     name: M0 four-task engine and semantics
     runs-on: ubuntu-22.04
     timeout-minutes: 15
@@ -328,5 +336,123 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: m1-m5-${{ env.DATA_PROVIDER_MODE }}-validation-${{ github.sha }}
+          path: var/ci-evidence/*.xml
+          retention-days: 14
+
+  native_final_diagnostic:
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'native-final-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[native-final-diagnostic]')) }}
+    name: Native final Chromium diagnostic ONLY, not full acceptance
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    env:
+      # Credentials are generated and masked on this disposable runner only.
+      POSTGRES_USER: tradegrad_ci
+      POSTGRES_DB: tradegrad_ci
+      STORAGE_ROOT: ${{ github.workspace }}/var/storage
+      TRADEGRAD_RUNNER_STATE_DIR: ${{ github.workspace }}/var/runner
+      EVALUATOR_IMAGE: tradegrad-evaluator:v1
+      PORTABLE_ENGINE_IMAGE: tradegrad-portable-engine:v1
+      PORTABLE_POLICY_IMAGE: tradegrad-portable-policy:v1
+      TRADEGRAD_REQUIRE_DOCKER: "1"
+      E2E_EMAIL: first@example.com
+      E2E_OTHER_EMAIL: second@example.com
+      WORKER_CONCURRENCY: "1"
+      DATA_WORKER_CONCURRENCY: "1"
+      # Ordinary pushes freeze SDK responses. Live requires explicit dispatch or
+      # a [live-data] feature-branch commit marker; no default-branch change needed.
+      DATA_PROVIDER_MODE: fixture
+      E2E_LIVE_PROVIDERS: "0"
+      TRADEGRAD_BROWSER_DIAGNOSTIC: native-final
+      HEARTBEAT_SECONDS: "1"
+      LEASE_SECONDS: "20"
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Generate masked job-local fixture credentials
+        run: python script/ci_test_environment.py
+      - name: Start authenticated disposable PostgreSQL on loopback only
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --detach --name tradegrad-ci-postgres \
+            --label io.tradegrad.ci=postgres --publish 127.0.0.1:5432:5432 \
+            --env POSTGRES_USER --env POSTGRES_PASSWORD --env POSTGRES_DB \
+            --tmpfs /var/lib/postgresql:rw,size=1g,nosuid \
+            --health-cmd 'pg_isready -U tradegrad_ci -d tradegrad_ci' \
+            --health-interval 2s --health-timeout 5s --health-retries 30 postgres:18.6
+          for attempt in $(seq 1 90); do
+            state=$(docker inspect --format '{{.State.Health.Status}}' tradegrad-ci-postgres)
+            if [ "$state" = healthy ]; then exit 0; fi
+            if [ "$state" = unhealthy ]; then break; fi
+            sleep 1
+          done
+          echo 'Disposable PostgreSQL did not become healthy' >&2
+          exit 1
+      - name: Install separately locked API runtime
+        run: python -m pip install --require-hashes -r backend/requirements.lock
+      - name: Install separately hash-locked data worker and generate lean OpenBB client
+        run: |
+          python -m venv .venv-data
+          .venv-data/bin/python -m pip install --require-hashes -r runtimes/data/requirements.lock
+          .venv-data/bin/openbb-build
+          python -m script.validate_runtime_split --runtime api
+          .venv-data/bin/python -m script.validate_runtime_split --runtime data
+      - name: Install separately hash-locked trusted research runtime
+        run: |
+          python -m venv .venv-research
+          .venv-research/bin/python -m pip install --require-hashes -r runtimes/research/requirements.lock
+          .venv-research/bin/python -m script.validate_runtime_split --runtime research
+      - name: Build local evaluator image (never published)
+        run: |
+          digest=$(python -m packages.tradegrad_adapter.environment)
+          docker build --build-arg "TRADEGRAD_ENVIRONMENT_DIGEST=$digest" -t "$EVALUATOR_IMAGE" -f runtimes/evaluator/Dockerfile .
+      - name: Install frontend and verify generated contracts
+        run: |
+          python -m backend.app.export_openapi
+          npm ci --prefix frontend
+          npm run generate-client --prefix frontend
+          git diff --exit-code -- packages/contracts frontend/src/client
+          npm run format:check --prefix frontend
+          npm run typecheck --prefix frontend
+          npm test --prefix frontend
+          npm run build --prefix frontend
+      - name: Install matched Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Migrate and explicitly provision disposable synthetic accounts
+        id: application_ready
+        run: |
+          python -m script.provision_storage --root "$STORAGE_ROOT" --durable-parent "$GITHUB_WORKSPACE"
+          alembic -c backend/alembic.ini upgrade head
+          python -m backend.app.bootstrap --email "$E2E_EMAIL" --password-env E2E_PASSWORD --with-synthetic-fixtures --with-e2e-fixtures
+          python -m backend.app.bootstrap --email "$E2E_OTHER_EMAIL" --password-env E2E_OTHER_PASSWORD --with-synthetic-fixtures
+      - name: Run only the native final browser case (diagnostic, not acceptance)
+        env:
+          TRADEGRAD_REQUIRE_APPLICATION_BROWSER: "1"
+          TRADEGRAD_APPLICATION_STAGE: m5
+        run: python -m script.ci_application_browser
+      - name: Remove the disposable database
+        if: always()
+        run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
+      - name: Export outcome-only evidence without diagnostic payloads
+        if: always()
+        run: python script/summarize_ci_junit.py frontend/test-results/junit.xml
+      - name: Preserve bounded test evidence (no traces, credentials or source data)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-final-DIAGNOSTIC-${{ github.sha }}
           path: var/ci-evidence/*.xml
           retention-days: 14
