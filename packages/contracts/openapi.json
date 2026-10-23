@@ -143,6 +143,37 @@
         "title": "AttemptPublic",
         "type": "object"
       },
+      "BenchmarkConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset": {
+            "$ref": "#/components/schemas/VersionRef"
+          },
+          "definition_version": {
+            "const": "daily_close_observed_anchor.v1",
+            "default": "daily_close_observed_anchor.v1",
+            "title": "Definition Version",
+            "type": "string"
+          },
+          "listing_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "title": "Listing Id",
+            "type": "string"
+          },
+          "price_field": {
+            "const": "close",
+            "default": "close",
+            "title": "Price Field",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dataset",
+          "listing_id"
+        ],
+        "title": "BenchmarkConfig",
+        "type": "object"
+      },
       "BlockPublic": {
         "properties": {
           "attempts": {
@@ -5725,6 +5756,18 @@
             "title": "Artifact Sha256",
             "type": "string"
           },
+          "benchmark": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Benchmark"
+          },
           "combined_score": {
             "title": "Combined Score",
             "type": "number"
@@ -6138,6 +6181,18 @@
             "title": "Artifact Sha256",
             "type": "string"
           },
+          "benchmark": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Benchmark"
+          },
           "combined_score": {
             "title": "Combined Score",
             "type": "number"
@@ -6309,8 +6364,14 @@
         "additionalProperties": false,
         "properties": {
           "benchmark": {
-            "title": "Benchmark",
-            "type": "null"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BenchmarkConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "budgets": {
             "$ref": "#/components/schemas/BudgetConfig"
@@ -6454,8 +6515,14 @@
         "additionalProperties": false,
         "properties": {
           "benchmark": {
-            "title": "Benchmark",
-            "type": "null"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BenchmarkConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "budgets": {
             "$ref": "#/components/schemas/BudgetConfig"
@@ -7928,8 +7995,14 @@
         "additionalProperties": false,
         "properties": {
           "benchmark": {
-            "title": "Benchmark",
-            "type": "null"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BenchmarkConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "budgets": {
             "$ref": "#/components/schemas/BudgetConfig"
@@ -8515,16 +8588,118 @@
       "ResultBenchmark": {
         "additionalProperties": false,
         "properties": {
+          "definition_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Definition Version"
+          },
+          "downsampled": {
+            "default": false,
+            "title": "Downsampled",
+            "type": "boolean"
+          },
+          "filter_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filter Scope"
+          },
+          "input": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input"
+          },
+          "metrics": {
+            "items": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              "type": "object"
+            },
+            "title": "Metrics",
+            "type": "array"
+          },
+          "normalization": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalization"
+          },
           "reason": {
             "title": "Reason",
             "type": "string"
           },
+          "sampling": {
+            "default": "none",
+            "enum": [
+              "none",
+              "uniform"
+            ],
+            "title": "Sampling",
+            "type": "string"
+          },
           "series": {
-            "title": "Series",
-            "type": "null"
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series"
+          },
+          "series_filtered_rows": {
+            "default": 0,
+            "title": "Series Filtered Rows",
+            "type": "integer"
+          },
+          "series_returned_rows": {
+            "default": 0,
+            "title": "Series Returned Rows",
+            "type": "integer"
+          },
+          "series_total_rows": {
+            "default": 0,
+            "title": "Series Total Rows",
+            "type": "integer"
           },
           "status": {
-            "const": "not_configured",
+            "enum": [
+              "not_configured",
+              "available"
+            ],
             "title": "Status",
             "type": "string"
           }
@@ -8540,7 +8715,6 @@
         "additionalProperties": false,
         "properties": {
           "benchmark": {
-            "const": false,
             "title": "Benchmark",
             "type": "boolean"
           },
@@ -9286,8 +9460,14 @@
         "additionalProperties": false,
         "properties": {
           "benchmark": {
-            "title": "Benchmark",
-            "type": "null"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BenchmarkConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "budgets": {
             "$ref": "#/components/schemas/BudgetConfig"

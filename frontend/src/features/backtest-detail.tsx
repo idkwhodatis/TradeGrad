@@ -1,3 +1,4 @@
+import { BenchmarkResult } from "@/components/benchmark-result";
 import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -353,10 +354,7 @@ function BacktestContent({ result }: { result: ResultQueryPublic }) {
               </div>
             )
           )}
-          <p className="notice mt-5" data-testid="benchmark-unavailable">
-            Benchmark: {result.benchmark.status}. {result.benchmark.reason} No
-            benchmark curve or excess return is synthesized.
-          </p>
+          <BenchmarkResult value={charts.data?.benchmark ?? result.benchmark} />
         </Panel>
         <Panel title="Positions, orders, fills and account series">
           <Field label="Persisted result table" id="result-section">

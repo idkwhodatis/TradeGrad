@@ -156,7 +156,7 @@ class ResultCapabilities(ViewModel):
     closed_trades: bool
     fees_aggregate: bool
     fee_component_breakdown: Literal[False]
-    benchmark: Literal[False]
+    benchmark: bool
     observable_order_trace: bool
     internal_decisions: Literal[False]
     trusted_ledger: Literal[False]
@@ -175,9 +175,19 @@ class ResultFees(ViewModel):
 
 
 class ResultBenchmark(ViewModel):
-    status: Literal["not_configured"]
-    series: None = None
+    status: Literal["not_configured", "available"]
+    series: dict[str, JsonValue] | None = None
     reason: str
+    definition_version: str | None = None
+    input: dict[str, JsonValue] | None = None
+    normalization: dict[str, JsonValue] | None = None
+    metrics: list[dict[str, JsonValue]] = Field(default_factory=list)
+    series_total_rows: int = 0
+    series_filtered_rows: int = 0
+    series_returned_rows: int = 0
+    downsampled: bool = False
+    sampling: Literal["none", "uniform"] = "none"
+    filter_scope: str | None = None
 
 
 class ResultComparisonItem(ViewModel):

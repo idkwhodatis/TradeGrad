@@ -26,6 +26,8 @@ INPUTS = (
     "src/util.py",
     "src/llm_client.py",
     "packages/tradegrad_adapter/config.py",
+    "packages/tradegrad_adapter/benchmarks.py",
+    "backend/app/benchmark_services.py",
     "packages/tradegrad_adapter/windows.py",
     "packages/tradegrad_adapter/optimizer.py",
     "packages/tradegrad_adapter/checkpoint.py",

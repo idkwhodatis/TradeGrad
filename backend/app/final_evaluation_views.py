@@ -6,6 +6,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 
+from backend.app.benchmark_services import comparison_view
 from backend.app.final_result_admission import require_final_result_admission
 from backend.app.models import Artifact, Evaluation, ExecutionAttempt, ResearchRun
 from backend.app.research_services import bounded_json
@@ -163,6 +164,16 @@ def load_owned_final_result(session, evaluation_id, owner_id, settings):
     bundle = validate_final_persisted_result(
         evaluation, run, dataset, artifact, content
     )
+    from backend.app.benchmark_services import verify_persisted_benchmark
+
+    verify_persisted_benchmark(
+        session,
+        owner_id,
+        FinalEvaluationConfig.model_validate(run.config),
+        dataset.manifest,
+        bundle,
+        settings,
+    )
     return VerifiedResult(evaluation, run, dataset, artifact, bundle, content)
 
 
@@ -238,7 +249,9 @@ def final_result_view(
         },
         capabilities=bundle["capabilities"],
         fees=bundle["fees"],
-        benchmark=bundle["benchmark"],
+        benchmark=comparison_view(
+            bundle["benchmark"], start=start, end=end, max_points=max_points
+        ),
         warnings=[
             "This is a separate final evaluation of an already frozen candidate; it is not optimizer feedback.",
             "Prior platform-recorded exposure and incomplete external history do not establish an independently unseen holdout.",

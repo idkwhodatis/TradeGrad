@@ -350,6 +350,12 @@ export async function exercisePortableFinal({
     "tradegrad.portable.final-result-query.v1",
   );
   expect(result.selection_feedback).toBe(false);
+  if (run.config.benchmark) {
+    expect(result.benchmark?.status).toBe("available");
+    await expect(page.getByTestId("benchmark-result")).toContainText(
+      "not total return",
+    );
+  }
   expect(result.runtime_certified).toBe(false);
   expect(result.result_trust).toBe("isolated_policy_trusted_akquant_engine");
   expect(result.ledger_origin).toBe("trusted_engine");

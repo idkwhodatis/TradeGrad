@@ -227,6 +227,16 @@ def validate_final_inputs(session, run, settings):
         raise DomainError(
             "final_preflight_failed", redact(str(error))[:2000], 422
         ) from None
+    from backend.app.benchmark_services import preflight_benchmarks
+
+    preflight_benchmarks(
+        session,
+        run.owner_id,
+        config,
+        dataset.manifest,
+        [final_config(run).holdout.model_dump(mode="json")],
+        settings,
+    )
     return result
 
 
@@ -315,6 +325,9 @@ def record_final_admission(session, run, selection, split, dataset):
             "tracking_coverage": TRACKING_COVERAGE,
         },
     )
+    from backend.app.benchmark_services import record_benchmark_admission
+
+    record_benchmark_admission(session, run, config)
     return snapshot
 
 

@@ -1,3 +1,4 @@
+import { BenchmarkSelector } from "@/components/benchmark-selector";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +12,10 @@ import { JsonDetails, Metadata } from "@/components/data-common";
 import { currentUserOptions, queryClient } from "@/lib/api";
 import { asRecord, snapshotLabel, universeLabels } from "@/lib/data-utils";
 import { taskLabels } from "@/lib/format";
+import {
+  applyWorkspaceDefaults,
+  settingsDefaultsOptions,
+} from "@/lib/settings-api";
 import {
   matchingUniverses,
   profileDescriptions,
@@ -75,6 +80,13 @@ export function NewExperimentPage({ onCreated }: Completion = {}) {
   const catalog = useQuery(researchCatalogOptions);
   const capabilities = useQuery(researchCapabilitiesOptions);
   const user = useQuery(currentUserOptions);
+  // A recovered immutable draft always wins, even if saved defaults became stale.
+  const recovered =
+    user.data && !preferred ? loadResearchDraft(user.data.id) : null;
+  const workspaceDefaults = useQuery({
+    ...settingsDefaultsOptions,
+    enabled: !!user.data && !recovered,
+  });
   const availableModels = capabilities.data
     ? researchModelProfiles(capabilities.data)
     : [];
@@ -85,12 +97,23 @@ export function NewExperimentPage({ onCreated }: Completion = {}) {
     void catalog.refetch();
     void capabilities.refetch();
     void user.refetch();
+    if (!recovered) void workspaceDefaults.refetch();
   };
   let defaults: ResearchFormValues | null = null;
   let defaultsError: unknown;
-  if (catalog.data && capabilities.data) {
+  if (
+    catalog.data &&
+    capabilities.data &&
+    (recovered || workspaceDefaults.data)
+  ) {
     try {
-      defaults = researchDefaults(capabilities.data, catalog.data, preferred);
+      defaults =
+        recovered?.body ??
+        applyWorkspaceDefaults(
+          researchDefaults(capabilities.data, catalog.data, preferred),
+          workspaceDefaults.data!,
+          capabilities.data,
+        );
     } catch (error) {
       defaultsError = error;
     }
@@ -126,15 +149,23 @@ export function NewExperimentPage({ onCreated }: Completion = {}) {
         </p>
       )}
       <div className="mt-6">
-        {catalog.isPending || capabilities.isPending || user.isPending ? (
+        {catalog.isPending ||
+        capabilities.isPending ||
+        user.isPending ||
+        (!recovered && workspaceDefaults.isPending) ? (
           <Loading text="Loading published versions and deployment capabilities…" />
         ) : catalog.error ||
           capabilities.error ||
           user.error ||
+          (!recovered && workspaceDefaults.error) ||
           defaultsError ? (
           <ErrorState
             error={
-              catalog.error || capabilities.error || user.error || defaultsError
+              catalog.error ||
+              capabilities.error ||
+              user.error ||
+              (!recovered && workspaceDefaults.error) ||
+              defaultsError
             }
             retry={retry}
           />
@@ -624,6 +655,18 @@ function ExperimentWizard({
                     ? `[${dataset.start_date}, ${dataset.end_date}) · SHA-256 ${dataset.content_sha256}`
                     : "No matching published snapshot. Import, validate and publish one in Datasets.",
                 )}
+                <BenchmarkSelector
+                  value={body.benchmark}
+                  datasets={catalog.datasets}
+                  market={body.market_profile.market}
+                  onChange={(benchmark) =>
+                    setValue(
+                      "benchmark",
+                      benchmark as ResearchFormValues["benchmark"],
+                      { shouldDirty: true },
+                    )
+                  }
+                />
                 {dataset && (
                   <>
                     <Metadata
@@ -799,7 +842,9 @@ function ExperimentWizard({
                     "Decision timing": body.market_profile.decision_timing,
                     "History depth": body.market_profile.history_depth,
                     Assumptions: body.market_profile.assumptions,
-                    Benchmark: "None; benchmark computation unavailable",
+                    Benchmark: body.benchmark
+                      ? `${body.benchmark.dataset.id} / ${body.benchmark.listing_id}`
+                      : "None; no comparison requested",
                   }}
                 />
                 {sourceCompat && (

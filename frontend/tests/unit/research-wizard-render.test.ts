@@ -30,6 +30,14 @@ async function markup(
   capabilities = capabilityFixture(),
   body = researchFixture().body,
   stored?: string,
+  savedDefaults: object | null = {
+    initial_cash: 250000,
+    max_iterations: 3,
+    max_model_calls: 20,
+    max_tokens: 50000,
+    max_runtime_seconds: 600,
+    model_profile_id: "fixture",
+  },
 ) {
   const { NewExperimentPage } =
     await import("../../src/features/new-experiment");
@@ -44,6 +52,7 @@ async function markup(
   query.setQueryData(["research-input-catalog"], catalog);
   query.setQueryData(["research-capabilities"], capabilities);
   query.setQueryData(["me"], { id: "owner-1" });
+  if (savedDefaults) query.setQueryData(["workspace-defaults"], savedDefaults);
   const root = createRootRoute({
     component: () => createElement(NewExperimentPage),
   });
@@ -150,6 +159,39 @@ describe("wizard server render contract", () => {
     expect(html).toContain("No profile is substituted");
     expect(html).toContain('<option value="" selected="">');
     expect(html).not.toContain('value="fixture" selected=""');
+  });
+  it("restores exact draft without waiting for saved defaults", async () => {
+    const html = await markup(
+      3,
+      capabilityFixture(),
+      researchFixture().body,
+      undefined,
+      null,
+    );
+    expect(html).toContain("Review every immutable RunConfig field");
+    expect(html).not.toContain("Loading published versions");
+  });
+  it("does not apply a stale default profile over a recovered draft", async () => {
+    const html = await markup(
+      2,
+      capabilityFixture(),
+      researchFixture().body,
+      undefined,
+      { model_profile_id: "revoked" },
+    );
+    expect(html).toContain("Maximum iterations");
+    expect(html).not.toContain("default model profile is no longer available");
+  });
+  it("rejects a stale model default for fresh initialization instead of silently substituting", async () => {
+    const html = await markup(
+      0,
+      capabilityFixture(),
+      researchFixture().body,
+      "{}",
+      { model_profile_id: "revoked" },
+    );
+    expect(html).toContain("default model profile is no longer available");
+    expect(html).not.toContain("Submit experiment");
   });
   it("never enables submit just because a draft restored at review", async () => {
     const html = await markup(3);

@@ -54,9 +54,12 @@ def portable_final_harness(tmp_path):
             harness.cleanup()
 
 
+@pytest.mark.parametrize(
+    "with_benchmark", [False, True], ids=["no-benchmark", "immutable-benchmark"]
+)
 @pytest.mark.parametrize("kind,market", [("event", "CN"), ("portfolio", "US")])
 def test_real_portable_freeze_final_reference_export_and_retry(
-    portable_final_harness, kind, market
+    portable_final_harness, kind, market, with_benchmark
 ):
     h = portable_final_harness
     client, other = h.clients
@@ -90,6 +93,17 @@ def test_real_portable_freeze_final_reference_export_and_retry(
             },
         },
     ).json()
+    if with_benchmark:
+        benchmark_dataset, _ = h.import_fixture(market)
+        body["benchmark"] = {
+            "definition_version": "daily_close_observed_anchor.v1",
+            "dataset": {
+                "id": benchmark_dataset["id"],
+                "sha256": benchmark_dataset["content_sha256"],
+            },
+            "listing_id": benchmark_dataset["manifest"]["listings"][0]["listing_id"],
+            "price_field": "close",
+        }
     body["optimizer"]["max_iterations"] = 1
     body["budgets"].update(
         max_model_calls=10, max_tokens=100000, max_runtime_seconds=180, max_repairs=0
@@ -216,6 +230,39 @@ def test_real_portable_freeze_final_reference_export_and_retry(
     )
     content = h.request(client, "GET", result_path + "/download").content
     bundle = validate_portable_result(content)
+    if with_benchmark:
+        comparison = bundle["benchmark"]
+        require(comparison["status"] == "available", "Portable benchmark result absent")
+        require(
+            comparison["input"]["reference"] == body["benchmark"],
+            "Portable benchmark selection changed",
+        )
+        require(
+            comparison["input"]["window"] == config.holdout.model_dump(mode="json"),
+            "Portable benchmark scored window changed",
+        )
+        require(
+            view["benchmark"]["metrics"] == comparison["metrics"],
+            "Portable benchmark projection changed",
+        )
+        for evaluation in before["evaluations"]:
+            if evaluation["status"] == "succeeded":
+                research_result = h.request(
+                    client,
+                    "GET",
+                    f"/portable-evaluations/{evaluation['id']}/results",
+                ).json()
+                require(
+                    research_result["benchmark"]["status"] == "available",
+                    "Portable research benchmark missing",
+                )
+                require(
+                    all(
+                        row[0] < body["windows"]["holdout"]["start"]
+                        for row in research_result["benchmark"]["series"]["rows"]
+                    ),
+                    "Holdout benchmark entered portable research",
+                )
     require(
         bundle["identity"]["run_config_sha256"] == config.sha256
         and bundle["identity"]["strategy_sha256"] == selected["source_code_sha256"],

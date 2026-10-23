@@ -176,6 +176,7 @@ async function fixture(
   auth: Token,
   slow = false,
   operatorProfiles = false,
+  benchmarkEnd?: string,
 ) {
   const [csv, metadataText, originalCode] = await Promise.all([
     readFile(new URL("../fixtures/research-cn.csv", import.meta.url)),
@@ -196,6 +197,18 @@ async function fixture(
     metadata.rows,
   );
   expect(metadata.rows).toBe(76);
+  const uploadCsv = benchmarkEnd
+    ? Buffer.from(
+        csv
+          .toString("utf8")
+          .trim()
+          .split(/\r?\n/)
+          .filter(
+            (line, index) => index === 0 || line.slice(0, 10) < benchmarkEnd,
+          )
+          .join("\n") + "\n",
+      )
+    : csv;
   const mapping = {
     name: `E2E configured synthetic fixture ${crypto.randomUUID()}`,
     symbol: "600000",
@@ -205,7 +218,7 @@ async function fixture(
     timezone: "Asia/Shanghai",
     calendar: "XSHG",
     start_date: "2024-01-02",
-    end_date: "2024-04-27",
+    end_date: benchmarkEnd || "2024-04-27",
     columns: {
       session_date: "date",
       open: "open",
@@ -228,7 +241,11 @@ async function fixture(
     headers: { ...authorization(auth), "Idempotency-Key": crypto.randomUUID() },
     multipart: {
       mapping: JSON.stringify(mapping),
-      file: { name: "research-cn.csv", mimeType: "text/csv", buffer: csv },
+      file: {
+        name: "research-cn.csv",
+        mimeType: "text/csv",
+        buffer: uploadCsv,
+      },
     },
   });
   expect(upload.status()).toBe(202);
@@ -399,6 +416,12 @@ async function configure(
   await page
     .getByLabel("Seed strategy version", { exact: true })
     .selectOption(body.seed_strategy.id);
+  if (body.benchmark)
+    await page
+      .getByLabel("Benchmark snapshot and listing (optional)")
+      .selectOption(
+        `${body.benchmark.dataset.id}:${body.benchmark.listing_id}`,
+      );
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "2. Windows & history", exact: true }),
@@ -1216,5 +1239,142 @@ test("checkpoint pause resumes completed evaluation UUIDs and running cancellati
   ).toBeVisible();
   expect((await detail(request, owned.auth, accepted.id)).status).toBe(
     "succeeded",
+  );
+});
+
+test("explicit immutable benchmark survives selector reload and persists exact plotted comparison @benchmark", async ({
+  page,
+  request,
+  owned,
+}) => {
+  test.setTimeout(360_000);
+  const { body } = await fixture(request, owned.auth);
+  const independent = await fixture(request, owned.auth);
+  const listing = (
+    independent.dataset.manifest.listings as { listing_id: string }[]
+  )[0];
+  body.benchmark = {
+    definition_version: "daily_close_observed_anchor.v1",
+    dataset: {
+      id: independent.dataset.id,
+      sha256: independent.dataset.content_sha256,
+    },
+    listing_id: listing.listing_id,
+    price_field: "close",
+  };
+  body.optimizer!.max_iterations = 0;
+  await signIn(page);
+  await configure(page, body);
+  const checked = await preflight(page, body);
+  await page.reload();
+  await expect(page.getByTestId("research-preflight-success")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "1. Inputs & profile", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Benchmark snapshot and listing (optional)"),
+  ).toHaveValue(`${independent.dataset.id}:${listing.listing_id}`);
+  for (let i = 0; i < 3; i++)
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+  expect((await preflight(page, body)).config_sha256).toBe(
+    checked.config_sha256,
+  );
+  const run = await submit(page, owned, true);
+  await waitStatus(request, owned.auth, run.id, "succeeded");
+  const children = await evaluations(request, owned.auth, run.id);
+  expect(
+    children.every((item) => ["train", "validation"].includes(item.split)),
+  ).toBe(true);
+  const item = children.find((row) => row.status === "succeeded")!;
+  const result = await read<ResultQueryPublic>(
+    request,
+    owned.auth,
+    `/research-evaluations/${item.id}/results`,
+  );
+  expect(result.benchmark.status).toBe("available");
+  expect(result.benchmark.input?.reference).toEqual(body.benchmark);
+  await page.goto(`/backtests/${item.id}`);
+  await expect(page.getByTestId("benchmark-result")).toContainText(
+    "not total return",
+  );
+  await expect(
+    page
+      .getByRole("img", {
+        name: /Observed strategy return versus benchmark close-price return/,
+      })
+      .locator("svg"),
+  ).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId("benchmark-result")).toContainText(
+    "daily_close_observed_anchor.v1",
+  );
+  const content = await downloadedBytes(
+    page,
+    "Original result JSON",
+    `evaluation-${item.id}.json`,
+  );
+  expect(sha256(content)).toBe(result.artifact_sha256);
+  const bundle = JSON.parse(content.toString("utf8"));
+  expect(bundle.benchmark.input.reference).toEqual(body.benchmark);
+  expect(bundle.benchmark.metrics).toEqual(result.benchmark.metrics);
+  expect(bundle.benchmark.series.rows[0].slice(4)).toEqual([0, 0, 0]);
+  expect(
+    bundle.benchmark.series.rows.every(
+      (row: (string | number)[]) =>
+        String(row[0]) < body.windows.holdout!.start,
+    ),
+  ).toBe(true);
+  const foreign = await token(request, true);
+  const denied = await request.get(
+    api(`/research-evaluations/${item.id}/results`),
+    { headers: authorization(foreign) },
+  );
+  expect(denied.status()).toBe(404);
+});
+
+test("benchmark coverage error prevents submission and explicit None restores preflight @benchmark", async ({
+  page,
+  request,
+  owned,
+}) => {
+  test.setTimeout(240_000);
+  const { body } = await fixture(request, owned.auth);
+  const short = await fixture(request, owned.auth, false, false, "2024-03-01");
+  const listing = (
+    short.dataset.manifest.listings as { listing_id: string }[]
+  )[0];
+  body.benchmark = {
+    definition_version: "daily_close_observed_anchor.v1",
+    dataset: { id: short.dataset.id, sha256: short.dataset.content_sha256 },
+    listing_id: listing.listing_id,
+    price_field: "close",
+  };
+  await signIn(page);
+  await configure(page, body);
+  const pending = page.waitForResponse(isPost("/research-runs/preflight"));
+  await page
+    .getByRole("button", { name: "Run server preflight", exact: true })
+    .click();
+  expect((await pending).status()).toBe(422);
+  await expect(page.getByRole("alert")).toContainText("Benchmark");
+  await expect(
+    page.getByRole("button", { name: "Submit experiment", exact: true }),
+  ).toBeDisabled();
+  await page.reload();
+  await page
+    .getByRole("button", { name: "1. Inputs & profile", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Benchmark snapshot and listing (optional)"),
+  ).toHaveValue(`${short.dataset.id}:${listing.listing_id}`);
+  await page
+    .getByLabel("Benchmark snapshot and listing (optional)")
+    .selectOption("");
+  body.benchmark = null;
+  for (let i = 0; i < 3; i++)
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await preflight(page, body);
+  expect(await runsForDataset(request, owned.auth, body.dataset.id)).toEqual(
+    [],
   );
 });

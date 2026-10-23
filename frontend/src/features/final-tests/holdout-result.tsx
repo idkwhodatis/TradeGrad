@@ -1,3 +1,4 @@
+import { BenchmarkResult } from "@/components/benchmark-result";
 import { lazy, Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ResultTable } from "@/client/types.gen";
@@ -253,9 +254,7 @@ export function HoldoutResult({
             )}
           </section>
         ))}
-        <p className="notice mt-4">
-          Benchmark: {data.benchmark.status}. {data.benchmark.reason}
-        </p>
+        <BenchmarkResult value={data.benchmark} />
         <div className="mt-5">
           <Field id="holdout-section" label="Holdout result table">
             <select

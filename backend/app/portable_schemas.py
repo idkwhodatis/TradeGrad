@@ -134,6 +134,7 @@ class PortableResultQuery(BaseModel):
     window: dict[str, Any]
     summary: dict[str, Any]
     combined_score: float
+    benchmark: dict[str, Any] | None = None
     section: Literal[
         "account_series",
         "positions",

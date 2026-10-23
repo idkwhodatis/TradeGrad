@@ -7,6 +7,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 
+from backend.app.benchmark_services import comparison_view
 from backend.app.final_evaluation_views import validate_final_terminal
 from backend.app.final_result_admission import require_final_result_admission
 from backend.app.models import (
@@ -174,6 +175,11 @@ def load_owned_final_result(session, evaluation_id, owner_id, settings):
         min(settings.max_artifact_bytes, 8 * 1_048_576),
     )
     bundle = validate_portable_final_result(evaluation, run, dataset, artifact, content)
+    from backend.app.benchmark_services import verify_persisted_benchmark
+
+    verify_persisted_benchmark(
+        session, owner_id, final_config(run), dataset.manifest, bundle, settings
+    )
     return VerifiedPortableFinal(evaluation, run, dataset, artifact, bundle, content)
 
 
@@ -216,6 +222,7 @@ def final_result_view(
         identity=bundle["identity"],
         window=bundle["window"],
         summary=bundle["summary"],
+        benchmark=comparison_view(bundle.get("benchmark"), max_points=500),
         combined_score=portable_score(bundle),
         section=section,
         rows=bundle[section][offset : offset + limit],

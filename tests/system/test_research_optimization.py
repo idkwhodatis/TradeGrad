@@ -108,7 +108,7 @@ class ResearchProcessHarness(ProcessHarness):
     def start_workers(self):
         return [self.spawn("research-worker", ["-m", "workers.research", "worker"])]
 
-    def upload_fixture(self):
+    def upload_fixture(self, *, benchmark=False):
         for role in ("dispatcher", "worker"):
             self.spawn(f"data-{role}", ["-m", "workers.data", role])
         # Only trusted fixture/calendar processing runs here, never candidate code.
@@ -141,7 +141,7 @@ with open(sys.argv[1], newline="") as source:
         )
         mapping = {
             "name": "Synthetic configured research smoke, NOT market evidence",
-            "symbol": "600000",
+            "symbol": "600001" if benchmark else "600000",
             "market": "CN",
             "mic": "XSHG",
             "currency": "CNY",

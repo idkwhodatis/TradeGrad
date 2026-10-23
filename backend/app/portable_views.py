@@ -5,6 +5,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 
+from backend.app.benchmark_services import comparison_view
 from backend.app.models import (
     Artifact,
     DatasetVersion,
@@ -36,6 +37,13 @@ def preflight_portable(session, owner_id, body, settings):
             "New portable research protocol; not upstream paper equivalence.",
             "Only explicit daily cash long-only semantics; runtime and external framework equivalence are not certified.",
         ]
+        + (
+            [
+                "Selected benchmark has exact scored-session raw-close coverage; comparison is post-processing only and holdout remains separately admitted."
+            ]
+            if body.benchmark is not None
+            else []
+        )
         + (
             ["Synthetic data is for engineering validation, not investment evidence."]
             if dataset.is_synthetic
@@ -122,6 +130,11 @@ def load_owned_portable_result(session, evaluation_id, owner_id, settings):
             "Portable result evidence failed integrity verification",
             409,
         ) from None
+    from backend.app.benchmark_services import verify_persisted_benchmark
+
+    verify_persisted_benchmark(
+        session, owner_id, config, getattr(dataset, "manifest", {}), bundle, settings
+    )
     return OwnedPortableResult(
         row, artifact, bundle, content, run, dataset.is_synthetic
     )
@@ -164,6 +177,7 @@ def portable_result_view(result, section="account_series", offset=0, limit=100):
         identity=bundle["identity"],
         window=bundle["window"],
         summary=bundle["summary"],
+        benchmark=comparison_view(bundle.get("benchmark"), max_points=500),
         combined_score=portable_score(bundle),
         section=section,
         rows=bundle[section][offset : offset + limit],

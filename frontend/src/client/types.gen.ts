@@ -89,6 +89,25 @@ export type AttemptPublic = {
 };
 
 /**
+ * BenchmarkConfig
+ */
+export type BenchmarkConfig = {
+    dataset: VersionRef;
+    /**
+     * Definition Version
+     */
+    definition_version?: 'daily_close_observed_anchor.v1';
+    /**
+     * Listing Id
+     */
+    listing_id: string;
+    /**
+     * Price Field
+     */
+    price_field?: 'close';
+};
+
+/**
  * BlockPublic
  */
 export type BlockPublic = {
@@ -3375,6 +3394,12 @@ export type PortableFinalResultQuery = {
      */
     artifact_sha256: string;
     /**
+     * Benchmark
+     */
+    benchmark?: {
+        [key: string]: unknown;
+    } | null;
+    /**
      * Combined Score
      */
     combined_score: number;
@@ -3630,6 +3655,12 @@ export type PortableResultQuery = {
      */
     artifact_sha256: string;
     /**
+     * Benchmark
+     */
+    benchmark?: {
+        [key: string]: unknown;
+    } | null;
+    /**
      * Combined Score
      */
     combined_score: number;
@@ -3745,10 +3776,7 @@ export type PortableRiskConfig = {
  * PortableRunConfig
  */
 export type PortableRunConfig = {
-    /**
-     * Benchmark
-     */
-    benchmark?: null;
+    benchmark?: BenchmarkConfig | null;
     budgets?: BudgetConfig;
     /**
      * Conformance
@@ -3812,10 +3840,7 @@ export type PortableRunConfig = {
  * PortableRunCreate
  */
 export type PortableRunCreate = {
-    /**
-     * Benchmark
-     */
-    benchmark?: null;
+    benchmark?: BenchmarkConfig | null;
     budgets?: BudgetConfig;
     /**
      * Conformance
@@ -4574,10 +4599,7 @@ export type ResearchPreflightPublic = {
  * ResearchRunCreate
  */
 export type ResearchRunCreate = {
-    /**
-     * Benchmark
-     */
-    benchmark?: null;
+    benchmark?: BenchmarkConfig | null;
     budgets?: BudgetConfig;
     dataset: VersionRef;
     /**
@@ -4855,17 +4877,65 @@ export type ResolveCreate = {
  */
 export type ResultBenchmark = {
     /**
+     * Definition Version
+     */
+    definition_version?: string | null;
+    /**
+     * Downsampled
+     */
+    downsampled?: boolean;
+    /**
+     * Filter Scope
+     */
+    filter_scope?: string | null;
+    /**
+     * Input
+     */
+    input?: {
+        [key: string]: JsonValue;
+    } | null;
+    /**
+     * Metrics
+     */
+    metrics?: Array<{
+        [key: string]: JsonValue;
+    }>;
+    /**
+     * Normalization
+     */
+    normalization?: {
+        [key: string]: JsonValue;
+    } | null;
+    /**
      * Reason
      */
     reason: string;
     /**
+     * Sampling
+     */
+    sampling?: 'none' | 'uniform';
+    /**
      * Series
      */
-    series?: null;
+    series?: {
+        [key: string]: JsonValue;
+    } | null;
+    /**
+     * Series Filtered Rows
+     */
+    series_filtered_rows?: number;
+    /**
+     * Series Returned Rows
+     */
+    series_returned_rows?: number;
+    /**
+     * Series Total Rows
+     */
+    series_total_rows?: number;
     /**
      * Status
      */
-    status: 'not_configured';
+    status: 'not_configured' | 'available';
 };
 
 /**
@@ -4875,7 +4945,7 @@ export type ResultCapabilities = {
     /**
      * Benchmark
      */
-    benchmark: false;
+    benchmark: boolean;
     /**
      * Closed Trades
      */
@@ -5301,10 +5371,7 @@ export type RiskConfig = {
  * RunConfig
  */
 export type RunConfig = {
-    /**
-     * Benchmark
-     */
-    benchmark?: null;
+    benchmark?: BenchmarkConfig | null;
     budgets?: BudgetConfig;
     dataset: VersionRef;
     /**

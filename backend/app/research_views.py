@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 
+from backend.app.benchmark_services import comparison_view
 from backend.app.models import (
     Artifact,
     DatasetVersion,
@@ -127,6 +128,10 @@ def preflight_research(session, owner_id, body, settings):
     warnings.append(
         "Preflight is read-only and reserves no capacity. Submission revalidates inputs and the current active-run quota."
     )
+    if body.benchmark is not None:
+        warnings.append(
+            "Selected benchmark has exact train/validation session coverage and compatible raw-close semantics. Holdout benchmark coverage is checked only by separate final admission; no benchmark prices enter strategy or optimizer inputs."
+        )
     if body.windows.holdout is not None:
         warnings.append(
             "Configured holdout is metadata only; no final test is executed or certified unexposed."
@@ -254,6 +259,9 @@ def _validate_native_persisted_result(
             content, object_pairs_hook=_unique_pairs, parse_constant=_reject_constant
         )
         validate_result_bundle(bundle)
+        from packages.tradegrad_adapter.benchmarks import require_comparison_binding
+
+        require_comparison_binding(bundle, config)
         # The runner publishes canonical bytes; never silently normalize changed bytes.
         if canonical_json_bytes(bundle) != content:
             raise ValueError("Result bytes are not the canonical persisted bundle")
@@ -379,6 +387,11 @@ def load_owned_result(session, evaluation_id, owner_id, settings):
         min(settings.max_artifact_bytes, MAX_WIRE_BYTES),
     )
     bundle = validate_persisted_result(evaluation, run, dataset, artifact, content)
+    from backend.app.benchmark_services import verify_persisted_benchmark
+
+    verify_persisted_benchmark(
+        session, owner_id, research_config(run), dataset.manifest, bundle, settings
+    )
     return VerifiedResult(evaluation, run, dataset, artifact, bundle, content)
 
 
@@ -568,7 +581,9 @@ def result_view(
         },
         capabilities=result.bundle["capabilities"],
         fees=result.bundle["fees"],
-        benchmark=result.bundle["benchmark"],
+        benchmark=comparison_view(
+            result.bundle["benchmark"], start=start, end=end, max_points=max_points
+        ),
         warnings=WARNINGS,
         listing_id=listing_id,
         start=start,

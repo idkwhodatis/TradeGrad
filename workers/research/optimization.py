@@ -289,6 +289,7 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
     try:
         with factory() as session:
             run = session.get(ResearchRun, UUID(run_id))
+            benchmark_owner_id = run.owner_id
             config = research_config(run)
             if config.execution_mode != "optimization":
                 raise ValueError("This worker requires optimization mode")
@@ -375,6 +376,17 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
             }
             started = time.monotonic()
             try:
+                from backend.app.benchmark_services import prepare_for_window
+
+                with factory() as benchmark_session:
+                    benchmark_input = prepare_for_window(
+                        benchmark_session,
+                        benchmark_owner_id,
+                        config,
+                        manifest,
+                        window,
+                        settings,
+                    )
                 input_dir = stage_research_input(
                     config=config,
                     manifest=manifest,
@@ -420,6 +432,12 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
             result["execution_mode"] = "optimization"
             result["image_digest"] = image_id
             try:
+                if result.get("status") == "succeeded":
+                    from packages.tradegrad_adapter.benchmarks import attach_comparison
+
+                    result["bundle"] = attach_comparison(
+                        result["bundle"], benchmark_input
+                    )
                 records = publish_artifacts(
                     settings.storage_root,
                     root / "artifacts",

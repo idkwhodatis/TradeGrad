@@ -48,6 +48,7 @@ def execute_portable_final(run_id, generation, settings, factory):
         with factory() as session:
             run = session.get(ResearchRun, UUID(run_id))
             _, _, dataset, strategy, _ = validate_final_inputs(session, run, settings)
+            benchmark_owner_id = run.owner_id
             config = final_config(run)
             manifest, data_key, code, policy_manifest, parameters = (
                 dataset.manifest,
@@ -97,7 +98,19 @@ def execute_portable_final(run_id, generation, settings, factory):
                 "error": "Portable final did not start",
                 "logs": {},
             }
+            benchmark_input = None
             try:
+                from backend.app.benchmark_services import prepare_for_window
+
+                with factory() as benchmark_session:
+                    benchmark_input = prepare_for_window(
+                        benchmark_session,
+                        benchmark_owner_id,
+                        config,
+                        manifest,
+                        window,
+                        settings,
+                    )
                 staged = stage_portable_final_input(
                     config=config,
                     manifest=manifest,
@@ -155,6 +168,7 @@ def execute_portable_final(run_id, generation, settings, factory):
                     window=window,
                     images=images,
                     max_bytes=settings.max_artifact_bytes,
+                    benchmark_input=benchmark_input,
                 )
                 if bundle:
                     outcome.update(

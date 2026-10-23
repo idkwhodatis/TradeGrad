@@ -156,6 +156,10 @@ test("real portable CN/US research, frozen final retry and package flows preserv
         market,
         imports,
       );
+      const benchmarkInput =
+        market === "US"
+          ? await syntheticInputs(request, auth, market, imports)
+          : null;
       await page.goto("/portable/new");
       const change = page.getByRole("button", { name: "Change pinned inputs" });
       if (await change.isVisible()) await change.click();
@@ -215,6 +219,14 @@ test("real portable CN/US research, frozen final retry and package flows preserv
       await page
         .getByLabel("Maximum runtime · seconds", { exact: true })
         .fill("180");
+      if (benchmarkInput) {
+        const listing = (
+          benchmarkInput.dataset.manifest.listings as { listing_id: string }[]
+        )[0];
+        await page
+          .getByLabel("Benchmark snapshot and listing (optional)")
+          .selectOption(`${benchmarkInput.dataset.id}:${listing.listing_id}`);
+      }
       const check = page.waitForResponse(
         (response) =>
           new URL(response.url()).pathname ===
@@ -344,12 +356,29 @@ test("real portable CN/US research, frozen final retry and package flows preserv
       );
       expect(result.ledger_origin).toBe("trusted_engine");
       expect(result.is_synthetic).toBe(true);
+      if (benchmarkInput) expect(result.benchmark?.status).toBe("available");
       expect(result.rows.length).toBeGreaterThan(0);
       expect(result.rows[0]).toHaveProperty("state_before_sha256");
       expect(result.rows[0]).toHaveProperty("state_after_sha256");
       expect(result.image_digest).toBe(run.research_image_digest);
       expect(result.policy_image_digest).toBe(run.portable_policy_image_digest);
       await page.goto(`/portable/evaluations/${evaluation.id}`);
+      if (benchmarkInput) {
+        await expect(page.getByTestId("benchmark-result")).toContainText(
+          "not total return",
+        );
+        await expect(
+          page
+            .getByRole("img", {
+              name: /Observed strategy return versus benchmark close-price return/,
+            })
+            .locator("svg"),
+        ).toBeVisible();
+        await page.reload();
+        await expect(page.getByTestId("benchmark-result")).toContainText(
+          "daily_close_observed_anchor.v1",
+        );
+      }
       await expect(
         page.getByText("Explicit synthetic raw/no-actions fixture.", {
           exact: false,

@@ -292,6 +292,11 @@ def validate_research_submission(session, owner_id, body, settings):
         raise DomainError(
             "research_preflight_failed", redact(str(error))[:2000], 422
         ) from None
+    from backend.app.benchmark_services import preflight_benchmarks
+
+    preflight_benchmarks(
+        session, owner_id, body, dataset.manifest, evaluation_windows(body), settings
+    )
     return dataset, strategy, universe, reports
 
 

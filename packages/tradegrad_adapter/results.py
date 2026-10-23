@@ -767,7 +767,8 @@ def _validate_native_observations(bundle: dict, start: date, end: date):
         ):
             raise ValueError("Observed decision does not link to its native order")
 
-    _keys(bundle["benchmark"], {"status", "series", "reason"}, "benchmark")
+    if bundle["benchmark"].get("status") == "not_configured":
+        _keys(bundle["benchmark"], {"status", "series", "reason"}, "benchmark")
     _keys(bundle["model_usage"], {"status", "calls", "cost"}, "model usage")
     if bundle["model_usage"] != {
         "status": "not_applicable_to_evaluator",
@@ -787,13 +788,12 @@ def _validate_native_observations(bundle: dict, start: date, end: date):
     }
     capability_falsehoods = {
         "fee_component_breakdown",
-        "benchmark",
         "internal_decisions",
         "trusted_ledger",
     }
     _keys(
         bundle["capabilities"],
-        capability_truths | capability_falsehoods,
+        capability_truths | capability_falsehoods | {"benchmark"},
         "native capabilities",
     )
     if any(bundle["capabilities"][key] is not True for key in capability_truths) or any(
@@ -997,9 +997,16 @@ def validate_result_bundle(bundle: Any) -> dict:
                 raise ValueError("Invalid series value or timezone")
     if len(bundle["equity"]["rows"]) != len(bundle["drawdown"]["rows"]):
         raise ValueError("Equity and drawdown lengths disagree")
-    if (
+    if bundle["benchmark"].get("status") == "available":
+        from .benchmarks import validate_comparison
+
+        validate_comparison(bundle["benchmark"], bundle)
+        if bundle["capabilities"]["benchmark"] is not True:
+            raise ValueError("Missing benchmark capability")
+    elif (
         bundle["benchmark"].get("series") is not None
         or bundle["benchmark"].get("status") != "not_configured"
+        or bundle["capabilities"]["benchmark"] is not False
     ):
         raise ValueError("Unsupported native benchmark")
     trace = bundle["decision_trace"]

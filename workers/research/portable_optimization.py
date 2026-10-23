@@ -115,8 +115,9 @@ def publish_portable_artifacts(
     window,
     images,
     max_bytes,
+    benchmark_input=None,
 ):
-    """Only exact runner-produced bytes with matching trusted identities publish."""
+    """Verify exact runner bytes; optionally derive a separately hashed comparison."""
     records = []
     artifact_root = Path(artifact_root)
     artifact_root.mkdir(parents=True, mode=0o700)
@@ -140,8 +141,22 @@ def publish_portable_artifacts(
         if existing != data:
             raise ValueError("Runner output differs from returned portable bundle")
         bundle = verify_portable_bundle_binding(
-            data, config, SimpleNamespace(code_sha256=code_sha256, window=window)
+            data,
+            config,
+            SimpleNamespace(code_sha256=code_sha256, window=window),
+            allow_pending_benchmark=True,
         )
+        from packages.tradegrad_adapter.benchmarks import (
+            attach_comparison,
+            require_comparison_binding,
+        )
+
+        bundle = attach_comparison(bundle, benchmark_input)
+        require_comparison_binding(bundle, config)
+        data = canonical_json_bytes(bundle)
+        if len(data) > min(max_bytes, 8 * 1_048_576):
+            raise ValueError("Benchmark result exceeds artifact byte bounds")
+        digest = hashlib.sha256(data).hexdigest()
         path = artifact_root / "portable-result.json"
         publish_bytes(path, data, sha256=digest, durable_root=storage_root)
         records.append(
@@ -245,6 +260,7 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
     try:
         with factory() as session:
             run = session.get(ResearchRun, UUID(run_id))
+            benchmark_owner_id = run.owner_id
             config = portable_config(run)
             if config.environment_digest != portable_environment_digest():
                 raise ValueError("Portable reviewed environment changed")
@@ -322,8 +338,20 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
                 "logs": {},
             }
             started = time.monotonic()
+            benchmark_input = None
             try:
                 validate_policy_source(code, config.strategy_kind)
+                from backend.app.benchmark_services import prepare_for_window
+
+                with factory() as benchmark_session:
+                    benchmark_input = prepare_for_window(
+                        benchmark_session,
+                        benchmark_owner_id,
+                        config,
+                        manifest,
+                        window,
+                        settings,
+                    )
                 staged = stage_portable_input(
                     config=config,
                     manifest=manifest,
@@ -389,6 +417,7 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
                     window=window,
                     images=images,
                     max_bytes=settings.max_artifact_bytes,
+                    benchmark_input=benchmark_input,
                 )
                 if bundle:
                     small.update(

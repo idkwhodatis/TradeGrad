@@ -1,3 +1,4 @@
+import { benchmarkSchema, benchmarkSelectionIssue } from "./benchmarks";
 import { z } from "zod";
 import type {
   DatasetPublic,
@@ -166,7 +167,7 @@ export const researchFormSchema = z
         /^[0-9a-f]{64}$/,
         "Reload deployment capabilities to obtain the environment digest.",
       ),
-    benchmark: z.null(),
+    benchmark: benchmarkSchema,
   })
   .superRefine((body, ctx) => {
     const add = (path: string, message: string) =>
@@ -397,6 +398,13 @@ export function researchSelectionIssues(
   capabilities: ResearchCapabilities,
 ): ResearchIssue[] {
   const errors: ResearchIssue[] = [];
+  const benchmarkError = benchmarkSelectionIssue(
+    body.benchmark,
+    catalog.datasets,
+    body.market_profile.market,
+  );
+  if (benchmarkError)
+    errors.push({ path: "benchmark", message: benchmarkError });
   const add = (path: string, message: string) => errors.push({ path, message });
   if (!researchModelProfileFor(body.model, capabilities))
     add(
@@ -536,7 +544,8 @@ export function researchSelectionIssues(
 }
 
 export function researchStepFor(path: string) {
-  if (/^(task|profile|dataset|universe|seed_strategy)/.test(path)) return 0;
+  if (/^(task|profile|dataset|universe|seed_strategy|benchmark)/.test(path))
+    return 0;
   if (/^(windows|warmup)/.test(path)) return 1;
   return 2;
 }

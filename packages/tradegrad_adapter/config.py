@@ -48,6 +48,17 @@ class VersionRef(FrozenModel):
     sha256: Sha256
 
 
+class BenchmarkConfig(FrozenModel):
+    definition_version: Literal["daily_close_observed_anchor.v1"] = (
+        "daily_close_observed_anchor.v1"
+    )
+    dataset: VersionRef
+    listing_id: str = Field(
+        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    )
+    price_field: Literal["close"] = "close"
+
+
 class DateWindow(FrozenModel):
     start: date
     end: date
@@ -308,11 +319,15 @@ class RunConfig(FrozenModel):
     model: ModelConfig = Field(default_factory=ModelConfig)
     prompt_version: Literal["source_prompts.v1"] = "source_prompts.v1"
     environment_digest: Sha256
-    benchmark: None = None
+    benchmark: BenchmarkConfig | None = None
 
     @model_validator(mode="after")
     def implemented_semantics(self):
         market = self.task[:2].upper()
+        if self.benchmark is not None and self.market_profile.timezone is None:
+            raise ValueError(
+                "Benchmark comparison requires an explicit strategy timezone"
+            )
         if self.market_profile.market != market:
             raise ValueError("Task and market profile must agree")
         if self.execution_mode == "optimization" and self.windows.validation is None:

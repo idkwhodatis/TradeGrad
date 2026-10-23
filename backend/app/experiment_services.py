@@ -418,6 +418,10 @@ def record_research_exposure(session, run, dataset, universe, config):
             },
         )
 
+    from backend.app.benchmark_services import record_benchmark_admission
+
+    record_benchmark_admission(session, run, config)
+
 
 def record_legacy_run_exposure(session, run, dataset):
     window = DateWindow(

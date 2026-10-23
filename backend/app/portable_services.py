@@ -361,6 +361,16 @@ def validate_portable_submission(session, owner_id, body, settings):
         raise DomainError(
             "portable_preflight_failed", redact(str(error))[:2000], 422
         ) from None
+    from backend.app.benchmark_services import preflight_benchmarks
+
+    preflight_benchmarks(
+        session,
+        owner_id,
+        body,
+        dataset.manifest,
+        portable_evaluation_windows(body),
+        settings,
+    )
     return dataset, strategy, universe, reports
 
 
@@ -544,10 +554,15 @@ def portable_score(bundle):
     )
 
 
-def verify_portable_bundle_binding(bundle, config, evaluation):
+def verify_portable_bundle_binding(
+    bundle, config, evaluation, *, allow_pending_benchmark=False
+):
     from packages.tradegrad_adapter.portable_results import validate_portable_result
 
     bundle = validate_portable_result(bundle)
+    from packages.tradegrad_adapter.benchmarks import require_comparison_binding
+
+    require_comparison_binding(bundle, config, allow_pending=allow_pending_benchmark)
     identity = bundle["identity"]
     window = bundle["window"]
     if (

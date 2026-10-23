@@ -1,3 +1,4 @@
+import { BenchmarkResult } from "@/components/benchmark-result";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { PortableFinalEvaluationDetail } from "@/client/types.gen";
@@ -193,6 +194,9 @@ export function PortableFinalResult({
             ? "Downloading…"
             : "Download checksum-verified portable final JSON"}
         </Button>
+      </Panel>
+      <Panel title="Immutable benchmark comparison">
+        <BenchmarkResult value={data.benchmark} />
       </Panel>
       <Panel title="Persisted account charts · bounded page">
         <p className="notice">

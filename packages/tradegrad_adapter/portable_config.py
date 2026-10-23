@@ -16,6 +16,7 @@ from packages.strategy_sdk import StateSnapshot, canonical_json, parse_json
 from runtimes.portable_engine.runtime import reviewed_profile
 
 from .config import (
+    BenchmarkConfig,
     BudgetConfig,
     FrozenModel,
     ModelConfig,
@@ -142,7 +143,7 @@ class PortableRunConfig(FrozenModel):
     model: ModelConfig = Field(default_factory=ModelConfig)
     prompt_version: Literal["portable_business_rules.v1"] = "portable_business_rules.v1"
     environment_digest: Sha256
-    benchmark: None = None
+    benchmark: BenchmarkConfig | None = None
     conformance: Literal["interface_only"] = "interface_only"
     external_framework_equivalence: Literal["not_certified"] = "not_certified"
 

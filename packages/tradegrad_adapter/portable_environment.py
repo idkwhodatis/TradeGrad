@@ -32,6 +32,8 @@ INPUTS = (
     "runtimes/data/requirements.lock",
     "backend/requirements.lock",
     "packages/tradegrad_adapter/config.py",
+    "packages/tradegrad_adapter/benchmarks.py",
+    "backend/app/benchmark_services.py",
     "packages/tradegrad_adapter/windows.py",
     "packages/tradegrad_adapter/portable_config.py",
     "packages/tradegrad_adapter/portable_windows.py",

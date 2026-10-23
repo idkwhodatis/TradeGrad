@@ -1,3 +1,4 @@
+import { BenchmarkResult } from "@/components/benchmark-result";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -259,6 +260,9 @@ export function PortableResultContent({
               ? "Downloading…"
               : "Download original portable result JSON"}
           </Button>
+        </Panel>
+        <Panel title="Immutable benchmark comparison">
+          <BenchmarkResult value={data.benchmark} />
         </Panel>
         <Panel title="Persisted account charts · bounded page">
           <p className="notice">

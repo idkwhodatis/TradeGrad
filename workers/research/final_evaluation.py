@@ -46,6 +46,7 @@ def execute_final(run_id, generation, settings, factory):
         with factory() as session:
             run = session.get(ResearchRun, UUID(run_id))
             _, _, dataset, strategy, _ = validate_final_inputs(session, run, settings)
+            benchmark_owner_id = run.owner_id
             config = final_config(run)
             manifest, data_key, code = (
                 dataset.manifest,
@@ -77,6 +78,7 @@ def execute_final(run_id, generation, settings, factory):
             if ready and not lease.cancelled.is_set():
                 item = begin_final_evaluation(session, attempt_id, generation, token)
                 evaluation_id = item.id
+                window = {"split": "holdout", **config.holdout.model_dump(mode="json")}
         if evaluation_id is None:
             outcome = {"status": "cancelled", "exit_code": None}
         else:
@@ -89,6 +91,17 @@ def execute_final(run_id, generation, settings, factory):
                 "logs": {},
             }
             try:
+                from backend.app.benchmark_services import prepare_for_window
+
+                with factory() as benchmark_session:
+                    benchmark_input = prepare_for_window(
+                        benchmark_session,
+                        benchmark_owner_id,
+                        config,
+                        manifest,
+                        window,
+                        settings,
+                    )
                 input_dir = stage_final_input(
                     config=config,
                     manifest=manifest,
@@ -128,6 +141,12 @@ def execute_final(run_id, generation, settings, factory):
                 raise FenceLost()
             result.update(execution_mode="final_evaluation", image_digest=image_id)
             try:
+                if result.get("status") == "succeeded":
+                    from packages.tradegrad_adapter.benchmarks import attach_comparison
+
+                    result["bundle"] = attach_comparison(
+                        result["bundle"], benchmark_input
+                    )
                 records = publish_artifacts(
                     settings.storage_root,
                     root / "artifacts",

@@ -49,7 +49,7 @@ class FinalProcessHarness(ResearchProcessHarness):
         require(value > 0, "Real final pipeline exceeded its 420-second budget")
         return value
 
-    def submit_source(self, dataset, universe):
+    def submit_source(self, dataset, universe, benchmark=None):
         client = self.clients[0]
         strategies = self.request(client, "GET", "/strategy-versions").json()["data"]
         strategy = next(
@@ -59,6 +59,7 @@ class FinalProcessHarness(ResearchProcessHarness):
         config = RunConfig.model_validate(
             {
                 "execution_mode": "optimization",
+                "benchmark": benchmark,
                 "task": "cn_time",
                 "dataset": {"id": dataset["id"], "sha256": dataset["content_sha256"]},
                 "seed_strategy": {
@@ -152,11 +153,26 @@ def final_harness(tmp_path):
             harness.cleanup()
 
 
-def test_real_frozen_final_result_export_and_cancelled_retry(final_harness):
+@pytest.mark.parametrize(
+    "with_benchmark", [False, True], ids=["no-benchmark", "immutable-benchmark"]
+)
+def test_real_frozen_final_result_export_and_cancelled_retry(
+    final_harness, with_benchmark
+):
     h = final_harness
     client, other = h.clients
     dataset, universe = h.upload_fixture()
-    source_id, source_config = h.submit_source(dataset, universe)
+    benchmark = None
+    if with_benchmark:
+        benchmark_dataset, _ = h.upload_fixture(benchmark=True)
+        benchmark = {
+            "dataset": {
+                "id": benchmark_dataset["id"],
+                "sha256": benchmark_dataset["content_sha256"],
+            },
+            "listing_id": benchmark_dataset["manifest"]["listings"][0]["listing_id"],
+        }
+    source_id, source_config = h.submit_source(dataset, universe, benchmark)
     source = h.until(
         lambda: h.finished(source_id), "Source optimization did not finish", timeout=170
     )
@@ -283,6 +299,45 @@ def test_real_frozen_final_result_export_and_cancelled_retry(final_harness):
     )
     bundle = json.loads(content)
     validate_result_bundle(bundle)
+    if with_benchmark:
+        comparison = bundle["benchmark"]
+        require(
+            comparison["status"] == "available", "Selected benchmark result is absent"
+        )
+        require(
+            comparison["input"]["reference"]
+            == source_config.benchmark.model_dump(mode="json"),
+            "Benchmark selection changed",
+        )
+        require(
+            comparison["input"]["source_classification"] == "synthetic",
+            "Synthetic benchmark label lost",
+        )
+        require(
+            comparison["input"]["window"]
+            == final_config.holdout.model_dump(mode="json"),
+            "Holdout benchmark used another window",
+        )
+        require(
+            query["benchmark"]["metrics"] == comparison["metrics"],
+            "Persisted benchmark projection changed",
+        )
+        for evaluation in before["evaluations"]:
+            if evaluation["status"] == "succeeded":
+                research_result = h.request(
+                    client, "GET", f"/research-evaluations/{evaluation['id']}/results"
+                ).json()
+                require(
+                    research_result["benchmark"]["status"] == "available",
+                    "Research benchmark missing",
+                )
+                require(
+                    all(
+                        row[0] < str(source_config.windows.holdout.start)
+                        for row in research_result["benchmark"]["series"]["rows"]
+                    ),
+                    "Holdout benchmark leaked into research",
+                )
     require(
         bundle["identity"]["run_config_sha256"] == final_config.sha256,
         "Final ResultBundle config differs",
@@ -298,6 +353,13 @@ def test_real_frozen_final_result_export_and_cancelled_retry(final_harness):
     mount = safe_path(
         h.root / "storage",
         f"runs/{final['id']}/attempts/{item['attempt_id']}/evaluations/{item['id']}/input",
+    )
+    require(
+        json.loads((mount / "request.json").read_bytes())["evaluation_config"][
+            "benchmark"
+        ]
+        is None,
+        "Benchmark prices were mounted into native strategy inputs",
     )
     with (mount / "data/INDEX.csv").open() as stream:
         dates = [row["date"] for row in csv.DictReader(stream)]

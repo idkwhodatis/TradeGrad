@@ -501,7 +501,8 @@ def validate_portable_result(bundle):
             "logical_orders",
             "final_state",
             "summary",
-        },
+        }
+        | ({"benchmark"} if "benchmark" in bundle else set()),
         "result",
     )
     if (
@@ -767,6 +768,10 @@ def validate_portable_result(bundle):
         or not bundle["native_metrics"]
     ):
         raise ValueError("missing native result observations")
+    if "benchmark" in bundle:
+        from .benchmarks import validate_comparison
+
+        validate_comparison(bundle["benchmark"], bundle)
     summary = bundle["summary"]
     _keys(
         summary,

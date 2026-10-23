@@ -1,3 +1,4 @@
+import { benchmarkSchema } from "@/lib/benchmarks";
 import { z } from "zod";
 import type {
   DatasetPublic,
@@ -175,7 +176,7 @@ export const portableFormSchema = z.strictObject({
   }),
   prompt_version: z.literal("portable_business_rules.v1"),
   environment_digest: hash,
-  benchmark: z.null(),
+  benchmark: benchmarkSchema,
   conformance: z.literal("interface_only"),
   external_framework_equivalence: z.literal("not_certified"),
 });

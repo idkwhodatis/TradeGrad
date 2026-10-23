@@ -1,3 +1,5 @@
+import { BenchmarkSelector } from "@/components/benchmark-selector";
+import { benchmarkSelectionIssue } from "@/lib/benchmarks";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -512,6 +514,12 @@ export function PortableConfigForm({
     errors.push(
       "The exact portable seed version is unavailable for this task.",
     );
+  const benchmarkError = benchmarkSelectionIssue(
+    body.benchmark,
+    catalog.datasets,
+    body.task.slice(0, 2).toUpperCase(),
+  );
+  if (benchmarkError) errors.push(benchmarkError);
   function edit(next: PortableForm) {
     controller.current?.abort();
     setPreflight(null);
@@ -686,6 +694,17 @@ export function PortableConfigForm({
             252,
           )}
         </fieldset>
+      </Panel>
+      <Panel title="Optional immutable benchmark">
+        <BenchmarkSelector
+          value={body.benchmark}
+          datasets={catalog.datasets}
+          market={body.task.slice(0, 2).toUpperCase()}
+          disabled={checking || draft.busy}
+          onChange={(benchmark) =>
+            edit({ ...body, benchmark: benchmark as PortableForm["benchmark"] })
+          }
+        />
       </Panel>
       <Panel title="3 · Fixture model, optimizer and bounded budgets">
         <p className="notice">
