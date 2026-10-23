@@ -34,6 +34,7 @@ from packages.tradegrad_adapter.final_config import FinalEvaluationConfig
 from packages.tradegrad_adapter.results import validate_result_bundle
 from packages.tradegrad_adapter.strategy_package import validate_environment_evidence
 from script.ci_owned_group import peek_owned_group, signal_owned_group, wait_owned_group
+from script.ci_research_selection import selected_candidate
 
 GATE_SECONDS = 420
 
@@ -172,11 +173,9 @@ def test_real_frozen_final_result_export_and_cancelled_retry(final_harness):
         all(row["split"] != "holdout" for row in before["evaluations"]),
         "Optimizer executed holdout",
     )
-    chosen = next(
-        row
-        for row in before["candidates"]
-        if row["candidate_key"] == source["result"]["best_candidate_id"]
-    )
+    # The HTTP result identifies the persisted Candidate UUID; the optimizer's
+    # private key is a separate field and must agree, not be substituted.
+    chosen = selected_candidate(source, before["candidates"])
     selected = h.request(
         client,
         "POST",
