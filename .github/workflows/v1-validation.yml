@@ -94,6 +94,7 @@ jobs:
       TRADEGRAD_REQUIRE_DOCKER: "1"
       E2E_EMAIL: first@example.com
       E2E_OTHER_EMAIL: second@example.com
+      E2E_ADMIN_EMAIL: settings-admin@example.invalid
       WORKER_CONCURRENCY: "1"
       DATA_WORKER_CONCURRENCY: "1"
       # Ordinary pushes freeze SDK responses. Live requires explicit dispatch or
@@ -176,7 +177,7 @@ jobs:
       - name: Validate portable calendar semantics with installed pinned calendar library
         run: .venv-data/bin/python -m pytest tests/portable/test_engine.py -q --junitxml=m5-portable-calendar-junit.xml
       - name: Validate supervisor contracts
-        run: python -m pytest backend/tests tests/runner --ignore=tests/runner/test_research_result_protocol.py -q --junitxml=m1-supervisor-junit.xml
+        run: python -m pytest backend/tests tests/runner tests/operations --ignore=tests/runner/test_research_result_protocol.py -q --junitxml=m1-supervisor-junit.xml
       - name: Validate real PostgreSQL transactions and Procrastinate schema
         run: .venv-data/bin/python -m pytest tests/integration -q --junitxml=m1-m2-postgres-junit.xml
       - name: Bind streaming PostgreSQL clients to this job's service container
@@ -208,10 +209,10 @@ jobs:
               with open(os.environ["GITHUB_ENV"], "a") as stream:
                   print(tool.upper() + "_EXECUTABLE=" + str(executable), file=stream)
           PYCLIENT
-      - name: Require real private backup, empty-target restore and M3-to-M5 upgrade
+      - name: Require real private backup cold cleanup empty-target restore and schema upgrades
         env:
           RUN_BACKUP_RESTORE_DRILL: "1"
-        run: python -m pytest tests/integration/test_backup_restore.py -q --junitxml=m6-backup-upgrade-junit.xml
+        run: python -m pytest tests/integration/test_backup_restore.py tests/integration/test_cold_retention_cleanup.py -q --junitxml=m6-backup-upgrade-junit.xml
       - name: Build local evaluator image (never published)
         run: |
           digest=$(python -m packages.tradegrad_adapter.environment)
@@ -248,6 +249,7 @@ jobs:
           alembic -c backend/alembic.ini upgrade head
           python -m backend.app.bootstrap --email "$E2E_EMAIL" --password-env E2E_PASSWORD --with-synthetic-fixtures --with-e2e-fixtures
           python -m backend.app.bootstrap --email "$E2E_OTHER_EMAIL" --password-env E2E_OTHER_PASSWORD --with-synthetic-fixtures
+          python -m backend.app.bootstrap --email "$E2E_ADMIN_EMAIL" --password-env E2E_ADMIN_PASSWORD --superuser
       - name: Verify real research/data worker SIGKILL and checkpoint recovery
         id: acceptance_01
         if: ${{ !cancelled() && steps.application_ready.outcome == 'success' }}
@@ -289,9 +291,73 @@ jobs:
           python -m script.ci_acceptance_boundary m3-configured-application-junit.xml
           "${{ steps.acceptance_02.outcome }}" "${{ steps.acceptance_02.outputs.exit_code }}"
           "test_real_api_queue_docker_results_and_checkpoint,test_real_sigkill_reconciles_and_resumes_generated_candidate_without_model_replay"
-      - name: Verify synthetic operator SDK application and isolated profile browser
+      - name: Verify all three SDK adapters through the same immutable snapshot and optimizer
         id: acceptance_03
         if: ${{ !cancelled() && steps.acceptance_02_boundary.outcome == 'success' }}
+        env:
+          TRADEGRAD_REQUIRE_PROVIDER_RESEARCH: "1"
+          DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
+          RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
+        run: |
+          export API_PYTHON=$(command -v python)
+          set +e
+          .venv-research/bin/python -m pytest tests/system/test_provider_research_pipeline.py -q --junitxml=v1-provider-research-application-junit.xml
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+      - name: Confirm isolated fixture teardown before the next acceptance group
+        id: acceptance_03_boundary
+        if: ${{ !cancelled() && steps.acceptance_03.outcome != 'skipped' }}
+        run: >-
+          python -m script.ci_acceptance_boundary v1-provider-research-application-junit.xml
+          "${{ steps.acceptance_03.outcome }}" "${{ steps.acceptance_03.outputs.exit_code }}"
+          "test_actual_provider_download_to_corrected_optimizer_and_persisted_result,test_actual_worker_honors_frozen_connection_before_any_provider_or_checkpoint_access"
+      - name: Verify declared native parameters and custom portable source through isolated engines
+        id: acceptance_04
+        if: ${{ !cancelled() && steps.acceptance_03_boundary.outcome == 'success' }}
+        env:
+          TRADEGRAD_REQUIRE_RESEARCH_INTEGRATION: "1"
+          TRADEGRAD_REQUIRE_PORTABLE_RESEARCH_INTEGRATION: "1"
+          DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
+          RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
+        run: |
+          export API_PYTHON=$(command -v python)
+          set +e
+          .venv-research/bin/python -m pytest tests/system/test_strategy_authoring_pipeline.py -q --junitxml=v1-strategy-authoring-application-junit.xml
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+      - name: Confirm isolated fixture teardown before the next acceptance group
+        id: acceptance_04_boundary
+        if: ${{ !cancelled() && steps.acceptance_04.outcome != 'skipped' }}
+        run: >-
+          python -m script.ci_acceptance_boundary v1-strategy-authoring-application-junit.xml
+          "${{ steps.acceptance_04.outcome }}" "${{ steps.acceptance_04.outputs.exit_code }}"
+          "test_native_same_source_different_parameters_change_actual_engine_orders,test_custom_portable_source_outside_reference_scaffold_runs_in_both_containers"
+      - name: Verify actual recorded indicators and immutable result exploration
+        id: acceptance_05
+        if: ${{ !cancelled() && steps.acceptance_04_boundary.outcome == 'success' }}
+        env:
+          TRADEGRAD_REQUIRE_RESEARCH_INTEGRATION: "1"
+          DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
+          RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
+        run: |
+          export API_PYTHON=$(command -v python)
+          set +e
+          .venv-research/bin/python -m pytest tests/system/test_result_exploration_pipeline.py -q --junitxml=v1-result-exploration-application-junit.xml
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+      - name: Confirm isolated fixture teardown before the next acceptance group
+        id: acceptance_05_boundary
+        if: ${{ !cancelled() && steps.acceptance_05.outcome != 'skipped' }}
+        run: >-
+          python -m script.ci_acceptance_boundary v1-result-exploration-application-junit.xml
+          "${{ steps.acceptance_05.outcome }}" "${{ steps.acceptance_05.outputs.exit_code }}"
+          "test_real_recorded_indicators_reconstruct_from_artifact_after_worker_completion"
+      - name: Verify synthetic operator SDK application and isolated profile browser
+        id: acceptance_06
+        if: ${{ !cancelled() && steps.acceptance_05_boundary.outcome == 'success' }}
         env:
           # The harness owns a bounded loopback synthetic endpoint and generated
           # test credentials. No production endpoint/key or paid call is enabled.
@@ -307,15 +373,60 @@ jobs:
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
           exit "$status"
       - name: Confirm isolated fixture teardown before the next acceptance group
-        id: acceptance_03_boundary
-        if: ${{ !cancelled() && steps.acceptance_03.outcome != 'skipped' }}
+        id: acceptance_06_boundary
+        if: ${{ !cancelled() && steps.acceptance_06.outcome != 'skipped' }}
         run: >-
           python -m script.ci_acceptance_boundary v1-operator-model-application-junit.xml
-          "${{ steps.acceptance_03.outcome }}" "${{ steps.acceptance_03.outputs.exit_code }}"
+          "${{ steps.acceptance_06.outcome }}" "${{ steps.acceptance_06.outputs.exit_code }}"
           "test_real_sdk_success_replays_locally_without_second_http,test_real_sdk_failures_are_bounded_conservative_and_never_retried,test_real_worker_sdk_generation_sigkill_checkpoint_replay_and_privacy,test_real_worker_http_failure_preserves_usage_and_no_retries,test_real_worker_cancellation_during_http_is_bounded,test_real_sdk_child_dies_on_worker_sigkill_but_missing_receipt_blocks_recovery,test_stale_living_worker_blocks_recovery_until_confirmed_sdk_stop_receipt,test_real_chromium_synthetic_profile_seed_only_without_model_calls"
+      - name: Verify portable operator admission through synthetic HTTP and both isolated runtimes
+        id: acceptance_07
+        if: ${{ !cancelled() && steps.acceptance_06_boundary.outcome == 'success' }}
+        env:
+          TRADEGRAD_REQUIRE_MODEL_INTEGRATION: "1"
+          TRADEGRAD_REQUIRE_PORTABLE_MODEL_INTEGRATION: "1"
+          TRADEGRAD_REQUIRE_MODEL_BROWSER: "1"
+          DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
+          RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
+        run: |
+          export API_PYTHON=$(command -v python)
+          set +e
+          .venv-research/bin/python -m pytest tests/system/test_portable_operator_pipeline.py -q --junitxml=v1-portable-operator-application-junit.xml
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+      - name: Confirm isolated fixture teardown before the next acceptance group
+        id: acceptance_07_boundary
+        if: ${{ !cancelled() && steps.acceptance_07.outcome != 'skipped' }}
+        run: >-
+          python -m script.ci_acceptance_boundary v1-portable-operator-application-junit.xml
+          "${{ steps.acceptance_07.outcome }}" "${{ steps.acceptance_07.outputs.exit_code }}"
+          "test_real_portable_trade_tgd_sdk_receipts_and_paused_checkpoint_replay,test_real_portable_chromium_profile_selection_without_model_calls,test_real_portable_sdk_failures_never_retry_or_erase_usage,test_real_portable_cancellation_waits_for_model_stop,test_real_portable_budget_exhaustion_prevents_first_http"
+      - name: Verify real cold cleanup preserves exact resumable checkpoint and lineage
+        id: acceptance_08
+        if: ${{ !cancelled() && steps.acceptance_07_boundary.outcome == 'success' }}
+        env:
+          TRADEGRAD_REQUIRE_COLD_RECOVERY: "1"
+          TRADEGRAD_REQUIRE_RESEARCH_INTEGRATION: "1"
+          DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
+          RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
+        run: |
+          export API_PYTHON=$(command -v python)
+          set +e
+          .venv-research/bin/python -m pytest tests/system/test_cold_retention_recovery.py -q --junitxml=v1-cold-recovery-application-junit.xml
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+      - name: Confirm isolated fixture teardown before the next acceptance group
+        id: acceptance_08_boundary
+        if: ${{ !cancelled() && steps.acceptance_08.outcome != 'skipped' }}
+        run: >-
+          python -m script.ci_acceptance_boundary v1-cold-recovery-application-junit.xml
+          "${{ steps.acceptance_08.outcome }}" "${{ steps.acceptance_08.outputs.exit_code }}"
+          "test_real_paused_worker_resumes_exact_checkpoint_after_cold_cleanup"
       - name: Verify frozen native final holdout without optimizer feedback
-        id: acceptance_04
-        if: ${{ !cancelled() && steps.acceptance_03_boundary.outcome == 'success' }}
+        id: acceptance_09
+        if: ${{ !cancelled() && steps.acceptance_08_boundary.outcome == 'success' }}
         env:
           TRADEGRAD_REQUIRE_FINAL_INTEGRATION: "1"
           DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
@@ -328,15 +439,15 @@ jobs:
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
           exit "$status"
       - name: Confirm isolated fixture teardown before the next acceptance group
-        id: acceptance_04_boundary
-        if: ${{ !cancelled() && steps.acceptance_04.outcome != 'skipped' }}
+        id: acceptance_09_boundary
+        if: ${{ !cancelled() && steps.acceptance_09.outcome != 'skipped' }}
         run: >-
           python -m script.ci_acceptance_boundary m5-native-final-application-junit.xml
-          "${{ steps.acceptance_04.outcome }}" "${{ steps.acceptance_04.outputs.exit_code }}"
+          "${{ steps.acceptance_09.outcome }}" "${{ steps.acceptance_09.outputs.exit_code }}"
           "test_real_frozen_final_result_export_and_cancelled_retry"
       - name: Verify both portable research modes, actual dual runtimes and initial-checkpoint resume
-        id: acceptance_05
-        if: ${{ !cancelled() && steps.acceptance_04_boundary.outcome == 'success' }}
+        id: acceptance_10
+        if: ${{ !cancelled() && steps.acceptance_09_boundary.outcome == 'success' }}
         env:
           TRADEGRAD_REQUIRE_PORTABLE_RESEARCH_INTEGRATION: "1"
           DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
@@ -349,15 +460,15 @@ jobs:
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
           exit "$status"
       - name: Confirm isolated fixture teardown before the next acceptance group
-        id: acceptance_05_boundary
-        if: ${{ !cancelled() && steps.acceptance_05.outcome != 'skipped' }}
+        id: acceptance_10_boundary
+        if: ${{ !cancelled() && steps.acceptance_10.outcome != 'skipped' }}
         run: >-
           python -m script.ci_acceptance_boundary m5-portable-application-junit.xml
-          "${{ steps.acceptance_05.outcome }}" "${{ steps.acceptance_05.outputs.exit_code }}"
+          "${{ steps.acceptance_10.outcome }}" "${{ steps.acceptance_10.outputs.exit_code }}"
           "test_real_portable_api_queue_both_containers_lineage_results_and_ownership"
       - name: Verify separate portable final holdout, cancellation, retries and reference export
-        id: acceptance_06
-        if: ${{ !cancelled() && steps.acceptance_05_boundary.outcome == 'success' }}
+        id: acceptance_11
+        if: ${{ !cancelled() && steps.acceptance_10_boundary.outcome == 'success' }}
         env:
           TRADEGRAD_REQUIRE_PORTABLE_FINAL_INTEGRATION: "1"
           DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
@@ -370,24 +481,25 @@ jobs:
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
           exit "$status"
       - name: Confirm isolated fixture teardown before the next acceptance group
-        id: acceptance_06_boundary
-        if: ${{ !cancelled() && steps.acceptance_06.outcome != 'skipped' }}
+        id: acceptance_11_boundary
+        if: ${{ !cancelled() && steps.acceptance_11.outcome != 'skipped' }}
         run: >-
           python -m script.ci_acceptance_boundary m5-portable-final-application-junit.xml
-          "${{ steps.acceptance_06.outcome }}" "${{ steps.acceptance_06.outputs.exit_code }}"
+          "${{ steps.acceptance_11.outcome }}" "${{ steps.acceptance_11.outputs.exit_code }}"
           "test_real_portable_freeze_final_reference_export_and_retry"
-      - name: Owned full fixture browser and performance acceptance or scoped live provider flows
-        if: ${{ !cancelled() && steps.acceptance_06_boundary.outcome == 'success' }}
+      - name: Owned full fixture browser acceptance or scoped live provider flows
+        if: ${{ !cancelled() && steps.acceptance_11_boundary.outcome == 'success' }}
         env:
           TRADEGRAD_REQUIRE_APPLICATION_BROWSER: "1"
-          TRADEGRAD_APPLICATION_STAGE: m6
+          TRADEGRAD_APPLICATION_STAGE: completion
+          TRADEGRAD_REQUIRE_SETTINGS_E2E: "1"
         run: python -m script.ci_application_browser
       - name: Remove the disposable database
         if: always()
         run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
       - name: Export outcome-only evidence without diagnostic payloads
         if: always()
-        run: python script/summarize_ci_junit.py m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml m3-research-contracts-junit.xml m3-window-engine-junit.xml m3-configured-application-junit.xml m5-portable-contracts-junit.xml m5-portable-calendar-junit.xml m5-portable-isolation-junit.xml m5-native-final-application-junit.xml m5-portable-application-junit.xml m5-portable-final-application-junit.xml m6-backup-upgrade-junit.xml v1-operator-model-application-junit.xml frontend/test-results/junit.xml
+        run: python script/summarize_ci_junit.py m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml m3-research-contracts-junit.xml m3-window-engine-junit.xml m3-configured-application-junit.xml m5-portable-contracts-junit.xml m5-portable-calendar-junit.xml m5-portable-isolation-junit.xml m5-native-final-application-junit.xml m5-portable-application-junit.xml m5-portable-final-application-junit.xml m6-backup-upgrade-junit.xml v1-operator-model-application-junit.xml v1-portable-operator-application-junit.xml v1-provider-research-application-junit.xml v1-strategy-authoring-application-junit.xml v1-result-exploration-application-junit.xml v1-operations-application-junit.xml v1-cold-recovery-application-junit.xml frontend/test-results/junit.xml
       - name: Preserve bounded test evidence (no traces, credentials or source data)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -396,6 +508,60 @@ jobs:
           path: |
             var/ci-evidence/*.xml
             var/ci-evidence/m6-*-performance.json
+            var/ci-evidence/v1-daily-reference-performance.json
+          retention-days: 14
+
+  compose:
+    name: V1 exact full-Compose restart and Chromium acceptance
+    # Independent runner, DB, storage, credentials and builds: do not suppress
+    # this acceptance evidence when the ordinary application stack fails.
+    # Both jobs remain required for a successful full workflow.
+    needs: baseline
+    if: inputs.provider_mode != 'live' && !(github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]'))
+    runs-on: ubuntu-22.04
+    timeout-minutes: 75
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      CI: "true"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install locked controller and Compose source-test dependencies
+        run: python -m pip install --require-hashes -r backend/requirements.lock -r tests/compose/requirements.lock
+      - name: Check source boundaries without launching processes
+        run: python -m pytest tests/compose -q --junitxml=v1-compose-source-junit.xml
+      - name: Install locked frontend and official Chromium dependencies
+        run: |
+          npm ci --prefix frontend
+          cd frontend
+          npx playwright install --with-deps chromium
+      - name: Generate disposable identities and resolve official immutable image references
+        run: python -m script.ci_compose_environment
+      - name: Resolve public base-image provenance
+        run: python -m script.compose_image_evidence --resolve-bases
+      - name: Exercise exact independent Compose services and cold restart
+        run: bash script/ci_compose_smoke.sh
+      - name: Export outcome-only Compose evidence
+        if: always()
+        run: python script/summarize_ci_junit.py v1-compose-source-junit.xml frontend/test-results/junit.xml
+      - name: Preserve only public image identities and bounded test outcomes
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: v1-compose-validation-${{ github.sha }}
+          path: |
+            var/ci-evidence/*.xml
+            var/ci-evidence/compose-images.json
+            var/ci-evidence/v1-service-log-policy.json
           retention-days: 14
 
   native_final_diagnostic:
