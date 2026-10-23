@@ -130,6 +130,35 @@ def test_missing_mandatory_case_never_unlocks(tmp_path):
         verify_boundary(path, "success", "0", {"test_different"})
 
 
+def test_portable_upload_contracts_use_required_data_runtime_and_keep_evidence():
+    import re
+    from pathlib import Path
+
+    workflow = (
+        Path(__file__).resolve().parents[2] / ".github/workflows/v1-validation.yml"
+    ).read_text()
+    application = workflow.split("  application:\n", 1)[1].split("\n  compose:", 1)[0]
+    blocks = re.split(r"(?=^      - name: )", application, flags=re.MULTILINE)
+    source = "tests/portable/test_upload_admission.py"
+    research = next(
+        block
+        for block in blocks
+        if "run: .venv-research/bin/python -m pytest tests/portable " in block
+    )
+    assert f"--ignore={source}" in research
+    upload = next(
+        block
+        for block in blocks
+        if f"run: .venv-data/bin/python -m pytest {source} " in block
+    )
+    assert "--ignore" not in upload and " -k " not in upload
+    assert "continue-on-error" not in upload and "        if:" not in upload
+    report_name = "v1-portable-upload-admission-junit.xml"
+    assert f"--junitxml={report_name}" in upload
+    export = next(block for block in blocks if "script/summarize_ci_junit.py" in block)
+    assert report_name in export
+
+
 def test_workflow_preserves_failed_steps_and_chains_verified_cleanup():
     import re
     from pathlib import Path

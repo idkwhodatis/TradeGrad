@@ -173,7 +173,9 @@ jobs:
           TRADEGRAD_OPENBB_LIVE: "1"
         run: .venv-data/bin/python -m pytest tests/marketdata/test_live_providers.py tests/marketdata/test_openbb.py -q -k "test_live_resolve_fetch_and_snapshot or optional_live" --junitxml=m2-live-provider-junit.xml
       - name: Validate portable SDK, actual TradeTGD adapter and frozen final contracts
-        run: .venv-research/bin/python -m pytest tests/portable --ignore=tests/portable/test_isolation.py -q --junitxml=m5-portable-contracts-junit.xml
+        run: .venv-research/bin/python -m pytest tests/portable --ignore=tests/portable/test_isolation.py --ignore=tests/portable/test_upload_admission.py -q --junitxml=m5-portable-contracts-junit.xml
+      - name: Validate portable upload admission with the locked data runtime
+        run: .venv-data/bin/python -m pytest tests/portable/test_upload_admission.py -q --junitxml=v1-portable-upload-admission-junit.xml
       - name: Validate portable calendar semantics with installed pinned calendar library
         run: .venv-data/bin/python -m pytest tests/portable/test_engine.py -q --junitxml=m5-portable-calendar-junit.xml
       - name: Validate supervisor contracts
@@ -499,7 +501,7 @@ jobs:
         run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
       - name: Export outcome-only evidence without diagnostic payloads
         if: always()
-        run: python script/summarize_ci_junit.py m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml m3-research-contracts-junit.xml m3-window-engine-junit.xml m3-configured-application-junit.xml m5-portable-contracts-junit.xml m5-portable-calendar-junit.xml m5-portable-isolation-junit.xml m5-native-final-application-junit.xml m5-portable-application-junit.xml m5-portable-final-application-junit.xml m6-backup-upgrade-junit.xml v1-operator-model-application-junit.xml v1-portable-operator-application-junit.xml v1-provider-research-application-junit.xml v1-strategy-authoring-application-junit.xml v1-result-exploration-application-junit.xml v1-operations-application-junit.xml v1-cold-recovery-application-junit.xml frontend/test-results/junit.xml
+        run: python script/summarize_ci_junit.py m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml m3-research-contracts-junit.xml m3-window-engine-junit.xml m3-configured-application-junit.xml m5-portable-contracts-junit.xml v1-portable-upload-admission-junit.xml m5-portable-calendar-junit.xml m5-portable-isolation-junit.xml m5-native-final-application-junit.xml m5-portable-application-junit.xml m5-portable-final-application-junit.xml m6-backup-upgrade-junit.xml v1-operator-model-application-junit.xml v1-portable-operator-application-junit.xml v1-provider-research-application-junit.xml v1-strategy-authoring-application-junit.xml v1-result-exploration-application-junit.xml v1-operations-application-junit.xml v1-cold-recovery-application-junit.xml frontend/test-results/junit.xml
       - name: Preserve bounded test evidence (no traces, credentials or source data)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
