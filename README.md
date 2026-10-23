@@ -7,17 +7,23 @@
 > Docker/recovery and Chromium gate on `0f6e8359`; live providers remain unverified.
 > M3 configured research passed its complete real-stack gate on `5f9125ca`.
 > M4's full browser/workbench gate passed on `4dba3edc`; M5 portable/final
-> acceptance is pending its separate hosted gate. M6 release-hardening and private restore drills
-> are in preparation. The original M1 seed-only mode remains
+> acceptance is pending its separate hosted gate. M6 hardening and required V1
+> completion slices are implemented locally, with sequential real-stack gates pending. The original M1 seed-only mode remains
 > cold-start; configured research has an explicit warm-up contract.
 > This is not complete V1 and has no live trading. See
 > [staged validation](docs/M1_VALIDATION.md), [M2 limitations](docs/M2_VALIDATION.md),
 > [current development setup](docs/V1_OPERATIONS.md), [M5 boundaries](docs/M5_VALIDATION.md)
-> and [remaining gates](docs/V1_IMPLEMENTATION.md).
+> and the [current 103-requirement acceptance matrix](docs/V1_ACCEPTANCE_MATRIX.md).
 
 The original-V1 operator model completion slice is documented separately in
 [operator-managed models](docs/V1_OPERATOR_MODELS.md). It is disabled by default,
-native-research only, and has no real-provider acceptance claim.
+available for native and portable research under explicit profiles, and has no
+real-provider acceptance claim. See [portable admission](docs/PORTABLE_OPERATOR_ADMISSION.md).
+The opt-in [full application Compose profile](docs/V1_COMPOSE.md),
+[provider preferences](docs/V1_PROVIDER_CONNECTIONS.md),
+[workspace management](docs/V1_SETTINGS.md) and
+[immutable benchmark comparison](docs/V1_BENCHMARKS.md) remain subject to the final
+cumulative hosted acceptance gate, not a production deployment.
 
 This is the implementation of our paper *Trading Strategy Optimization via Textual Gradient*.
 

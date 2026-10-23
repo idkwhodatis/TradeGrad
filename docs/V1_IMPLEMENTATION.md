@@ -37,7 +37,8 @@ Downloaded outcome artifacts were hash-verified. See
 M2 data integration passed its deterministic hosted gate on `0f6e8359` in
 [run 39868584582](https://github.com/idkwhodatis/TradeGrad/actions/runs/39868584582). See
 [M2 acceptance and limitations](M2_VALIDATION.md), including the transitional
-cold-start seed behavior and still-incomplete short-optimization slice.
+cold-start seed behavior at that historical stage. The later complete three-adapter
+short-optimization slice is implemented, but its current cumulative gate remains pending.
 M3 passed the complete deterministic hosted gate at
 `5f9125caa47107824f75094dcec08b799a829b8f` in
 [run 39870319437](https://github.com/idkwhodatis/TradeGrad/actions/runs/39870319437).
@@ -65,8 +66,14 @@ disabled-by-default, owner-allowlisted OpenAI-compatible profiles for native
 research, bounded trusted SDK subprocesses, and durable process-stop receipts.
 It retains upstream TradeTGD and historical fixture configuration bytes. Its
 synthetic SDK/application and profile-browser gates are separate from real
-provider acceptance; portable research still admits only frozen fixture models.
+provider acceptance. A separately reviewed portable extension now admits the same
+operator profile boundary; see [portable admission](PORTABLE_OPERATOR_ADMISSION.md).
 See [operator model boundaries and evidence](V1_OPERATOR_MODELS.md).
 Live provider verification is separate from deterministic
 synthetic SDK-response fixtures. An absent or pending report means the relevant
-phase has not passed.
+phase has not passed. The [current acceptance matrix](V1_ACCEPTANCE_MATRIX.md)
+tracks all 103 plan requirements and supersedes historical stage omissions.
+Required completion code includes benchmark selection/results, owner/admin Settings,
+full independent Compose services, three-provider optimization, strategy contracts,
+all-mode result exploration, provider revisions, cold cleanup/resume and a six-year
+daily reference. None is promoted to runtime acceptance by this local implementation list.
