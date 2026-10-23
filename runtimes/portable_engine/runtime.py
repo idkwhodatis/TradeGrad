@@ -46,6 +46,46 @@ DATA_LIMITS = JsonLimits(
 MAX_SESSIONS = 5000
 
 
+class NativeVolumeLimit:
+    """Apply the reviewed cap through the pinned public pre-run analyzer API.
+
+    AKQuant 0.3.27's wrapper skips its setter for exactly 0.25 although the
+    native execution client's default is unlimited. Do not perturb the value
+    or replace native matching. The wrapper catches analyzer startup errors,
+    so every native callback and the final return must verify this latch.
+    """
+
+    name = "tradegrad_reviewed_volume_limit"
+
+    def __init__(self, volume_limit_pct):
+        if type(volume_limit_pct) is not float or volume_limit_pct != 0.25:
+            raise ValueError("unreviewed native volume limit")
+        self.volume_limit_pct = volume_limit_pct
+        self.applied = False
+
+    def on_start(self, context):
+        self.applied = False
+        try:
+            context["engine"].set_volume_limit(self.volume_limit_pct)
+        except Exception:  # noqa: BLE001 - upstream logs hook errors; emit no native payload
+            raise ValueError("native volume-limit configuration failed") from None
+        self.applied = True
+
+    def require_applied(self):
+        if not self.applied:
+            raise ValueError("native volume-limit configuration is unverified")
+
+    def on_bar(self, context):
+        pass
+
+    def on_trade(self, context):
+        pass
+
+    def on_finish(self, context):
+        self.require_applied()
+        return {"volume_limit_configured": True}
+
+
 def reviewed_profile(market: str, initial_cash: float) -> dict:
     if (
         market not in {"CN", "US"}
@@ -956,6 +996,7 @@ def execute(inputs: Inputs, exchange: Callable):
             controller.on_session(session)
     barrier = DailyDecisionBarrier(controller)
     callback_errors = []
+    native_configuration = NativeVolumeLimit(inputs.profile["volume_limit_pct"])
 
     class ReviewedStrategy(aq.Strategy):
         def on_error(self, error, source, payload=None):
@@ -963,14 +1004,19 @@ def execute(inputs: Inputs, exchange: Callable):
             raise error
 
         def on_bar(self, bar):
+            native_configuration.require_applied()
             barrier.on_bar(bar, self)
 
         def on_cross_section(self, trading_date, timestamp):
+            native_configuration.require_applied()
             barrier.on_cross_section(trading_date, timestamp, self, aq)
 
         def on_order(self, order):
             # The next complete barrier reads authoritative receipts. No policy.
-            pass
+            native_configuration.require_applied()
+
+        def on_trade(self, trade):
+            native_configuration.require_applied()
 
         def on_timer(self, payload):
             raise ValueError("policy timers are unsupported in the daily profile")
@@ -1016,7 +1062,9 @@ def execute(inputs: Inputs, exchange: Callable):
         # Native cross-section hooks occur one nanosecond after the final bar.
         end_time=active[-1].close_time + timedelta(microseconds=1),
         strategy_runtime_config={"error_mode": "raise", "re_raise_on_error": True},
+        analyzer_plugins=[native_configuration],
     )
+    native_configuration.require_applied()
     if callback_errors:
         raise ValueError("native callback error prevented a complete result")
     if controller.completed != {s.session_date for s in inputs.sessions}:

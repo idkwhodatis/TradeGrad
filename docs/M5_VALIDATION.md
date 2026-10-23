@@ -183,3 +183,51 @@ Five inventory assertion conditions are unchanged and have fixed diagnostic
 codes; arbitrary messages and values remain suppressed. Three policy-side
 positive cases remain unresolved pending the next real paired-container run.
 M5 acceptance and all later hosted stages remain incomplete until they pass.
+
+### Native volume configuration and fixture controls, 2026-10-23 UTC
+
+Run `39885530282` at `762b0cdd27712631a84e4765a34d9ba17c43de1f`
+passed PostgreSQL and image builds, then reported **43 passed / 8 failed**
+paired-container cases. Duration export progressed. The remaining failures
+included native rejection in the US positive reference, no partial fills under
+the declared volume cap, and fixed held/available inventory assertion codes.
+These failures are preserved as evidence, not treated as acceptance.
+
+The pinned AKQuant 0.3.27 wrapper omits `set_volume_limit` when the requested
+value is exactly `0.25`, while its native simulated client defaults to zero
+(unlimited). The portable-only trusted analyzer now calls the public setter with
+exactly `0.25` during the public pre-run analyzer hook. A success latch is checked
+before every native bar/cross-section/order/trade callback and after return,
+because upstream catches analyzer startup exceptions. It changes no bars,
+orders, prices, matching implementation, fees, risk checks, or native baseline.
+No epsilon value, monkeypatch, host execution, or replacement ledger is used.
+
+Version-pinned upstream references (read only; no upstream implementation copied):
+
+- [Wrapper configuration and analyzer lifecycle](https://github.com/akfamily/akquant/blob/765ee6b82066ae68e9fa7d5ce17ee0bb1840619f/python/akquant/backtest/engine.py)
+- [Native unlimited default and public limit setter](https://github.com/akfamily/akquant/blob/765ee6b82066ae68e9fa7d5ce17ee0bb1840619f/src/execution/simulated.rs)
+- [Native fee-inclusive cash admission](https://github.com/akfamily/akquant/blob/765ee6b82066ae68e9fa7d5ce17ee0bb1840619f/src/risk/common.rs)
+
+Two positive controls previously mixed unrelated rejection conditions into
+their intended assertions. The no-touch sell limit is now 1,000, still above
+every fixture high, rather than 1,000,000: the latter caused hypothetical native
+sell fees to exceed all available cash before a reservation could exist. Held,
+available, reserved, fill and cancellation assertions are unchanged. The US
+reference positive control changes only opens after its first active decision
+to an affordable fixed path. A new paired-container adverse-gap case retains
+the original +3% path and requires identical first policy observation/reply and
+wrapper decision, actual native cash rejection, zero fills/holdings, and
+unchanged cash/equity. Future prices never enter the policy's first observation.
+The positive control still requires zero native rejected orders.
+
+The system import harness also now uses the frozen `ready`/`partial` states,
+`/datasets/{id}` and `/data/universes` routes, and the required single-listing CN
+event profile while retaining both US portfolio listings. It does not bypass
+the real API, queue, database, worker, recovery or container boundary.
+
+Local verification is inert only: 141 targeted tests passed with one deferred;
+the wider portable pure suite passed 911 with 18 deferred; all **52** actual
+paired-container cases were collected but not run locally. Ruff and diff checks
+passed. The 51 original acceptance cases remain, plus the new adverse-gap proof.
+Native acceptance, system recovery and Playwright remain pending the next exact
+published-head CI gate; no runtime certification is claimed.
