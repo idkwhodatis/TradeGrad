@@ -158,3 +158,28 @@ backend cases and the 368 frontend cases. Actual-byte tests reject stale or
 misbound final receipts and failed exposure commits before releasing a package;
 valid replay/download preserves the archive's exact bytes. These fake-persistence
 checks complement, rather than replace, the prepared real PostgreSQL cases.
+
+### Hosted export repair, 2026-10-23 UTC
+
+Run `39883246865` at `db05dfdd0f10a69975b64382b26939904d65593b`
+passed the real PostgreSQL gate and image builds, then reported 31 failed and
+20 passed paired-container cases. The positions-property repair progressed to
+native result export. Static comparison with the pinned engine wrapper and the
+existing native result adapter identified an unsupported `int(timedelta)` cast.
+Portable export now converts stdlib durations exactly to integer nanoseconds,
+without floating-point `total_seconds()` rounding, and retains native integer
+or pandas nanosecond values. This changes representation handling, not matching,
+fees, inventory or economic timestamps.
+
+Local inert regression: 125 passed, one calendar-library check deferred. No
+candidate, engine, container, SDK process, PostgreSQL or browser was executed
+locally for this repair. Every fake export now contains a native-shaped duration.
+
+The prior 20 passes are **not** all proof of their intended rejection: the old
+negative-test helper accepted any failure. Negative inventory/timing/limit cases
+now demand the exact expected role, reviewed first-party frame and fixed
+allowlisted rejection reason. Unrelated policy assertions cannot satisfy them.
+Five inventory assertion conditions are unchanged and have fixed diagnostic
+codes; arbitrary messages and values remain suppressed. Three policy-side
+positive cases remain unresolved pending the next real paired-container run.
+M5 acceptance and all later hosted stages remain incomplete until they pass.

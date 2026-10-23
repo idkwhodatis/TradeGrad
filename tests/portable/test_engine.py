@@ -9,7 +9,7 @@ import ast
 import hashlib
 import subprocess
 import sys
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import UUID
@@ -45,7 +45,7 @@ from packages.tradegrad_adapter.portable_results import (
     parse_portable_json,
     validate_portable_result,
 )
-from runtimes.portable_engine.export import export_result
+from runtimes.portable_engine.export import _duration_ns, export_result
 from runtimes.portable_engine.runtime import (
     Controller,
     DailyDecisionBarrier,
@@ -316,6 +316,7 @@ def fake_result(controller, broker=None, fills=()):
         _raw=raw,
         metrics_df={
             "value": {
+                "duration": timedelta(days=2, seconds=3, microseconds=7),
                 "execution_count": len(fills),
                 "closed_trade_count": 0.0,
                 "sharpe_ratio": float("nan"),
@@ -778,6 +779,10 @@ def test_zero_trade_valid_result_and_stdlib_roundtrip():
     assert bundle["summary"]["execution_count"] == 0
     assert bundle["runtime_certified"] is False
     assert bundle["native_metrics"][-1]["unavailable_reason"]
+    duration = next(m for m in bundle["native_metrics"] if m["name"] == "duration")
+    assert duration["value"] == "172803000007000"
+    assert duration["unit"] == "nanoseconds"
+    assert duration["unavailable_reason"] is None
 
 
 @pytest.mark.parametrize(
@@ -1303,3 +1308,22 @@ def test_inert_broker_matches_pinned_positions_property_not_removed_method():
     source = inspect.getsource(Controller)
     assert "broker.get_positions(" not in source
     assert "broker.positions" in source
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (timedelta(days=2, seconds=3, microseconds=7), 172803000007000),
+        (timedelta(microseconds=-1), -1000),
+        (SimpleNamespace(value=123456789), 123456789),
+        (123456789, 123456789),
+    ],
+)
+def test_native_duration_preserves_exact_nanoseconds_without_engine(value, expected):
+    assert _duration_ns(value) == expected
+
+
+@pytest.mark.parametrize("value", [None, True, 1.5, "123", object()])
+def test_native_duration_never_truncates_or_guesses_unsupported_types(value):
+    with pytest.raises(ValueError, match="duration representation"):
+        _duration_ns(value)

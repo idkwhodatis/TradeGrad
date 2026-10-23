@@ -36,7 +36,7 @@ from runtimes.evaluator.portable_runner import (
 )
 from runtimes.evaluator.runner import IsolationUnavailable
 from runtimes.portable_engine.runtime import profile_sha256
-from tests.portable.diagnostics import assert_status, safe_diagnostic
+from tests.portable.diagnostics import assert_rejection, assert_status, safe_diagnostic
 
 ROOT = Path(__file__).resolve().parents[2]
 pytestmark = pytest.mark.skipif(
@@ -635,12 +635,12 @@ def _inventory(observation, held, available, reserved):
     key = observation.listings[0].listing_id
     positions = {p.listing_id: p for p in observation.account.positions}
     position = positions.get(key)
-    assert (0 if position is None else position.quantity) == held
-    assert (0 if position is None else position.available_quantity) == available
-    assert position is None or position.available_quantity_semantics == "next_open_unreserved_holdings"
+    assert (0 if position is None else position.quantity) == held, "fixture_inventory_held"
+    assert (0 if position is None else position.available_quantity) == available, "fixture_inventory_available"
+    assert position is None or position.available_quantity_semantics == "next_open_unreserved_holdings", "fixture_inventory_semantics"
     assert sum(o.remaining_quantity for o in observation.open_orders
-        if o.listing_id == key and o.side == "sell") == reserved
-    assert available == held - reserved
+        if o.listing_id == key and o.side == "sell") == reserved, "fixture_inventory_reserved"
+    assert available == held - reserved, "fixture_inventory_conservation"
 """
 
 
@@ -703,8 +703,8 @@ def assert_native_controller_inventory(bundle):
     return held
 
 
-def assert_controller_rejected(result, output):
-    assert_status(result, "failed")
+def assert_controller_rejected(result, output, expected="sell_inventory"):
+    assert_rejection(result, expected)
     assert result["bundle"] is None
     assert result["metrics"] is None
     assert not list(output.iterdir()), "Rejected intents must not publish a result"
@@ -731,7 +731,7 @@ def test_actual_cn_controller_refuses_same_session_effective_time(
     """)
     result, _ = run(evaluator, tmp_path / "case", "CN", data=data, suffix=suffix)
     if same_session:
-        assert_controller_rejected(result, tmp_path / "case/output")
+        assert_controller_rejected(result, tmp_path / "case/output", "next_open")
     else:
         assert_status(result, "succeeded")
         bundle = result["bundle"]
@@ -1079,7 +1079,11 @@ def test_actual_next_open_limits_reject_intrabar_or_limit_breaching_fills(
     """)
     result, _ = run(evaluator, tmp_path / "case", "CN", data=data, suffix=suffix)
     if matching != "marketable_open":
-        assert_controller_rejected(result, tmp_path / "case/output")
+        assert_controller_rejected(
+            result,
+            tmp_path / "case/output",
+            "intrabar_limit" if matching == "intrabar_only" else "limit_breach",
+        )
         return
     assert_status(result, "succeeded")
     bundle = result["bundle"]

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime
-from numbers import Real
+from datetime import datetime, timedelta
+from numbers import Integral, Real
 
 from packages.strategy_sdk import hash_json
 from packages.tradegrad_adapter.portable_results import validate_portable_result
@@ -17,6 +17,18 @@ def _number(value):
     if not math.isfinite(result):
         raise ValueError("nonfinite native accounting record")
     return result
+
+
+def _duration_ns(value):
+    """Preserve native duration exactly, including pandas sub-microsecond data."""
+    scalar = getattr(value, "value", value)
+    if isinstance(scalar, Integral) and not isinstance(scalar, bool):
+        return int(scalar)
+    if isinstance(value, timedelta):
+        return (
+            value.days * 86400 + value.seconds
+        ) * 1_000_000_000 + value.microseconds * 1000
+    raise ValueError("unsupported native duration representation")
 
 
 def _json(value):
@@ -190,7 +202,7 @@ def export_result(result, controller):
             scalar = value.isoformat() if hasattr(value, "isoformat") else str(value)
             unit = "native_timestamp"
         elif name == "duration":
-            scalar = str(int(value.value if hasattr(value, "value") else value))
+            scalar = str(_duration_ns(value))
             unit = "nanoseconds"
         else:
             try:
