@@ -25,7 +25,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from operator_browser_launcher import browser_environment
+from operator_browser_launcher import browser_command, browser_environment
 from synthetic_model_server import (
     Reply,
     SyntheticModelServer,
@@ -871,13 +871,23 @@ def test_stale_living_worker_blocks_recovery_until_confirmed_sdk_stop_receipt(
     reason="Configured-profile Chromium launcher requires its separate hosted opt-in",
 )
 def test_real_chromium_synthetic_profile_seed_only_without_model_calls(model_harness):
-    h = model_harness
+    run_synthetic_profile_browser(model_harness)
+
+
+def run_synthetic_profile_browser(h, *, mode="native_akquant"):
+    """Same generated owner/API/server, secret filter and bounded subreaper in both modes."""
     # This one case has a separate finite browser/setup budget; the original 17
     # SDK/application cases retain their unchanged 240-second harness bounds.
     h.deadline = time.monotonic() + 390
     require(len(h.browser_accounts) == 2, "Generated browser accounts are unavailable")
     node = shutil.which("node", path=os.environ.get("PATH", ""))
     require(node is not None, "The installed Node runtime is required")
+    browser_command(node, ROOT, mode)
+    if mode == "portable":
+        require(
+            os.getenv("TRADEGRAD_REQUIRE_PORTABLE_MODEL_INTEGRATION") == "1",
+            "Portable browser requires its additional hosted opt-in",
+        )
     require(
         (ROOT / "frontend/node_modules/playwright/cli.js").is_file(),
         "The locked installed Playwright CLI is required",
@@ -909,6 +919,7 @@ def test_real_chromium_synthetic_profile_seed_only_without_model_calls(model_har
             node,
             str(ROOT),
             str(os.getpid()),
+            mode,
         ],
         cwd=ROOT,
         env={
@@ -916,6 +927,11 @@ def test_real_chromium_synthetic_profile_seed_only_without_model_calls(model_har
             "GITHUB_ACTIONS": "true",
             "TRADEGRAD_REQUIRE_MODEL_INTEGRATION": "1",
             "TRADEGRAD_REQUIRE_MODEL_BROWSER": "1",
+            **(
+                {"TRADEGRAD_REQUIRE_PORTABLE_MODEL_INTEGRATION": "1"}
+                if mode == "portable"
+                else {}
+            ),
         },
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,

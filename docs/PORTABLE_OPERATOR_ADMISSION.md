@@ -79,9 +79,10 @@ all other slices and regenerate the shared OpenAPI/client once.
 
 ## Prepared hosted gates, not run here
 
-`tests/system/test_portable_operator_pipeline.py` collects eight real-boundary
+`tests/system/test_portable_operator_pipeline.py` collects nine real-boundary
 cases: CN event and US portfolio SDK optimization/pause/replay, malformed HTTP,
-server error, timeout uncertainty, cancellation, and both zero-budget boundaries.
+server error, timeout uncertainty, cancellation, both zero-budget boundaries,
+and the portable profile-selection Chromium case.
 The harness reuses the native synthetic HTTP fixture and real SDK process with
 actual API/PostgreSQL/queue/workers/TradeTGD and both portable Docker images.
 It requires all of `GITHUB_ACTIONS=true`,
@@ -96,6 +97,22 @@ case, and two new upload/declaration cases. The operator browser case requires
 `E2E_MODEL_PROFILES=1` and a pre-provisioned synthetic `E2E_MODEL_PROFILE_ID`.
 It performs zero model calls; the separate system gate exercises real SDK calls.
 The upload case uses fabricated observations, not evidence about real securities.
+
+The ninth portable system case additionally requires
+`TRADEGRAD_REQUIRE_MODEL_BROWSER=1`. It runs through the existing synthetic
+owner/API/server/account fixture and bounded Linux subreaper, not the general
+fixture/Compose browser launcher that intentionally disables profiles. The
+allowlisted `native_akquant` / `portable` selector fixes the case's file and tag;
+unsupported selectors fail before launch. Only generated login material, public
+API origins and the validated public selector enter the browser, never model
+endpoints, secrets or registry settings. The silent reporter requires exactly
+one non-retried successful case from that selected file and tag. The historical
+native target remains exactly 18 cases; the cumulative portable target is nine.
+
+Selector follow-up checks: 24 inert Python launcher tests and 15 reporter unit
+tests passed; TypeScript passed; collection confirmed native 18 plus portable 9,
+and each selected browser command collected exactly one case. These are pure
+checks/collection, not an actual browser or hosted-boundary pass.
 
 Only collection was performed. Local sockets, PostgreSQL, Docker, browser and
 new candidate/wrapper/SDK subprocess execution were denied or unavailable and
@@ -116,3 +133,11 @@ browser's dedicated synthetic-launcher selector still needs the separately
 reviewed follow-on; ordinary fixture browser mode cannot exercise an enabled
 operator profile. No live-model, independent action-data or release claim follows
 from these local checks.
+
+The selector follow-on is now integrated. The portable hosted step explicitly
+sets its model/browser opt-ins and collects nine cases; the historical native
+step retains eighteen. Main integration passed 24 inert launcher tests, 469
+frontend tests (including 15 reporter contract cases), TypeScript and Ruff.
+All 27 native/portable hosted cases collected only. Neither a skipped profile
+case nor zero selected cases can satisfy the dedicated reporter. Actual
+synthetic SDK/Chromium results remain pending on the final exact tree.

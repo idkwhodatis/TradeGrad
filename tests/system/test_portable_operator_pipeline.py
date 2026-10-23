@@ -18,6 +18,7 @@ from test_operator_model_pipeline import (
     OperatorModelHarness,
     assert_private,
     model_receipts,
+    run_synthetic_profile_browser,
 )
 from test_operator_model_pipeline import (
     synthetic_server as synthetic_server,  # noqa: PLC0414
@@ -336,6 +337,17 @@ def test_real_portable_trade_tgd_sdk_receipts_and_paused_checkpoint_replay(
             "Result trust boundary changed",
         )
     h.inspect_portable_privacy(run_id)
+
+
+@pytest.mark.skipif(
+    os.getenv("TRADEGRAD_REQUIRE_MODEL_BROWSER") != "1",
+    reason="Portable profile Chromium requires the additional hosted browser opt-in",
+)
+def test_real_portable_chromium_profile_selection_without_model_calls(
+    portable_operator_harness,
+):
+    # A separate ninth B9 gate preserves the historical 18-case native target.
+    run_synthetic_profile_browser(portable_operator_harness, mode="portable")
 
 
 @pytest.mark.parametrize(

@@ -38,14 +38,27 @@ def browser_environment(source):
     return {key: source[key] for key in ENV_KEYS if key in source}
 
 
-def browser_command(node, root):
+def browser_command(node, root, mode="native_akquant"):
+    choices = {
+        "native_akquant": (
+            "tests/e2e/configured-research.spec.ts",
+            "@operator-model-profile",
+        ),
+        "portable": (
+            "tests/e2e/portable-research.spec.ts",
+            "@portable-operator-profile",
+        ),
+    }
+    if mode not in choices:
+        raise ValueError("Unsupported hosted browser mode")
+    filename, tag = choices[mode]
     return [
         str(node),
         str(Path(root) / "frontend/node_modules/playwright/cli.js"),
         "test",
-        "tests/e2e/configured-research.spec.ts",
+        filename,
         "--grep",
-        "@operator-model-profile",
+        tag,
         "--project=chromium",
         "--workers=1",
         "--retries=0",
@@ -110,7 +123,10 @@ def reap_children(leader):
             leader.returncode = os.waitstatus_to_exitcode(status)
 
 
-def supervise(node, root, parent_pid):
+def supervise(node, root, parent_pid, mode="native_akquant"):
+    # Resolve before containment/signals or any launch. Caller-controlled paths,
+    # regexes and inherited selectors can never replace these two fixed cases.
+    command = browser_command(node, root, mode)
     interrupted = False
 
     def interrupt(_signal, _frame):
@@ -126,9 +142,12 @@ def supervise(node, root, parent_pid):
     stopped = False
     try:
         leader = subprocess.Popen(
-            browser_command(node, root),
+            command,
             cwd=Path(root) / "frontend",
-            env=browser_environment(os.environ),
+            env={
+                **browser_environment(os.environ),
+                "E2E_MODEL_BROWSER_MODE": mode,
+            },
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -184,10 +203,17 @@ def main():
         and os.getenv("TRADEGRAD_REQUIRE_MODEL_BROWSER") == "1"
     ):
         return 1
-    if len(sys.argv) != 4:
+    if len(sys.argv) not in {4, 5}:
         return 1
     try:
-        return supervise(sys.argv[1], Path(sys.argv[2]), int(sys.argv[3]))
+        mode = sys.argv[4] if len(sys.argv) == 5 else "native_akquant"
+        browser_command(sys.argv[1], Path(sys.argv[2]), mode)
+        if (
+            mode == "portable"
+            and os.getenv("TRADEGRAD_REQUIRE_PORTABLE_MODEL_INTEGRATION") != "1"
+        ):
+            return 1
+        return supervise(sys.argv[1], Path(sys.argv[2]), int(sys.argv[3]), mode)
     except BaseException:  # noqa: BLE001 - no private child diagnostics
         # Never emit E2E credentials, inherited values or subprocess tracebacks.
         return 1

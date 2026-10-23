@@ -33,6 +33,7 @@ def test_node_environment_is_explicit_and_never_inherits_private_settings():
         "HTTP_PROXY": private,
         "GITHUB_ACTIONS": "true",
         "TRADEGRAD_REQUIRE_MODEL_INTEGRATION": "1",
+        "E2E_MODEL_BROWSER_MODE": "forged selector",
     }
     result = launcher.browser_environment(source)
     if private in result.values() or result.get("E2E_PASSWORD") != password:
@@ -42,18 +43,39 @@ def test_node_environment_is_explicit_and_never_inherits_private_settings():
     assert set(result) == {"PATH", "HOME", "CI", "E2E_PASSWORD", "E2E_API_URL"}
 
 
-def test_command_is_one_fixed_browser_case_without_shell_or_install():
-    command = launcher.browser_command("/usr/bin/node", Path("/approved"))
+@pytest.mark.parametrize(
+    "mode,filename,tag",
+    [
+        ("native_akquant", "configured-research.spec.ts", "@operator-model-profile"),
+        ("portable", "portable-research.spec.ts", "@portable-operator-profile"),
+    ],
+)
+def test_command_is_one_fixed_browser_case_without_shell_or_install(
+    mode, filename, tag
+):
+    command = launcher.browser_command("/usr/bin/node", Path("/approved"), mode)
     assert command[:4] == [
         "/usr/bin/node",
         "/approved/frontend/node_modules/playwright/cli.js",
         "test",
-        "tests/e2e/configured-research.spec.ts",
+        f"tests/e2e/{filename}",
     ]
-    assert command[4:6] == ["--grep", "@operator-model-profile"]
+    assert command[4:6] == ["--grep", tag]
     assert "--retries=0" in command
     assert "--global-timeout=300000" in command
     assert "--reporter=/approved/tests/system/operator_profile_reporter.cjs" in command
+
+
+@pytest.mark.parametrize("mode", ["", "native", "all", "../path", ".*"])
+def test_unsupported_mode_fails_before_containment_or_launch(monkeypatch, mode):
+    monkeypatch.setattr(
+        launcher, "contain", lambda *_: pytest.fail("Unexpected containment")
+    )
+    monkeypatch.setattr(
+        launcher.subprocess, "Popen", lambda *_: pytest.fail("Unexpected child")
+    )
+    with pytest.raises(ValueError, match="Unsupported hosted browser mode"):
+        launcher.supervise("node", ROOT, os.getpid(), mode)
 
 
 def test_parent_death_race_prevents_any_launch(monkeypatch):
@@ -156,6 +178,23 @@ def test_success_requires_final_owned_child_cleanup(monkeypatch):
     assert calls == ["cleanup"]
 
 
+@pytest.mark.parametrize("mode", ["native_akquant", "portable"])
+def test_reporter_selector_is_overwritten_by_validated_mode(monkeypatch, mode):
+    fake_supervisor(monkeypatch)
+    launch = launcher.subprocess.Popen
+    captured = {}
+
+    def capture(*args, **kwargs):
+        captured.update(kwargs)
+        return launch(*args, **kwargs)
+
+    monkeypatch.setenv("E2E_MODEL_BROWSER_MODE", "forged")
+    monkeypatch.setattr(launcher.subprocess, "Popen", capture)
+    assert launcher.supervise("node", ROOT, os.getpid(), mode) == 0
+    assert captured["env"]["E2E_MODEL_BROWSER_MODE"] == mode
+    assert set(captured["env"]) <= {*launcher.ENV_KEYS, "E2E_MODEL_BROWSER_MODE"}
+
+
 def test_uncertain_launch_still_cleans_children_and_fails(monkeypatch):
     calls = fake_supervisor(monkeypatch, launch_error=KeyboardInterrupt())
     assert launcher.supervise("node", ROOT, os.getpid()) == 1
@@ -204,6 +243,48 @@ def test_launcher_main_requires_all_hosted_gates_before_supervision(monkeypatch)
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
     monkeypatch.setenv("TRADEGRAD_REQUIRE_MODEL_INTEGRATION", "1")
     assert launcher.main() == 1
+
+
+@pytest.mark.parametrize("explicit", [False, True])
+def test_native_legacy_and_explicit_cli_keep_original_target(monkeypatch, explicit):
+    for key, value in {
+        "GITHUB_ACTIONS": "true",
+        "TRADEGRAD_REQUIRE_MODEL_INTEGRATION": "1",
+        "TRADEGRAD_REQUIRE_MODEL_BROWSER": "1",
+    }.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setattr(
+        launcher.sys,
+        "argv",
+        ["launcher", "node", str(ROOT), "123"]
+        + (["native_akquant"] if explicit else []),
+    )
+    calls = []
+    monkeypatch.setattr(launcher, "supervise", lambda *args: calls.append(args) or 0)
+    assert launcher.main() == 0
+    assert calls == [("node", ROOT, 123, "native_akquant")]
+
+
+def test_portable_cli_requires_additional_opt_in_and_rejects_unknown_mode(monkeypatch):
+    for key, value in {
+        "GITHUB_ACTIONS": "true",
+        "TRADEGRAD_REQUIRE_MODEL_INTEGRATION": "1",
+        "TRADEGRAD_REQUIRE_MODEL_BROWSER": "1",
+    }.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.delenv("TRADEGRAD_REQUIRE_PORTABLE_MODEL_INTEGRATION", raising=False)
+    args = ["launcher", "node", str(ROOT), "123", "portable"]
+    monkeypatch.setattr(launcher.sys, "argv", args)
+    calls = []
+    monkeypatch.setattr(
+        launcher, "supervise", lambda *values: calls.append(values) or 0
+    )
+    assert launcher.main() == 1 and not calls
+    monkeypatch.setenv("TRADEGRAD_REQUIRE_PORTABLE_MODEL_INTEGRATION", "1")
+    assert launcher.main() == 0 and calls == [("node", ROOT, 123, "portable")]
+    calls.clear()
+    args[-1] = ".*"
+    assert launcher.main() == 1 and not calls
 
 
 def test_interrupt_during_final_cleanup_cannot_report_browser_success(monkeypatch):
