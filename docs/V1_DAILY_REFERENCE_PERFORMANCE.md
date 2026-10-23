@@ -1,4 +1,4 @@
-# V1 six-year daily engineering reference: prepared hosted acceptance
+# V1 six-year daily engineering reference: measured calibration and guardrail
 
 ## Status and scope
 
@@ -7,15 +7,19 @@ and concurrent-run measurements on representative daily data and named hardware,
 followed by an agreed budget. The old 76-row smoke remains useful but is not that
 reference. This addition supplies a **versioned, modest engineering reference**,
 not a user-agreed production workload, hardware target, market-scale capacity,
-latency SLO, or a final acceptance budget.
+or latency SLO. A separately frozen engineering regression budget now exists;
+it does not establish whole-workflow or production acceptance.
 
 `script/benchmark_v1_daily_reference.py` is a finite hosted-only driver. It uses
 actual authenticated application APIs, the actual data worker's immutable
 snapshot, and the existing configured native research/Docker/ResultBundle path.
 It does not write fixture rows into business tables or introduce any provider,
 API schema, strategy, model call, or product feature. Only fake-HTTP, source and
-inert-parser tests have run locally. **Real hosted performance acceptance remains
-pending. No latency, throughput or capacity numbers are asserted here.**
+inert-parser tests have run locally. **A successful hosted calibration was
+measured on 2026-10-23 in run 39930596032.** Its independent performance step and
+cleanup passed, but the enclosing workflow failed four other application groups.
+This is not cumulative application acceptance. The actual timings and separate
+engineering guardrails are recorded below; no throughput or capacity is claimed.
 
 Keep these historical files unchanged:
 
@@ -170,21 +174,118 @@ API, data worker, PostgreSQL or evaluator containers**. Retain the enclosing
 job's exact runner configuration and process-owner/runtime resource evidence
 alongside the JSON. Unknown/unsupported observations remain null.
 
-There is no production hardware promise or production SLO. Review the actual
-successful hosted report, source/input/image hashes, runner allocation, container
-limits, queue contention and polling/cache caveats before freezing a modest
-engineering reference and explicit measured budgets. Record the exact calibration
-report and distinguish observed values from chosen future regression guardrails.
-This engineering acceptance does not wait for, or pretend to establish, a
-user-agreed production deployment profile. Such a profile would need separate
-workload/hardware agreement and measurements.
+There is no production hardware promise or production SLO. The engineering
+budget below does not wait for, or pretend to establish, a user-agreed production
+deployment profile. Such a profile needs separate workload/hardware agreement
+and measurements. A safety timeout or theoretical projection is not capacity
+evidence.
 
-A source fixture, pure test result, safety timeout, single measurement or
-theoretical projection is not production-capacity evidence. The initial raw
-calibration report keeps `performance_threshold` null, `capacity_claim=false`
-and `user_agreed_production_profile=false`; a separately immutable engineering
-budget record must identify its source report rather than rewriting those raw
-measurements or claiming a retrospective production SLO.
+## Frozen measured calibration and engineering-only budget
+
+The original aggregate is preserved byte-for-byte at
+[`evidence/v1-daily-reference-calibration-39930596032.json`](evidence/v1-daily-reference-calibration-39930596032.json),
+SHA-256 `e00fe50e03d9a9715aa4ea3b11d45b1768ecf0bda788e23e90c5a0688476a259`.
+Its `performance_threshold` remains null and both `capacity_claim` and
+`user_agreed_production_profile` remain false. Never amend, reformat or replace
+this calibration with later results.
+
+Provenance is recorded separately in
+[`evidence/v1-daily-reference-engineering-budget-v1.json`](evidence/v1-daily-reference-engineering-budget-v1.json):
+
+- [Hosted run 39930596032](https://github.com/idkwhodatis/TradeGrad/actions/runs/39930596032),
+  application job `120338031449`, downloaded aggregate artifact `12493017342`.
+- Exact published commit `8115ef88b14499108e02249d7b8f5d2d616311f4`, Git tree
+  `ef406e0c51511125b5c2177d1c13944edf1e4250`, verified through the enclosing run
+  and saved publication records. The raw report's `identity.ci_commit` is null,
+  not retroactively filled in. Its independently calculated production-source
+  SHA-256 is `d27fae125c2ff34e6935255ab64959d2047a498982c37c40e59b5837f77d44b6`.
+- The performance report succeeded with 15 actual native physical evaluations,
+  zero model calls, successful stopped sandboxes and confirmed cleanup. Both
+  persisted attempt and physical-evaluation lifecycle overlap were positive.
+  Browser/operations/performance and teardown succeeded; four other application
+  groups failed. Neither this record nor its checker makes that workflow green.
+- Observed host: four logical CPUs, four affinity CPUs and 16,765,415,424 bytes
+  physical memory. Readable client cgroup limits were null. These observations
+  are not verified API/worker/PostgreSQL/evaluator-container reservations.
+
+The chosen conservative rule is **five times each observed value, rounded up**:
+`ceil(observed_ms * 5 / quantum_ms) * quantum_ms`. HTTP p95/max use a one-ms
+quantum; lifecycle and end-to-end walls use a 1,000-ms quantum. Equality with the
+limit passes. These generous regression guardrails are engineering choices,
+not measured production limits or latency SLOs.
+
+| Measured dimension | Calibration (ms) | Chosen maximum (ms) |
+| --- | ---: | ---: |
+| Metadata p95 | 3.388 | 17 |
+| Metadata maximum | 3.802 | 20 |
+| Windowed chart p95 | 16.189 | 81 |
+| Windowed chart maximum | 19.224 | 97 |
+| Import completion wall | 1,530.088 | 8,000 |
+| Single 2024 validation physical lifecycle | 796.536 | 4,000 |
+| Standalone five-evaluation configured-run batch wall | 6,147.653 | 31,000 |
+| Concurrent two-run batch wall | 6,805.126 | 35,000 |
+| Whole benchmark wall | 14,983.314 | 75,000 |
+
+This is one calibration invocation on a warmed host after preceding suites.
+Metadata and chart each have 20 sequential measured samples after two excluded
+warmups; their sample p95s are not a population service guarantee. Import and
+run observations include queueing and 500-ms poll quantization. The single
+physical evaluation includes staging/Docker/artifact publication, not isolated
+CPU time. One synthetic listing, 1,456 sessions and 80,119 CSV bytes cannot
+establish whole-market, multi-listing or live-provider capacity. No additional
+benchmark, cold-cache distribution, worker reservation or LLM measurement is
+implied by this frozen record.
+
+### Pure report gate and separate receipt
+
+`script/check_v1_daily_reference_budget.py` uses only the standard library and
+bounded local JSON/file work. It cannot start services, open sockets, launch
+Docker/PostgreSQL/strategies/SDKs, import the production benchmark or make paid
+calls. Both the immutable calibration and chosen budget are SHA-256 pinned.
+Changing guardrails requires deliberate review and a new version, not silently
+recalibrating against each new run.
+
+The checker requires the exact synthetic input/profile/seed hashes, schema,
+workload, measurement definitions, bounds (including polling), sample counts,
+all 15 successful native evaluations, stopped sandboxes, clean completion,
+positive attempt and physical lifecycle overlap, and zero model calls. It
+rejects malformed/nonfinite measurements, missing evidence and a receipt passed
+in place of a raw report. Input files are regular, non-symlink files limited to
+64 KiB, JSON is depth/node/string bounded, duplicate keys are rejected, and
+failure output does not copy arbitrary input text.
+
+Source, image/environment and host observations may change in future exact-
+profile runs. The receipt records current source/environment/image hashes,
+other validated content identities, observed host, changed version fields and
+external run/commit labels. It never equates unchanged labels or host readings
+with a verified identical environment. A changed environment can pass these
+fixed guardrails, but that result must be read with its recorded provenance;
+it does not establish identical-hardware regression causality. New per-run
+config/dataset/universe/artifact hashes are recorded, not required to equal IDs
+from the calibration.
+
+After the existing owned hosted benchmark succeeds, its owner can integrate
+using the hosted job's API Python runtime (global `python` in the fixture job;
+`.venv-api/bin/python` for this local checkout):
+
+```sh
+python -m script.check_v1_daily_reference_budget \
+  --report var/ci-evidence/v1-daily-reference-performance.json \
+  --receipt var/ci-evidence/v1-daily-reference-budget-receipt.json \
+  --source-commit "$GITHUB_SHA" \
+  --github-run-id "$GITHUB_RUN_ID"
+```
+
+`--source-commit` must be a 40-character lowercase hex provenance label and
+`--github-run-id` a positive numeric label. They are not independent tree proof.
+The receipt must be a **new** file: exclusive creation prevents overwriting the
+raw report, calibration, budget or a previous receipt. Exit 0 means the separate
+engineering guardrail passed, 1 means the raw report failed validation or a
+budget, and 2 means input/receipt file handling failed. Preserve/upload the raw
+aggregate and receipt separately with the exact-run job evidence; never merge
+receipt thresholds into the raw measurement. Do not swallow a failing exit or
+reuse a previous receipt as evidence for a new invocation. This addition alone
+does not modify the hosted process owner or workflow integration.
 
 ## Finite bounds and failure behavior
 
@@ -215,9 +316,11 @@ measurements or claiming a retrospective production SLO.
 ## Offline verification
 
 ```sh
-.venv-api/bin/python -m pytest backend/tests/test_benchmark_v1_daily_reference.py -q
+.venv-api/bin/python -m pytest backend/tests/test_benchmark_v1_daily_reference.py \
+  backend/tests/test_v1_daily_reference_budget.py -q
 .venv-api/bin/ruff check script/benchmark_v1_daily_reference.py \
-  script/generate_daily_reference_fixture.py backend/tests/test_benchmark_v1_daily_reference.py
+  script/generate_daily_reference_fixture.py backend/tests/test_benchmark_v1_daily_reference.py \
+  script/check_v1_daily_reference_budget.py backend/tests/test_v1_daily_reference_budget.py
 ```
 
 The tests use fake clocks, fake HTTP and the real HTTP parser over inert memory
@@ -226,3 +329,10 @@ config, zero-call enforcement, dataset/source/coverage/result bindings, false
 concurrency, lifecycle cleanup, lost responses, hard request/deadline/body caps,
 allowlists, redaction and detached-socket watchdog behavior. They do not open
 sockets or execute a strategy, provider SDK, browser, Docker or PostgreSQL.
+
+The budget tests additionally verify the untouched calibration hash, explicit
+rounding formula, inclusive thresholds, changed-version provenance, malformed
+and bounded JSON, missing/failed/zero-overlap evidence, no-model requirements,
+receipt separation and refusal to truncate any existing file. Running those
+tests or checking the frozen calibration is offline verification, not a new
+performance measurement.

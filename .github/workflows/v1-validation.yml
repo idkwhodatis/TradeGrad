@@ -490,12 +490,21 @@ jobs:
           "${{ steps.acceptance_11.outcome }}" "${{ steps.acceptance_11.outputs.exit_code }}"
           "test_real_portable_freeze_final_reference_export_and_retry"
       - name: Owned full fixture browser acceptance or scoped live provider flows
+        id: application_browser
         if: ${{ !cancelled() && steps.acceptance_11_boundary.outcome == 'success' }}
         env:
           TRADEGRAD_REQUIRE_APPLICATION_BROWSER: "1"
           TRADEGRAD_APPLICATION_STAGE: completion
           TRADEGRAD_REQUIRE_SETTINGS_E2E: "1"
         run: python -m script.ci_application_browser
+      - name: Enforce separately frozen measured daily engineering budget
+        if: ${{ !cancelled() && env.DATA_PROVIDER_MODE == 'fixture' && steps.application_browser.outcome == 'success' }}
+        run: >-
+          python -m script.check_v1_daily_reference_budget
+          --report var/ci-evidence/v1-daily-reference-performance.json
+          --receipt var/ci-evidence/v1-daily-reference-budget-receipt.json
+          --source-commit "${{ github.sha }}"
+          --github-run-id "${{ github.run_id }}"
       - name: Remove the disposable database
         if: always()
         run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
@@ -511,6 +520,7 @@ jobs:
             var/ci-evidence/*.xml
             var/ci-evidence/m6-*-performance.json
             var/ci-evidence/v1-daily-reference-performance.json
+            var/ci-evidence/v1-daily-reference-budget-receipt.json
           retention-days: 14
 
   compose:

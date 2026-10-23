@@ -1,0 +1,236 @@
+{
+  "budget_id": "cn-one-listing-six-year-engineering-v1",
+  "calibration": {
+    "all_teardown_barriers": "success",
+    "application_artifact_id": "12493017342",
+    "application_artifact_sha256": "f78391256922055ef23e1f2dbef3bfb6c40e81352acc6f36188ab73aaa41ded4",
+    "application_conclusion": "failure",
+    "application_job_id": "120338031449",
+    "application_owned_browser_cleanup": "confirmed",
+    "github_run_id": "39930596032",
+    "github_run_url": "https://github.com/idkwhodatis/TradeGrad/actions/runs/39930596032",
+    "independent_performance_report_status": "succeeded",
+    "provenance_basis": "Verified downloaded aggregate and saved exact-run outcome/publication records; report ci_commit remains null. This is not cumulative workflow acceptance.",
+    "report_path": "docs/evidence/v1-daily-reference-calibration-39930596032.json",
+    "report_sha256": "e00fe50e03d9a9715aa4ea3b11d45b1768ecf0bda788e23e90c5a0688476a259",
+    "source_commit": "8115ef88b14499108e02249d7b8f5d2d616311f4",
+    "source_git_tree": "ef406e0c51511125b5c2177d1c13944edf1e4250",
+    "workflow_conclusion": "failure"
+  },
+  "capacity_claim": false,
+  "comparability": {
+    "fixed": "Raw schema, synthetic input/profile/seed hashes, workload, measurement definitions, bounds including polling and warmups, success and cleanup.",
+    "hardware_scope": "Observed client host: 4 logical/affinity CPUs and 16765415424 physical memory bytes; client cgroup limits unknown; worker/container reservations unverified.",
+    "variable_with_provenance": "Source tree, source commit label, environment/image, hardware, config/dataset/universe/result hashes. Differences are recorded, never represented as identical environment."
+  },
+  "engineering_reference_only": true,
+  "limitations": [
+    "One calibration invocation, not a statistical latency distribution or user-agreed deployment profile.",
+    "One synthetic listing, 1456 sessions, 80119 input bytes and 15 native physical evaluations; zero LLM calls.",
+    "Metadata/chart each have 20 sequential samples after two excluded warmups; prior suites and warmed host/cache affect timings.",
+    "Import and run wall durations include queueing and 500 ms poll quantization; single evaluation includes staging, Docker and publication, not CPU time.",
+    "Positive lifecycle overlap does not prove simultaneous CPU execution.",
+    "Fixed generous regression guardrails, not production SLOs, whole-market capacity, throughput claims, or proof of all application acceptance."
+  ],
+  "metrics": [
+    {
+      "calibration_observed_ms": 3.388,
+      "maximum_ms": 17,
+      "path": "metadata_api.p95_ms",
+      "round_up_quantum_ms": 1
+    },
+    {
+      "calibration_observed_ms": 3.802,
+      "maximum_ms": 20,
+      "path": "metadata_api.max_ms",
+      "round_up_quantum_ms": 1
+    },
+    {
+      "calibration_observed_ms": 16.189,
+      "maximum_ms": 81,
+      "path": "windowed_chart.p95_ms",
+      "round_up_quantum_ms": 1
+    },
+    {
+      "calibration_observed_ms": 19.224,
+      "maximum_ms": 97,
+      "path": "windowed_chart.max_ms",
+      "round_up_quantum_ms": 1
+    },
+    {
+      "calibration_observed_ms": 1530.088,
+      "maximum_ms": 8000,
+      "path": "import.completion_wall_ms",
+      "round_up_quantum_ms": 1000
+    },
+    {
+      "calibration_observed_ms": 796.536,
+      "maximum_ms": 4000,
+      "path": "single_evaluation.persisted_lifecycle_ms",
+      "round_up_quantum_ms": 1000
+    },
+    {
+      "calibration_observed_ms": 6147.653,
+      "maximum_ms": 31000,
+      "path": "standalone_configured_run.batch_wall_ms",
+      "round_up_quantum_ms": 1000
+    },
+    {
+      "calibration_observed_ms": 6805.126,
+      "maximum_ms": 35000,
+      "path": "concurrent_runs.batch_wall_ms",
+      "round_up_quantum_ms": 1000
+    },
+    {
+      "calibration_observed_ms": 14983.314,
+      "maximum_ms": 75000,
+      "path": "total_wall_ms",
+      "round_up_quantum_ms": 1000
+    }
+  ],
+  "production_slo": false,
+  "required_report_fields": {
+    "bounds": {
+      "body_bytes": 1048576,
+      "chart_max_points_per_series": 200,
+      "chart_samples": 20,
+      "chart_window_days": 91,
+      "cleanup_reserve_seconds": 30,
+      "metadata_samples": 20,
+      "poll_milliseconds": 500,
+      "request_seconds": 5,
+      "requests": 1024,
+      "total_seconds": 600,
+      "warmup_samples_each": 2
+    },
+    "capacity_claim": false,
+    "cleanup": {
+      "cancellations_accepted": 0,
+      "cleanup_uncertain": false,
+      "durable_records_retained": true,
+      "terminal_confirmed": 0,
+      "tracked_nonterminal": 0,
+      "unknown_mutation_outcome": false
+    },
+    "concurrent_runs.configured_runs": 2,
+    "concurrent_runs.measurement": "configured_run_submission_to_verified_terminal_including_queue_five_evaluations_and_poll",
+    "concurrent_runs.native_docker_successes": 10,
+    "concurrent_runs.overlap_scope": "persisted_actual_attempt_and_native_docker_evaluation_lifecycles_not_simultaneous_cpu_instructions",
+    "concurrent_runs.physical_engine_evaluations": 10,
+    "concurrent_runs.physical_evaluation_measurement": "newly_created_server_evaluation_registration_to_persisted_completion_including_staging_docker_and_publication_not_cpu_time",
+    "concurrent_runs.physical_evaluation_split_order": [
+      "train",
+      "train",
+      "train",
+      "train",
+      "validation"
+    ],
+    "concurrent_runs.physical_evaluation_year_order": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "concurrent_runs.same_exact_config_dataset_strategy": true,
+    "concurrent_runs.sandbox_stopped": true,
+    "concurrent_runs.verified_model_calls": 0,
+    "created": {
+      "imports": 1,
+      "runs": 3,
+      "universes": 1
+    },
+    "hardware.scope": "reported_host_not_container_reservation",
+    "hardware.worker_container_limits_verified": false,
+    "identity.ci_commit_is_label_not_tree_verification": true,
+    "identity.profile_sha256": "04109420fa962d25550335f477327221d1b3b9c22c5a557610a893c4c2e4b1c5",
+    "identity.seed_code_sha256": "09600e5e14cb293dfd0411b697d4ff95774c045845884620d4686f11485401ba",
+    "identity.source_hash_definition": "sorted_relative_path_and_sha256_pairs.v1",
+    "identity.uploaded_csv_sha256": "bae7a1e660c4db02b60fd731754de3a1b66964cee70a05850c021503f54980f3",
+    "import.measurement": "upload_start_to_ready_observation_including_queue_and_poll",
+    "import.samples": 1,
+    "live_data": false,
+    "metadata_api.count": 20,
+    "metadata_api.measurement": "sequential_authenticated_immutable_dataset_metadata_http_no_model_time",
+    "metadata_api.warmup_excluded": 2,
+    "model_calls": 0,
+    "performance_threshold": null,
+    "profile_id": "cn-one-listing-six-year-v1",
+    "schema_version": "tradegrad.daily-reference-performance.v1",
+    "scope": "isolated_ci_synthetic_native_configured_seed",
+    "single_evaluation.measurement": "newly_created_server_evaluation_registration_to_persisted_completion_including_staging_docker_and_publication_not_cpu_time",
+    "single_evaluation.model_calls": 0,
+    "single_evaluation.samples": 1,
+    "single_evaluation.scored_calendar_year": 2024,
+    "single_evaluation.selection": "2024_physical_evaluation_from_new_standalone_configured_run",
+    "single_evaluation.split": "validation",
+    "single_evaluation.warmup_sessions": 20,
+    "standalone_configured_run.configured_runs": 1,
+    "standalone_configured_run.measurement": "configured_run_submission_to_verified_terminal_including_queue_five_evaluations_and_poll",
+    "standalone_configured_run.native_docker_successes": 5,
+    "standalone_configured_run.physical_engine_evaluations": 5,
+    "standalone_configured_run.physical_evaluation_measurement": "newly_created_server_evaluation_registration_to_persisted_completion_including_staging_docker_and_publication_not_cpu_time",
+    "standalone_configured_run.physical_evaluation_split_order": [
+      "train",
+      "train",
+      "train",
+      "train",
+      "validation"
+    ],
+    "standalone_configured_run.physical_evaluation_year_order": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "standalone_configured_run.same_exact_config_dataset_strategy": true,
+    "standalone_configured_run.sandbox_stopped": true,
+    "standalone_configured_run.verified_model_calls": 0,
+    "status": "succeeded",
+    "user_agreed_production_profile": false,
+    "windowed_chart.count": 20,
+    "windowed_chart.measurement": "persisted_hash_verified_result_query_http_including_access_ledger_no_engine_rerun",
+    "windowed_chart.same_exact_new_dataset_and_standalone_2024_evaluation": true,
+    "windowed_chart.stable_persisted_artifact_hash_across_reads": true,
+    "windowed_chart.tables": {
+      "drawdown": {
+        "filtered_rows": 58,
+        "returned_rows": 58,
+        "total_rows": 242
+      },
+      "equity": {
+        "filtered_rows": 58,
+        "returned_rows": 58,
+        "total_rows": 242
+      }
+    },
+    "windowed_chart.warmup_excluded": 2,
+    "windowed_chart.window_days": 91,
+    "workload": {
+      "calendar_years": 6,
+      "concurrent_runs": 2,
+      "daily_bars": 1456,
+      "engine_seconds_per_run_cap": 240,
+      "import_samples": 1,
+      "listings": 1,
+      "maximum_created_experiments": 0,
+      "maximum_created_imports": 1,
+      "maximum_created_runs": 3,
+      "maximum_created_strategies": 0,
+      "maximum_created_universes": 1,
+      "maximum_physical_evaluations": 15,
+      "model_call_budget": 0,
+      "physical_evaluations_per_run": 5,
+      "standalone_configured_runs": 1,
+      "uploaded_csv_bytes": 80119
+    }
+  },
+  "rule": {
+    "comparison": "observed_ms <= maximum_ms",
+    "formula": "ceil(calibration_observed_ms * 5 / round_up_quantum_ms) * round_up_quantum_ms",
+    "multiplier": 5
+  },
+  "schema_version": "tradegrad.daily-reference-engineering-budget.v1",
+  "user_agreed_production_profile": false
+}

@@ -159,6 +159,42 @@ def test_portable_upload_contracts_use_required_data_runtime_and_keep_evidence()
     assert report_name in export
 
 
+def test_daily_engineering_budget_is_required_after_fixture_performance():
+    import re
+    from pathlib import Path
+
+    workflow = (
+        Path(__file__).resolve().parents[2] / ".github/workflows/v1-validation.yml"
+    ).read_text()
+    application = workflow.split("  application:\n", 1)[1].split("\n  compose:", 1)[0]
+    blocks = re.split(r"(?=^      - name: )", application, flags=re.MULTILINE)
+    browser = next(
+        block
+        for block in blocks
+        if "run: python -m script.ci_application_browser" in block
+    )
+    budget = next(
+        block
+        for block in blocks
+        if "python -m script.check_v1_daily_reference_budget" in block
+    )
+    assert "id: application_browser" in browser
+    assert blocks.index(budget) > blocks.index(browser)
+    assert "env.DATA_PROVIDER_MODE == 'fixture'" in budget
+    assert "steps.application_browser.outcome == 'success'" in budget
+    assert "continue-on-error" not in budget and "|| true" not in budget
+    assert "--report var/ci-evidence/v1-daily-reference-performance.json" in budget
+    assert "--receipt var/ci-evidence/v1-daily-reference-budget-receipt.json" in budget
+    assert '--source-commit "${{ github.sha }}"' in budget
+    assert '--github-run-id "${{ github.run_id }}"' in budget
+    evidence = next(
+        block
+        for block in blocks
+        if "name: m1-m6-${{ env.DATA_PROVIDER_MODE }}" in block
+    )
+    assert "var/ci-evidence/v1-daily-reference-budget-receipt.json" in evidence
+
+
 def test_workflow_preserves_failed_steps_and_chains_verified_cleanup():
     import re
     from pathlib import Path
