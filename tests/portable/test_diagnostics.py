@@ -1,7 +1,9 @@
 """Pure privacy regression; no Docker discovery, process or policy execution."""
 
+import ast
 import json
 import secrets
+from pathlib import Path
 
 import pytest
 
@@ -60,3 +62,25 @@ def test_malformed_error_status_are_not_stringified(value):
     safe = safe_diagnostic({"status": value, "error": value})
     assert safe["status"] == "unknown"
     assert safe["error"] == "unclassified"
+
+
+def test_every_hosted_status_assertion_uses_opaque_failure_helper():
+    tree = ast.parse(Path(__file__).with_name("test_isolation.py").read_text())
+    names = {"result", "first", "second", "prefix", "complete"}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assert):
+            continue
+        for expression in ast.walk(node.test):
+            if (
+                isinstance(expression, ast.Subscript)
+                and isinstance(expression.value, ast.Name)
+                and expression.value.id in names
+                and isinstance(expression.slice, ast.Constant)
+                and expression.slice.value == "status"
+            ):
+                pytest.fail("Hosted status assertion bypasses opaque diagnostics")
+        if isinstance(node.msg, (ast.Name, ast.Tuple)):
+            assert not any(
+                isinstance(item, ast.Name) and item.id in names
+                for item in ast.walk(node.msg)
+            )
