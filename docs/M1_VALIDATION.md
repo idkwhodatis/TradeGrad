@@ -152,3 +152,25 @@ The authorized feature-only timestamp rewrite preserved the M1 tree
 [run 39861794800](https://github.com/idkwhodatis/TradeGrad/actions/runs/39861794800).
 Commit metadata changed; actual GitHub push and CI timestamps did not move.
 The default branch was not changed.
+
+### Cumulative recovery observation repair (2026-10-23)
+
+The cumulative fixture run [39936992994](https://github.com/idkwhodatis/TradeGrad/actions/runs/39936992994)
+failed only the two-worker recovery observation deadline at exact source
+`0a794fc8513e03884d59e0c21ba8e476027fd78c`. Immediate allowlisted diagnostics
+observed both attempts durably interrupted with confirmed sandbox stops and
+absent containers, without a recovery blockage. Heartbeat ages were 18.33 and
+18.36 seconds. Those observations do not prove the actual finish-time deltas or
+retroactively pass the failed test.
+
+The former 18-second observation wait was exactly the configured 10-second lease
+plus a 2-second reconciler cycle plus two serial 3-second stop grace periods. It
+left no allowance for Docker CLI, database commit, HTTP observation or scheduling.
+The harness now permits a separate 4-second observation allowance (22 seconds
+total), followed by exactly one full predicate observation to close the last-sleep
+race. This allowance is not a measured worst-case or a production SLO. The global
+120-second test deadline, real SIGKILL, immutable attempt identity/history, durable
+interruption, container absence and strict recorded stop-before-20-second-natural-
+completion checks are unchanged. Production timing and the slow seed are unchanged.
+Pure fake-clock/AST regressions are not the required hosted recovery acceptance;
+the repaired exact head must still pass the real gate.

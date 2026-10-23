@@ -40,6 +40,22 @@ from script.ci_recovery_diagnostics import recovery_diagnostic
 
 ROOT = Path(__file__).resolve().parents[2]
 SLOW_SEED = "E2E slow cn_time seed (20s import delay)"
+RECOVERY_LEASE_SECONDS = 10
+RECONCILER_POLL_SECONDS = 2
+RECOVERY_GRACE_SECONDS = 3
+RECOVERY_OBSERVATION_OVERHEAD_SECONDS = 4
+# Two native containers are stopped serially in one reconciler transaction.
+# The prior 18s poll allowed lease + cycle + grace only, no CLI/DB/HTTP overhead.
+# Run39936992994 diagnostics observed both durable stops with heartbeat ages
+# up to 18.36s; that is not a precise measurement of elapsed polling time.
+# This is an observation budget, NOT a relaxed stop-latency assertion: the
+# recorded finish of each attempt must still precede its 20s natural completion.
+RECOVERY_OBSERVATION_SECONDS = (
+    RECOVERY_LEASE_SECONDS
+    + RECONCILER_POLL_SECONDS
+    + 2 * RECOVERY_GRACE_SECONDS
+    + RECOVERY_OBSERVATION_OVERHEAD_SECONDS
+)
 
 
 def require(condition, message):
@@ -61,7 +77,9 @@ class ProcessHarness:
         self.clients = []
         self.attempts = set()
         self.runs = []
-        self.runner = DockerEvaluator(state_dir=root / "runner")
+        self.runner = DockerEvaluator(
+            state_dir=root / "runner", grace_seconds=RECOVERY_GRACE_SECONDS
+        )
         url = make_url(database_url)
         require(url.get_backend_name() == "postgresql", "Real PostgreSQL is required")
         self.admin_url = url.set(drivername="postgresql").render_as_string(
@@ -80,7 +98,7 @@ class ProcessHarness:
             "SECRET_KEY": secrets.token_urlsafe(48),
             "STORAGE_ROOT": str(root / "storage"),
             "TRADEGRAD_RUNNER_STATE_DIR": str(root / "runner"),
-            "LEASE_SECONDS": "10",
+            "LEASE_SECONDS": str(RECOVERY_LEASE_SECONDS),
             "HEARTBEAT_SECONDS": "1",
             "WORKER_CONCURRENCY": "1",
             "PYTHONDONTWRITEBYTECODE": "1",
@@ -138,7 +156,9 @@ class ProcessHarness:
                     f"Owned {label} process exited early",
                 )
 
-    def until(self, predicate, message, *, timeout, diagnostics=None):
+    def until(
+        self, predicate, message, *, timeout, diagnostics=None, final_observation=False
+    ):
         deadline = time.monotonic() + self.remaining(timeout)
         while time.monotonic() < deadline:
             self.alive()
@@ -146,6 +166,16 @@ class ProcessHarness:
             if result:
                 return result
             time.sleep(0.15)
+        if final_observation:
+            # Exactly one complete predicate observation closes the last-sleep
+            # race. Never promote diagnostics to success or retry indefinitely.
+            # HTTP and Docker calls retain their own bounds and the overall
+            # harness deadline; the predicate keeps the immutable stop proof.
+            self.remaining(timeout)
+            self.alive()
+            result = predicate()
+            if result:
+                return result
         if diagnostics is not None:
             # Fixed enums/numeric timing only, no UUIDs, credentials, SQL, logs,
             # event payloads or arbitrary HTTP/database error messages.
@@ -676,8 +706,9 @@ def test_two_concurrent_runs_recover_after_real_workers_are_sigkilled(process_ha
     harness.until(
         lambda: harness.reconciled(old),
         "Expired workers were not durably reconciled",
-        timeout=18,
+        timeout=RECOVERY_OBSERVATION_SECONDS,
         diagnostics=lambda: harness.recovery_diagnostics(old),
+        final_observation=True,
     )
     harness.workers = harness.start_workers()
     for run in harness.runs:
