@@ -78,8 +78,9 @@ WARNINGS = [
 ]
 
 
-def research_capability_metadata(settings):
+def research_capability_metadata(settings, owner_id=None):
     from packages.tradegrad_adapter.environment import environment_digest
+    from packages.tradegrad_adapter.model_profiles import available_profiles
 
     profiles = []
     for task in ("cn_time", "us_time", "cn_cross", "us_cross"):
@@ -96,7 +97,12 @@ def research_capability_metadata(settings):
                     ),
                 )
             )
+    models = available_profiles(settings, owner_id)
     return ResearchCapabilities(
+        model_profiles=models,
+        model_providers=list(dict.fromkeys(item["config"].provider for item in models)),
+        models=list(dict.fromkeys(item["config"].model for item in models)),
+        live_model_calls=any(not item["synthetic"] for item in models),
         environment_digest=environment_digest(),
         profile_defaults=profiles,
         limits={

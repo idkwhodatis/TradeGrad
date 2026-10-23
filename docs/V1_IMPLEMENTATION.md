@@ -60,6 +60,13 @@ reference performance drivers. Its real restore/upgrade and measured workload
 acceptance has not run yet. See [operations](V1_OPERATIONS.md),
 [M6 evidence and remaining gates](M6_VALIDATION.md),
 [failure matrix](M6_FAILURE_MATRIX.md) and [restore profile](M6_BACKUP_RESTORE.md).
+The original-V1 model admission completion is a distinct subsequent slice:
+disabled-by-default, owner-allowlisted OpenAI-compatible profiles for native
+research, bounded trusted SDK subprocesses, and durable process-stop receipts.
+It retains upstream TradeTGD and historical fixture configuration bytes. Its
+synthetic SDK/application and profile-browser gates are separate from real
+provider acceptance; portable research still admits only frozen fixture models.
+See [operator model boundaries and evidence](V1_OPERATOR_MODELS.md).
 Live provider verification is separate from deterministic
 synthetic SDK-response fixtures. An absent or pending report means the relevant
 phase has not passed.

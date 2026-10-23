@@ -2096,19 +2096,58 @@ export type ModelConfig = {
     /**
      * Credential Ref
      */
-    credential_ref?: string | null;
+    credential_ref?: null;
+    /**
+     * Max Output Tokens
+     */
+    max_output_tokens?: number;
     /**
      * Model
      */
     model?: string;
     /**
+     * Profile Id
+     */
+    profile_id?: string | null;
+    /**
+     * Profile Sha256
+     */
+    profile_sha256?: string | null;
+    /**
      * Provider
      */
-    provider?: 'fixture' | 'openai' | 'openrouter';
+    provider?: 'fixture' | 'openai' | 'openrouter' | 'openai-compatible';
     /**
      * Temperature
      */
     temperature?: number;
+};
+
+/**
+ * ModelProfilePublic
+ */
+export type ModelProfilePublic = {
+    config: ModelConfig;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Request Timeout Seconds
+     */
+    request_timeout_seconds: number;
+    /**
+     * Strategy Modes
+     */
+    strategy_modes: Array<'native_akquant' | 'portable'>;
+    /**
+     * Synthetic
+     */
+    synthetic: boolean;
 };
 
 /**
@@ -4299,15 +4338,19 @@ export type ResearchCapabilities = {
     /**
      * Live Model Calls
      */
-    live_model_calls?: false;
+    live_model_calls?: boolean;
+    /**
+     * Model Profiles
+     */
+    model_profiles?: Array<ModelProfilePublic>;
     /**
      * Model Providers
      */
-    model_providers?: Array<'fixture'>;
+    model_providers?: Array<string>;
     /**
      * Models
      */
-    models?: Array<'deterministic-fixture-v1'>;
+    models?: Array<string>;
     /**
      * Portable Execution
      */

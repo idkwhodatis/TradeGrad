@@ -79,15 +79,25 @@ class ResearchLimits(ViewModel):
     max_artifact_bytes: int
 
 
+class ModelProfilePublic(ViewModel):
+    id: str
+    label: str
+    config: ModelConfig
+    synthetic: bool
+    request_timeout_seconds: float
+    strategy_modes: list[Literal["native_akquant", "portable"]]
+
+
 class ResearchCapabilities(ViewModel):
     environment_digest: str
     schema_version: Literal["tradegrad.run.v1"] = "tradegrad.run.v1"
     prompt_versions: list[Literal["source_prompts.v1"]] = ["source_prompts.v1"]
-    model_providers: list[Literal["fixture"]] = ["fixture"]
-    models: list[Literal["deterministic-fixture-v1"]] = ["deterministic-fixture-v1"]
+    model_providers: list[str] = ["fixture"]
+    models: list[str] = ["deterministic-fixture-v1"]
+    model_profiles: list[ModelProfilePublic] = Field(default_factory=list)
     execution_modes: list[Literal["optimization"]] = ["optimization"]
     seed_only_research: SeedOnlyResearch = Field(default_factory=SeedOnlyResearch)
-    live_model_calls: Literal[False] = False
+    live_model_calls: bool = False
     holdout_execution: Literal[False] = False
     checkpoint_resume: Literal[True] = True
     tasks: list[Task] = ["cn_time", "us_time", "cn_cross", "us_cross"]

@@ -171,7 +171,12 @@ test.afterEach(async ({ request, owned }) => {
   ).toEqual([]);
 });
 
-async function fixture(request: APIRequestContext, auth: Token, slow = false) {
+async function fixture(
+  request: APIRequestContext,
+  auth: Token,
+  slow = false,
+  operatorProfiles = false,
+) {
   const [csv, metadataText, originalCode] = await Promise.all([
     readFile(new URL("../fixtures/research-cn.csv", import.meta.url)),
     readFile(new URL("../fixtures/research-cn.json", import.meta.url), "utf8"),
@@ -329,8 +334,10 @@ async function fixture(request: APIRequestContext, auth: Token, slow = false) {
     auth,
     "/research-capabilities",
   );
-  expect(capabilities.live_model_calls).toBe(false);
-  expect(capabilities.model_providers).toEqual(["fixture"]);
+  if (!operatorProfiles) {
+    expect(capabilities.live_model_calls).toBe(false);
+    expect(capabilities.model_providers).toEqual(["fixture"]);
+  }
   const profile = capabilities.profile_defaults.find(
     (item) =>
       item.task === "cn_time" && item.profile === "corrected_explicit_config",
@@ -364,7 +371,7 @@ async function fixture(request: APIRequestContext, auth: Token, slow = false) {
     environment_digest: capabilities.environment_digest,
     benchmark: null,
   };
-  return { body, dataset, universe, seed };
+  return { body, dataset, universe, seed, capabilities };
 }
 
 async function configure(
@@ -439,6 +446,9 @@ async function configure(
       exact: true,
     }),
   ).toBeVisible();
+  await page
+    .getByLabel("Model profile", { exact: true })
+    .selectOption(body.model?.profile_id || "fixture");
   for (const [label, value] of [
     ["Maximum iterations", body.optimizer!.max_iterations],
     ["Maximum model calls", body.budgets!.max_model_calls],
@@ -527,6 +537,143 @@ async function downloadedBytes(page: Page, button: string, filename: string) {
   for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
   return Buffer.concat(chunks);
 }
+
+test("synthetic owner-profile selection survives reload and seed-only submit without model calls @operator-model-profile", async ({
+  page,
+  request,
+  owned,
+}) => {
+  test.setTimeout(300_000);
+  test.skip(
+    process.env.E2E_MODEL_PROFILES !== "1",
+    "Opt in on the hosted real stack with a primary-owner-only synthetic model profile; this gate submits a zero-model-call seed-only run.",
+  );
+  const profileId = process.env.E2E_MODEL_PROFILE_ID;
+  expect(
+    profileId,
+    "Set the admitted primary-owner-only E2E_MODEL_PROFILE_ID",
+  ).toBeTruthy();
+  const { body, capabilities } = await fixture(
+    request,
+    owned.auth,
+    false,
+    true,
+  );
+  const profile = capabilities.model_profiles?.find(
+    (item) => item.id === profileId,
+  );
+  expect(
+    profile,
+    "The configured profile must be available to the primary owner",
+  ).toBeDefined();
+  expect(profile!.config.provider).not.toBe("fixture");
+  expect(
+    profile!.synthetic,
+    "This browser gate never admits a paid model profile",
+  ).toBe(true);
+  expect(profile!.strategy_modes).toEqual(["native_akquant"]);
+  expect(profile!.config.credential_ref).toBeNull();
+  expect(profile!.config.profile_sha256).toMatch(/^[0-9a-f]{64}$/);
+  body.model = profile!.config;
+  body.optimizer = { ...body.optimizer, max_iterations: 0 };
+  body.budgets = { ...body.budgets, max_model_calls: 0 };
+  const stranger = await token(request, true);
+  const otherCapabilities = await read<ResearchCapabilities>(
+    request,
+    stranger,
+    "/research-capabilities",
+  );
+  expect(
+    otherCapabilities.model_profiles?.some((item) => item.id === profileId),
+  ).toBe(false);
+  const submissions: string[] = [];
+  page.on("request", (request) => {
+    if (
+      new URL(request.url()).pathname === "/api/v1/research-runs" &&
+      request.method() === "POST"
+    )
+      submissions.push(request.url());
+  });
+  await signIn(page);
+  await configure(page, body);
+  await expect(
+    page.getByTestId("research-selected-model-notice"),
+  ).toContainText("marked synthetic");
+  await preflight(page, body);
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Submit experiment", exact: true }),
+  ).toBeDisabled();
+  await expect(page.getByTestId("research-preflight-success")).toHaveCount(0);
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page.getByLabel("Model profile", { exact: true })).toHaveValue(
+    profileId!,
+  );
+  await expect(
+    page.locator(
+      'input[name="model.credential_ref"],input[name="model.temperature"],input[type="password"]',
+    ),
+  ).toHaveCount(0);
+  await page
+    .getByLabel("Model profile", { exact: true })
+    .selectOption("fixture");
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Submit experiment", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByTestId("research-selected-model-notice"),
+  ).toContainText("does not call a paid model");
+  await preflight(page, { ...body, model: capabilities.defaults!.model });
+  expect(submissions).toEqual([]);
+  expect(await runsForDataset(request, owned.auth, body.dataset.id)).toEqual(
+    [],
+  );
+  // Only the admitted synthetic profile is submitted. This proves the real
+  // browser/API/queue/Docker seed path, not SDK/provider request acceptance.
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await page
+    .getByLabel("Model profile", { exact: true })
+    .selectOption(profileId!);
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Submit experiment", exact: true }),
+  ).toBeDisabled();
+  await preflight(page, body);
+  const accepted = await submit(page, owned, true);
+  expect(submissions).toHaveLength(1);
+  expect(accepted.config.model).toEqual(profile!.config);
+  const completed = await waitStatus(
+    request,
+    owned.auth,
+    accepted.id,
+    "succeeded",
+  );
+  await assertStopped(request, owned.auth, accepted.id);
+  expect(completed.config.model).toEqual(profile!.config);
+  expect(completed.attempts).toHaveLength(1);
+  expect(await evaluations(request, owned.auth, accepted.id)).toHaveLength(2);
+  expect(
+    await rows<ModelCallPublic>(
+      request,
+      owned.auth,
+      `/research-runs/${accepted.id}/model-calls`,
+    ),
+  ).toEqual([]);
+  expect(
+    (await runsForDataset(request, owned.auth, body.dataset.id)).map(
+      (run) => run.id,
+    ),
+  ).toEqual([accepted.id]);
+  await page.reload();
+  await expect(runStatus(page)).toHaveText("Succeeded");
+  await expect(
+    page.getByText(profile!.config.profile_sha256!, { exact: true }),
+  ).toBeVisible();
+  expect((await detail(request, owned.auth, accepted.id)).config.model).toEqual(
+    profile!.config,
+  );
+});
 
 // The fixture-model returns the unchanged seed, but the optimizer, queue,
 // checkpoints, native evaluations, artifacts, and browser interactions are real.

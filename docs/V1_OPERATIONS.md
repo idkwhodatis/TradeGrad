@@ -116,9 +116,16 @@ The browser uses authenticated fetch/SSE, never credentials in event-stream URLs
 
 Fixture mode is deliberately synthetic. Switching to live data is not part of
 this install rehearsal and must retain honest provider-specific coverage,
-adjustment and calendar warnings. Configured model admission currently accepts
-only deterministic fixture responses. The OpenAI-compatible adapter's existence
-does not enable live/paid application calls.
+adjustment and calendar warnings. Configured model admission defaults to
+deterministic fixture responses. The separate, disabled-by-default
+[operator model profile](V1_OPERATOR_MODELS.md) path supports owner-allowlisted
+OpenAI-compatible profiles for native research only, using existing worker-only
+secret references. No actual provider credentials, calls or grants are supplied
+or verified by this install rehearsal. Portable research remains fixture-only.
+Enabling real model transmission or paid calls requires separate operator review;
+request/token bounds are not billing ceilings. An unconfirmed model-process stop
+blocks recovery even if the worker has died. Follow the receipt and restart
+boundary documented there rather than manually releasing an attempt.
 
 ## Recovery, shutdown and upgrade
 

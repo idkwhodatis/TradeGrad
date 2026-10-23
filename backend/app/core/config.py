@@ -3,9 +3,14 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
+
+from packages.tradegrad_adapter.model_profiles import (
+    OperatorModelProfile,
+    validate_registry,
+)
 
 
 class Settings(BaseSettings):
@@ -27,6 +32,17 @@ class Settings(BaseSettings):
     max_active_imports_per_user: int = Field(default=4, ge=1, le=100)
     max_upload_bytes: int = Field(default=10_000_000, ge=1024, le=10_000_000)
     max_active_runs_per_user: int = Field(default=4, ge=1, le=100)
+
+    model_profiles_enabled: bool = False
+    model_profiles: tuple[OperatorModelProfile, ...] = Field(
+        default=(), max_length=64, repr=False
+    )
+    model_synthetic_test_mode: bool = False
+
+    @model_validator(mode="after")
+    def model_registry(self):
+        validate_registry(self)
+        return self
 
     @field_validator("database_url")
     @classmethod

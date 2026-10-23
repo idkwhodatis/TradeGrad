@@ -16,6 +16,8 @@ import {
   profileDescriptions,
   researchDefaults,
   researchFormSchema,
+  researchModelProfileFor,
+  researchModelProfiles,
   researchSelectionIssues,
   researchStepFor,
   suggestWindows,
@@ -27,6 +29,7 @@ import {
 import {
   clearAcceptedResearchDraft,
   researchCompletionIsCurrent,
+  hasStoredResearchDraft,
   loadResearchDraft,
   matchingPreflight,
   preflightResearch,
@@ -48,6 +51,23 @@ const steps = [
 ];
 type Completion = { onCreated?: (id: string) => void };
 
+function ModelProfileNotice({
+  profile,
+}: {
+  profile: ReturnType<typeof researchModelProfileFor>;
+}) {
+  if (!profile) return null;
+  return (
+    <p className="notice" data-testid="research-selected-model-notice">
+      {profile.synthetic
+        ? profile.config.provider === "fixture"
+          ? "The deterministic fixture does not call a paid model. Model responses and usage are synthetic, not model-quality or cost evidence."
+          : "This operator profile is marked synthetic. It uses an operator-managed endpoint, but responses and usage are not paid-model quality or cost evidence."
+        : "This operator-managed profile can make paid online model calls after submission. Strategy code, task instructions and research feedback are sent to the configured provider. Call, token and runtime limits are not a currency spending cap; no verified price estimate is available."}
+    </p>
+  );
+}
+
 export function NewExperimentPage({ onCreated }: Completion = {}) {
   const { dataset: preferred } = useSearch({ strict: false }) as {
     dataset?: string;
@@ -55,6 +75,12 @@ export function NewExperimentPage({ onCreated }: Completion = {}) {
   const catalog = useQuery(researchCatalogOptions);
   const capabilities = useQuery(researchCapabilitiesOptions);
   const user = useQuery(currentUserOptions);
+  const availableModels = capabilities.data
+    ? researchModelProfiles(capabilities.data)
+    : [];
+  const hasOperatorModels = availableModels.some(
+    (profile) => profile.config.provider !== "fixture",
+  );
   const retry = () => {
     void catalog.refetch();
     void capabilities.refetch();
@@ -81,12 +107,24 @@ export function NewExperimentPage({ onCreated }: Completion = {}) {
           Back to experiments
         </Link>
       </PageHeader>
-      <p className="notice" data-testid="research-fixture-notice">
-        This deployment runs deterministic fixture-model optimization only.
-        Model responses and token counts are synthetic, not paid-model quality
-        or cost evidence. No online model calls, live trading, portable
-        execution, or final holdout evaluation.
-      </p>
+      {capabilities.data && (
+        <p
+          className="notice"
+          data-testid={
+            hasOperatorModels
+              ? "research-model-notice"
+              : "research-fixture-notice"
+          }
+        >
+          {hasOperatorModels
+            ? availableModels.some((profile) => !profile.synthetic)
+              ? "Choose only operator-enabled model profiles available to your account. The deterministic synthetic fixture remains the default. Non-synthetic operator profiles can make paid online calls; credentials and endpoints stay on the server."
+              : "Choose only operator-enabled synthetic model profiles available to your account. The deterministic fixture remains the default. No live model calls are enabled; credentials and endpoints stay on the server."
+            : "This deployment runs deterministic fixture-model optimization only. Model responses and token counts are synthetic, not paid-model quality or cost evidence."}{" "}
+          No live trading, portable execution, or final holdout evaluation in
+          this wizard.
+        </p>
+      )}
       <div className="mt-6">
         {catalog.isPending || capabilities.isPending || user.isPending ? (
           <Loading text="Loading published versions and deployment capabilities…" />
@@ -132,6 +170,9 @@ function ExperimentWizard({
 } & Completion) {
   const navigate = useNavigate();
   const previous = useRef(loadResearchDraft(owner));
+  const rejectedDraft = useRef(
+    !previous.current && hasStoredResearchDraft(owner),
+  );
   const restored = useRef(preferred ? null : previous.current);
   const submission = useRef(previous.current?.submission || null);
   const [step, setStep] = useState(restored.current?.step || 0);
@@ -157,6 +198,19 @@ function ExperimentWizard({
     defaultValues: restored.current?.body || defaults,
   });
   const body = watch();
+  const modelProfiles = researchModelProfiles(capabilities);
+  const selectedModelProfile = researchModelProfileFor(
+    body.model,
+    capabilities,
+  );
+  const modelProfileHash =
+    body.model.provider === "fixture"
+      ? "None: deterministic fixture"
+      : body.model.profile_sha256;
+  const modelOutputLimit =
+    body.model.provider === "fixture"
+      ? "Not applicable: deterministic fixture"
+      : body.model.max_output_tokens;
   const dataset = catalog.datasets.find((row) => row.id === body.dataset.id);
   const universe = catalog.universes.find((row) => row.id === body.universe.id);
   const seed = catalog.strategies.find(
@@ -183,6 +237,9 @@ function ExperimentWizard({
       active.current = false;
     };
   }, []);
+  useEffect(() => {
+    setPreflight(null);
+  }, [capabilities]);
   useEffect(() => {
     const subscription = watch((value) => {
       setPreflight(null);
@@ -440,10 +497,26 @@ function ExperimentWizard({
     );
   return (
     <div className="stack">
+      {rejectedDraft.current && (
+        <p className="notice" data-testid="research-draft-unrestored">
+          A saved draft could not be restored under the current configuration
+          schema. It has not been translated or resubmitted. Check your
+          experiments for a previously accepted run before creating another;
+          editing this form replaces the old draft.
+        </p>
+      )}
       {restored.current && (
         <p className="notice">
           Restored this signed-in owner’s draft. Run server preflight again
           before submitting.
+        </p>
+      )}
+      {!selectedModelProfile && (
+        <p className="notice" data-testid="research-model-unavailable">
+          The saved model profile is no longer available with this exact
+          configuration. Choose an available profile in Engine &amp;
+          optimization and run preflight again. No profile is substituted
+          automatically.
         </p>
       )}
       {submission.current && (
@@ -839,22 +912,54 @@ function ExperimentWizard({
                   value={body.objective}
                 />
                 <h3>Model and budgets</h3>
+                {field(
+                  "model.profile_id",
+                  "Model profile",
+                  <select
+                    value={selectedModelProfile?.id || ""}
+                    {...attrs("model.profile_id")}
+                    onChange={(event) => {
+                      const selected = modelProfiles.find(
+                        (profile) => profile.id === event.target.value,
+                      );
+                      if (selected)
+                        setValue("model", structuredClone(selected.config));
+                    }}
+                  >
+                    <option value="">Choose an available model profile</option>
+                    {modelProfiles.map((profile) => (
+                      <option key={profile.id} value={profile.id}>
+                        {profile.label} ·{" "}
+                        {profile.synthetic
+                          ? profile.config.provider === "fixture"
+                            ? "fixture / synthetic"
+                            : "operator / synthetic"
+                          : "operator / paid calls"}{" "}
+                        · {profile.config.provider} / {profile.config.model}
+                      </option>
+                    ))}
+                  </select>,
+                  "Exact owner-available server profiles only. Provider, model, temperature and output limit are pinned together; no browser credentials enter configuration.",
+                )}
                 <Metadata
                   values={{
                     Provider: body.model.provider,
                     Model: body.model.model,
                     Temperature: body.model.temperature,
+                    "Maximum output tokens per call": modelOutputLimit,
+                    "Model profile SHA-256": modelProfileHash,
+                    "Request timeout · seconds":
+                      selectedModelProfile?.request_timeout_seconds ??
+                      "Unavailable",
+                    "Admitted strategy modes":
+                      selectedModelProfile?.strategy_modes.join(", ") ??
+                      "Unavailable",
                     "Credential reference":
                       "None: no browser credentials enter configuration",
                     "Prompt version": body.prompt_version,
                   }}
                 />
-                <p className="notice">
-                  The deterministic fixture does not call a paid model.
-                  Calls/tokens are synthetic counters, with no price estimate or
-                  model-quality claim. Online provider and temperature controls
-                  are unavailable.
-                </p>
+                <ModelProfileNotice profile={selectedModelProfile} />
                 <div className="form-row">
                   {number(
                     "budgets.max_model_calls",
@@ -924,10 +1029,17 @@ function ExperimentWizard({
                       : "Not reserved",
                     "Warm-up sessions": body.warmup.sessions,
                     "Maximum iterations": body.optimizer.max_iterations,
+                    "Model profile":
+                      selectedModelProfile?.label || "Unavailable or changed",
+                    "Model provider / model": `${body.model.provider} / ${body.model.model}`,
+                    "Model profile SHA-256": modelProfileHash,
+                    "Model temperature": body.model.temperature,
+                    "Maximum output tokens per call": modelOutputLimit,
                     "Initial capital": `${body.market_profile.initial_cash} ${body.market_profile.currency}`,
                     "Environment digest": body.environment_digest,
                   }}
                 />
+                <ModelProfileNotice profile={selectedModelProfile} />
                 <p className="notice">
                   Preflight verifies exact owned references, actual available
                   history, fields, coverage and snapshot semantics. It allocates
@@ -1021,7 +1133,11 @@ function ExperimentWizard({
               ) : (
                 <Button
                   type="submit"
-                  disabled={!!busy || !matchingPreflight(body, preflight)}
+                  disabled={
+                    !!busy ||
+                    !selectedModelProfile ||
+                    !matchingPreflight(body, preflight)
+                  }
                 >
                   {busy === "submit" ? (
                     <LoaderCircle className="spinning" />

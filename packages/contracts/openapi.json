@@ -3559,18 +3559,15 @@
         "additionalProperties": false,
         "properties": {
           "credential_ref": {
-            "anyOf": [
-              {
-                "maxLength": 160,
-                "minLength": 1,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]*$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Credential Ref"
+            "title": "Credential Ref",
+            "type": "null"
+          },
+          "max_output_tokens": {
+            "default": 4096,
+            "maximum": 16384.0,
+            "minimum": 1.0,
+            "title": "Max Output Tokens",
+            "type": "integer"
           },
           "model": {
             "default": "deterministic-fixture-v1",
@@ -3580,12 +3577,37 @@
             "title": "Model",
             "type": "string"
           },
+          "profile_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "profile_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Sha256"
+          },
           "provider": {
             "default": "fixture",
             "enum": [
               "fixture",
               "openai",
-              "openrouter"
+              "openrouter",
+              "openai-compatible"
             ],
             "title": "Provider",
             "type": "string"
@@ -3599,6 +3621,51 @@
           }
         },
         "title": "ModelConfig",
+        "type": "object"
+      },
+      "ModelProfilePublic": {
+        "additionalProperties": false,
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/ModelConfig"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "request_timeout_seconds": {
+            "title": "Request Timeout Seconds",
+            "type": "number"
+          },
+          "strategy_modes": {
+            "items": {
+              "enum": [
+                "native_akquant",
+                "portable"
+              ],
+              "type": "string"
+            },
+            "title": "Strategy Modes",
+            "type": "array"
+          },
+          "synthetic": {
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "config",
+          "synthetic",
+          "request_timeout_seconds",
+          "strategy_modes"
+        ],
+        "title": "ModelProfilePublic",
         "type": "object"
       },
       "ObjectiveConfig": {
@@ -7420,17 +7487,22 @@
             "$ref": "#/components/schemas/ResearchLimits"
           },
           "live_model_calls": {
-            "const": false,
             "default": false,
             "title": "Live Model Calls",
             "type": "boolean"
+          },
+          "model_profiles": {
+            "items": {
+              "$ref": "#/components/schemas/ModelProfilePublic"
+            },
+            "title": "Model Profiles",
+            "type": "array"
           },
           "model_providers": {
             "default": [
               "fixture"
             ],
             "items": {
-              "const": "fixture",
               "type": "string"
             },
             "title": "Model Providers",
@@ -7441,7 +7513,6 @@
               "deterministic-fixture-v1"
             ],
             "items": {
-              "const": "deterministic-fixture-v1",
               "type": "string"
             },
             "title": "Models",

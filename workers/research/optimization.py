@@ -2,7 +2,7 @@
 
 Every evaluator has a durable UUID registered before container creation. The DB
 checkpoint pointer is the only resume authority; each new attempt first publishes
-its own checkpoint before new model calls. This deployment is fixture-model only.
+its own checkpoint before new model calls. Operator model profiles are pinned.
 """
 
 from __future__ import annotations
@@ -163,10 +163,12 @@ def confirm_stop(runner, evaluation_id: str) -> bool:
 
 def execute_configured(run_id: str, generation: int, settings: Settings, factory):
     # Imports are deliberately lazy: API/dispatcher/M1 tests do not load research SDKs.
-    from packages.tradegrad_adapter.model_calls import FrozenModel
+    from packages.tradegrad_adapter.model_calls import ModelProviderFailure
+    from packages.tradegrad_adapter.model_profiles import ModelProfileError
     from packages.tradegrad_adapter.optimizer import run_optimization
     from runtimes.evaluator.runner import DockerEvaluator
     from workers.research.executor import publish_artifacts
+    from workers.research.model_provider import create_model
 
     worker_id = f"research:{socket.gethostname()}:{uuid4()}"
     with factory.begin() as session:
@@ -181,6 +183,7 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
     evaluation_ids = set()
     image_id = None
     finish_receipt_committed = False
+    model = None
 
     def pulse(force=False):
         with lock:
@@ -250,6 +253,20 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
                 session, run, kind, safe_event_payload(kind, payload), attempt_id
             )
 
+    def model_boundary(phase, call_id):
+        from backend.app.model_containment import (
+            admit_model_process,
+            confirm_model_process_stopped,
+        )
+
+        operation = (
+            admit_model_process
+            if phase == "admitted"
+            else confirm_model_process_stopped
+        )
+        with factory.begin() as session:
+            operation(session, attempt_id, generation, token, call_id)
+
     def committed(reference):
         with factory.begin() as session:
             publish_checkpoint(
@@ -267,13 +284,12 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
         with factory() as session:
             run = session.get(ResearchRun, UUID(run_id))
             config = research_config(run)
-            if (
-                config.execution_mode != "optimization"
-                or config.model.provider != "fixture"
-            ):
-                raise ValueError(
-                    "This deployment supports fixture-model optimization only"
-                )
+            if config.execution_mode != "optimization":
+                raise ValueError("This worker requires optimization mode")
+            from packages.tradegrad_adapter.model_profiles import resolve_profile
+
+            resolve_profile(config.model, settings, run.owner_id)
+            model_owner_id = run.owner_id
             if config.environment_digest != environment_digest():
                 raise ValueError(
                     "Research environment differs from immutable RunConfig"
@@ -458,19 +474,16 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
             return small
 
         if ready and not cancelled.is_set():
-            # Every fixture response deliberately preserves the immutable seed.
-            # This exercises real TradeTGD orchestration, not model quality or returns.
-            fixture = FrozenModel(
-                [f"```python\n{seed_code}\n```"] * config.budgets.max_model_calls
+            model = create_model(
+                config, settings, model_owner_id, seed_code, boundary=model_boundary
             )
-            fixture.provider, fixture.model = config.model.provider, config.model.model
             result = run_optimization(
                 config=config.model_dump(mode="json"),
                 initial_code=seed_code,
                 windows=list(evaluation_windows(config)),
                 evaluate=evaluate,
                 root=attempt_root,
-                model=fixture,
+                model=model,
                 event=event,
                 checkpoint_committed=committed,
                 control=control,
@@ -493,7 +506,9 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
                 if best
                 else None,
                 "image_digest": image_id,
-                "model_mode": "frozen_fixture",
+                "model_mode": "frozen_fixture"
+                if config.model.provider == "fixture"
+                else "operator_profile",
                 "exit_code": 0,
             }
         else:
@@ -505,7 +520,11 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
     except Exception as error:  # noqa: BLE001 - no exception values/DB credentials in events
         outcome = {
             "status": "failed",
-            "stop_reason": "orchestration_failed",
+            "stop_reason": error.code
+            if isinstance(error, ModelProfileError)
+            else error.error_class
+            if isinstance(error, ModelProviderFailure)
+            else "orchestration_failed",
             "error": f"Research stopped safely ({type(error).__name__})",
             "image_digest": image_id,
         }
@@ -518,7 +537,10 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
                 confirm_stop(runner, item)
                 for item in [*evaluation_ids, str(attempt_id)]
             ]
-            stopped = all(stop_results)
+            model_stopped = (
+                model is None or getattr(model, "close", lambda: True)() is True
+            )
+            stopped = all(stop_results) and model_stopped
             if not fenced.is_set():
                 with factory.begin() as session:
                     final_run = finish_research_attempt(

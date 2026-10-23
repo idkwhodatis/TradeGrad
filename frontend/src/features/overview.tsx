@@ -238,9 +238,10 @@ export function OverviewPage() {
                 <h3 className="!text-xs">TradeGrad optimization</h3>
                 <p>
                   Configured runs use the original optimizer and verified
-                  checkpoints. Only deterministic fixture models are enabled.
-                  Legacy seed evaluations remain separate and restart the fixed
-                  seed on retry.
+                  checkpoints. Fixture models are the default; explicitly
+                  enabled operator profiles may be available for native
+                  research. Legacy seed evaluations remain separate and restart
+                  the fixed seed on retry.
                 </p>
               </div>
             </div>

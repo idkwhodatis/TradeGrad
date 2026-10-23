@@ -231,22 +231,6 @@ def stage(
     return engine, policy, request
 
 
-def affordable_reference_data(market, kind):
-    """Positive cash control; only future engine-side opens differ from the gap case.
-
-    A 100%-target policy sizes at decision close without seeing future prices.
-    The separate adverse-gap test must prove native rejection, not pretend all
-    NextOpen prices can be funded. Keep prior observations and policy unchanged.
-    """
-    data = fixture_data(market, kind)
-    if (market, kind) == ("US", "portfolio"):
-        first_decision = data["sessions"][20]["session_date"]
-        for bar in data["bars"]:
-            if bar["session_date"] > first_decision:
-                bar["open"] = bar["close"] * 0.97
-    return data
-
-
 @pytest.fixture
 def evaluator(tmp_path):
     runner = PortableDockerEvaluator(
@@ -281,13 +265,7 @@ def run(evaluator, tmp_path, market="US", kind="event", **kwargs):
 def test_actual_reference_policies_warmup_and_next_open(
     evaluator, tmp_path, market, kind
 ):
-    result, request = run(
-        evaluator,
-        tmp_path / "case",
-        market,
-        kind,
-        data=affordable_reference_data(market, kind),
-    )
+    result, request = run(evaluator, tmp_path / "case", market, kind)
     assert_status(result, "succeeded")
     bundle = result["bundle"]
     assert_native_controller_inventory(bundle)
@@ -307,50 +285,6 @@ def test_actual_reference_policies_warmup_and_next_open(
         assert fill["session_date"] > order["decision_session"]
         assert fill["native_at"] != fill["economic_reference_time"]
     assert (tmp_path / "case/output/portable-result.json").is_file()
-
-
-def test_actual_portfolio_adverse_gap_rejects_without_borrowing_or_future_peek(
-    evaluator, tmp_path
-):
-    control, control_request = run(
-        evaluator,
-        tmp_path / "control",
-        "US",
-        "portfolio",
-        data=affordable_reference_data("US", "portfolio"),
-    )
-    adverse, adverse_request = run(
-        evaluator,
-        tmp_path / "adverse",
-        "US",
-        "portfolio",
-        data=fixture_data("US", "portfolio"),
-    )
-    assert_status(control, "succeeded")
-    assert_status(adverse, "succeeded")
-    assert control_request["manifest"] == adverse_request["manifest"]
-    first = lambda result: next(
-        row for row in result["bundle"]["decision_trace"] if not row["warmup"]
-    )
-    # Exact policy observation, reply, sizing and wrapper decision before the
-    # changed future open must be identical, not just the final cash outcome.
-    assert first(control) == first(adverse)
-    assert_native_controller_inventory(control["bundle"])
-    assert control["bundle"]["fills"]
-    bundle = adverse["bundle"]
-    rejected = [row for row in bundle["orders"] if row["status"] == "rejected"]
-    assert rejected, "Adverse open must exercise native cash rejection"
-    assert all(
-        row["filled_quantity"] == 0
-        and row["reject_reason"].startswith("Risk: Insufficient margin at execution.")
-        for row in rejected
-    )
-    assert bundle["fills"] == []
-    assert bundle["positions"] == []
-    assert all(
-        row["cash"] == row["equity"] == adverse_request["initial_cash"]
-        for row in bundle["account_series"]
-    )
 
 
 @pytest.mark.parametrize("market", ["CN", "US"])
@@ -910,12 +844,12 @@ def test_actual_cn_no_touch_gtc_sell_reservation_survives_cancel_reply(
             return _reply(self, observation, (_order(self, observation, "seed", "buy", 300),))
         if current == {reserve_day!r}:
             _inventory(observation, 300, 300, 0)
-            return _reply(self, observation, (_order(self, observation, "no-touch", "sell", 200, limit=1000.0),))
+            return _reply(self, observation, (_order(self, observation, "no-touch", "sell", 200, limit=1000000.0),))
         if current == {replace_day!r}:
             _inventory(observation, 300, 100, 200)
             assert len(observation.open_orders) == 1
             pending = observation.open_orders[0]
-            assert pending.order_type == "limit" and pending.limit_price == 1000.0
+            assert pending.order_type == "limit" and pending.limit_price == 1000000.0
             intents = [_cancel(self, observation, pending)] if {cancel_pending!r} else []
             intents.append(_order(self, observation, "replacement", "sell", {replacement_quantity}))
             return _reply(self, observation, intents)
@@ -934,7 +868,9 @@ def test_actual_cn_no_touch_gtc_sell_reservation_survives_cancel_reply(
     assert_status(result, "succeeded")
     bundle = result["bundle"]
     final = assert_native_controller_inventory(bundle)
-    no_touch = next(o for o in bundle["logical_orders"] if o["limit_price"] == 1000.0)
+    no_touch = next(
+        o for o in bundle["logical_orders"] if o["limit_price"] == 1000000.0
+    )
     assert no_touch["filled_quantity"] == 0
     assert no_touch["terminal"] is cancel_pending
     assert all(

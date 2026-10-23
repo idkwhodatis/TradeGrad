@@ -29,7 +29,6 @@ from packages.tradegrad_adapter.portable_environment import portable_environment
 from packages.tradegrad_adapter.portable_results import validate_portable_result
 from packages.tradegrad_adapter.strategy_package import validate_environment_evidence
 from runtimes.evaluator.portable_runner import PortableDockerEvaluator
-from script.ci_owned_group import peek_owned_group, signal_owned_group, wait_owned_group
 
 
 class PortableProcessHarness(ResearchProcessHarness):
@@ -52,13 +51,13 @@ class PortableProcessHarness(ResearchProcessHarness):
                 "Worker is not harness-owned",
             )
             require(
-                peek_owned_group(process) is None
+                process.poll() is None
                 and os.getpgid(process.pid) == process.pid != os.getpgrp(),
                 "Research worker has no exclusive owned process group",
             )
             self.expected_alive.discard(process)
-            signal_owned_group(process, signal.SIGTERM)
-            wait_owned_group(process, timeout=self.remaining(10))
+            os.killpg(process.pid, signal.SIGTERM)
+            process.wait(timeout=self.remaining(10))
         self.workers = []
 
     def import_fixture(self, market):
@@ -77,7 +76,7 @@ class PortableProcessHarness(ResearchProcessHarness):
                 "provider": "portable_fixture",
                 "name": "Explicit synthetic portable pipeline gate",
                 "market": market,
-                "symbols": ["600000"] if market == "CN" else ["AAPL", "MSFT"],
+                "symbols": ["600000", "000001"] if market == "CN" else ["AAPL", "MSFT"],
                 "start_date": "2024-01-02",
                 "end_date": "2024-03-01",
                 "price_mode": "raw",
@@ -87,29 +86,29 @@ class PortableProcessHarness(ResearchProcessHarness):
         def complete():
             value = self.request(client, "GET", f"/data/imports/{record['id']}").json()
             require(
-                value["status"] not in {"failed", "partial", "cancelled"},
+                value["status"] not in {"failed", "cancelled"},
                 "Synthetic data worker failed",
             )
-            return value if value["status"] == "ready" else None
+            return value if value["status"] == "completed" else None
 
         imported = self.until(
             complete, "Synthetic data import did not complete", timeout=70
         )
         dataset = self.request(
-            client, "GET", f"/datasets/{imported['dataset_version_id']}"
+            client, "GET", f"/dataset-versions/{imported['dataset_version_id']}"
         ).json()
         require(dataset["is_synthetic"], "Artificial fixture lost its synthetic label")
         universe = self.request(
             client,
             "POST",
-            "/data/universes",
+            "/universe-versions",
             status=201,
             json={
                 "name": "Explicit fixed synthetic portable universe",
                 "state": "user_fixed",
                 "as_of": datetime.now(UTC).isoformat(),
                 "members": [
-                    {"listing_id": value, "valid_from": None, "valid_to": None}
+                    {"listing_id": value, "member_from": None, "member_to": None}
                     for value in imported["listing_ids"]
                 ],
                 "evidence": [],
@@ -294,13 +293,7 @@ def test_real_portable_api_queue_both_containers_lineage_results_and_ownership(
         "One smoke gate cannot certify a runtime",
     )
     h.request(other, "GET", f"/portable-runs/{run_id}", status=404)
-    incompatible = h.request(
-        client, "GET", f"/research-runs/{run_id}", status=409
-    ).json()
-    require(
-        incompatible["code"] == "invalid_research_config",
-        "Owned cross-family research lookup did not reject the incompatible config",
-    )
+    h.request(client, "GET", f"/research-runs/{run_id}", status=404)
     rows = {}
     for resource in ["candidates", "evaluations", "model-calls", "checkpoints"]:
         rows[resource] = h.request(

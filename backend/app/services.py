@@ -558,6 +558,21 @@ def reconcile_attempt(
             all_stopped = False
     # Legacy attempts may still own the attempt-named sandbox.
     parent_stopped = stop(str(attempt.id))
+    from backend.app.model_containment import model_processes_confirmed_stopped
+
+    model_stopped = (
+        model_processes_confirmed_stopped(session, attempt.id)
+        if run.config.get("model", {}).get("provider", "fixture") != "fixture"
+        else True
+    )
+    if not model_stopped:
+        message = "Recovery blocked: model process termination receipt is unconfirmed"
+        if run.error != message:
+            run.error = message
+            append_event(
+                session, run, "recovery_blocked", {"message": message}, attempt.id
+            )
+        return False
     if not all_stopped or not parent_stopped:
         if run.error != "Recovery blocked: previous sandbox termination is unconfirmed":
             run.error = "Recovery blocked: previous sandbox termination is unconfirmed"

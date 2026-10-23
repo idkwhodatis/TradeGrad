@@ -8,8 +8,12 @@ not global exactly-once across the provider, filesystem and database.
 from __future__ import annotations
 
 import copy
+import json
 import os
 import re
+import signal
+import subprocess
+import sys
 import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -89,55 +93,198 @@ class FrozenModel:
         return ModelResponse(str(value), 0, 0, usage_source="synthetic_fixture")
 
 
-class EnvironmentOpenAIModel:
-    """Opt-in live provider; credentials stay in environment, never serialized.
+class ModelProviderFailure(RuntimeError):
+    """Only fixed, secret-free classifications may cross the SDK boundary."""
 
-    SDK retries are disabled because ambiguous requests are not safe to replay.
-    The caller must explicitly configure live_enabled after obtaining authority
-    for paid calls. Construction alone does not make a request.
+    def __init__(self, error_class, *, outcome_unknown=False):
+        self.error_class = error_class
+        self.outcome_unknown = outcome_unknown
+        super().__init__(error_class)
+
+
+class EnvironmentOpenAIModel:
+    """Operator-admitted SDK calls; key resolution occurs in the trusted worker.
+
+    A fresh process owns one request. No per-read timeout is misrepresented as a
+    whole-call timeout: the parent kills/reaps the process at the wall deadline.
+    Cancellation can wait up to that deadline plus the bounded reap interval.
+    An unconfirmed process exit keeps worker finalization/recovery blocked.
     """
 
-    def __init__(
-        self,
-        *,
-        model: str,
-        base_url: str,
-        secret_env: str,
-        live_enabled: bool = False,
-        provider: str = "openai-compatible",
-    ):
+    def __init__(self, *, profile, live_enabled=False, boundary=None):
         if not live_enabled:
             raise ValueError("live model requests are disabled")
-        if not re.fullmatch(r"[A-Z_][A-Z0-9_]*", secret_env):
-            raise ValueError("invalid model credential environment reference")
-        secret = os.environ.get(secret_env)
-        if not secret:
-            raise ValueError("model credential environment reference is not set")
-        from openai import OpenAI
+        secret = os.environ.get(profile.secret_env)
+        if (
+            not secret
+            or len(secret.encode()) > 8192
+            or any(ord(c) < 32 for c in secret)
+        ):
+            raise ModelProviderFailure("model_credential_unavailable")
+        self.profile = profile
+        self.model, self.provider = profile.model, profile.provider
+        self.redactions = (secret, profile.base_url, profile.secret_env)
+        self._secret = secret
+        self._process = None
+        self.contained = True
+        self.boundary = boundary or (lambda *_: None)
+        self._active_call = None
 
-        self.client = OpenAI(api_key=secret, base_url=base_url, max_retries=0)
-        self.model, self.provider = model, provider
-        self.redactions = (secret,)
+    def _confirm_receipt(self):
+        if self._active_call is not None:
+            try:
+                self.boundary("stopped", self._active_call)
+            except Exception:  # noqa: BLE001 - suppress private persistence diagnostics
+                raise ModelProviderFailure(
+                    "model_stop_receipt_unconfirmed", outcome_unknown=True
+                ) from None
+            self._active_call = None
+
+    def close(self):
+        try:
+            return self._close()
+        except ModelProviderFailure:
+            # Local exit alone does not replace a durable confirmation receipt.
+            return False
+
+    def _close(self):
+        process = self._process
+        if process is None:
+            if self.contained:
+                self._confirm_receipt()
+            return self.contained
+        if process.poll() is not None:
+            self.contained = True
+            self._process = None
+            self._confirm_receipt()
+            return True
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        except OSError:
+            return False
+        try:
+            process.communicate(timeout=5)
+        except (subprocess.TimeoutExpired, OSError):
+            return False
+        self.contained = process.poll() is not None
+        if self.contained:
+            self._process = None
+            self._confirm_receipt()
+        return self.contained
 
     def complete(self, request: ModelRequest) -> ModelResponse:
+        if self._process is not None or not self.contained:
+            raise ModelProviderFailure(
+                "model_containment_unconfirmed", outcome_unknown=True
+            )
         messages = []
         if request.system_prompt:
             messages.append({"role": "system", "content": request.system_prompt})
         messages.append({"role": "user", "content": request.user_prompt})
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            max_tokens=request.max_output_tokens,
-            timeout=request.timeout_seconds,
-            temperature=request.parameters.get("temperature", 0),
-        )
-        usage = response.usage
-        return ModelResponse(
-            response.choices[0].message.content or "",
-            usage.prompt_tokens if usage else None,
-            usage.completion_tokens if usage else None,
-            getattr(response, "id", None),
-        )
+        timeout = min(request.timeout_seconds, self.profile.request_timeout_seconds)
+        if timeout <= 0:
+            raise ModelProviderFailure("model_request_deadline")
+        payload = {
+            "secret": self._secret,
+            "base_url": self.profile.base_url,
+            "parent_pid": os.getpid(),
+            "model": self.model,
+            "messages": messages,
+            "temperature": self.profile.temperature,
+            "max_output_tokens": min(
+                request.max_output_tokens, self.profile.max_output_tokens
+            ),
+            "timeout_seconds": timeout,
+            "max_request_bytes": self.profile.max_request_bytes,
+            "max_response_bytes": self.profile.max_response_bytes,
+            "synthetic": self.profile.synthetic,
+        }
+        wire = json.dumps(payload, ensure_ascii=True, allow_nan=False).encode()
+        if len(wire) > 2 * 1048576:
+            raise ModelProviderFailure("model_request_too_large")
+        # No inherited credential, proxy, SDK/global auth or Python path settings.
+        environment = {
+            "PATH": os.defpath,
+            "LANG": "C.UTF-8",
+            "PYTHONDONTWRITEBYTECODE": "1",
+        }
+        # A committed admission serializes launch against stale-lease recovery.
+        # Failure/uncertainty here prevents launch; it cannot license another call.
+        self._active_call = request.call_id
+        try:
+            self.boundary("admitted", request.call_id)
+        except Exception:  # noqa: BLE001 - suppress private persistence diagnostics
+            raise ModelProviderFailure(
+                "model_admission_receipt_unconfirmed", outcome_unknown=True
+            ) from None
+        self.contained = False
+        try:
+            process = subprocess.Popen(
+                [
+                    sys.executable,
+                    "-I",
+                    str(Path(__file__).with_name("model_sdk_process.py")),
+                ],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                env=environment,
+                start_new_session=True,
+            )
+        except OSError:
+            # Popen reports failed exec only after reaping its failed child.
+            self.contained = True
+            self._confirm_receipt()
+            raise ModelProviderFailure("model_process_unavailable") from None
+        self._process, self.contained = process, False
+        try:
+            output, _ = process.communicate(wire, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            confirmed = self.close()
+            raise ModelProviderFailure(
+                "model_request_timeout"
+                if confirmed
+                else "model_containment_unconfirmed",
+                outcome_unknown=True,
+            ) from None
+        except BaseException:
+            self.close()
+            raise
+        self.contained = process.poll() is not None
+        self._process = None if self.contained else process
+        if self.contained:
+            self._confirm_receipt()
+        if not self.contained or process.returncode != 0 or len(output) > 8 * 1048576:
+            raise ModelProviderFailure(
+                "model_process_outcome_unknown", outcome_unknown=True
+            )
+        try:
+            result = json.loads(output)
+            if result.get("ok") is not True:
+                error_class = result["error_class"]
+                if not isinstance(error_class, str) or not re.fullmatch(
+                    r"[a-z0-9_]{1,80}", error_class
+                ):
+                    raise ValueError("invalid classification")
+                raise ModelProviderFailure(
+                    error_class, outcome_unknown=result["outcome_unknown"] is True
+                )
+            response = ModelResponse(**result["response"])
+            if (
+                not isinstance(response.text, str)
+                or len(response.text.encode()) > self.profile.max_response_bytes
+                or response.price is not None
+            ):
+                raise ValueError("invalid bounded response")
+            return response
+        except ModelProviderFailure:
+            raise
+        except Exception:  # noqa: BLE001 - child protocol never leaks raw values
+            raise ModelProviderFailure(
+                "model_process_protocol_error", outcome_unknown=True
+            ) from None
 
 
 def sanitize(text: str, secrets: Sequence[str] = ()) -> str:
@@ -168,6 +315,7 @@ class RecordedModel:
         event: Callable[[str, Mapping[str, Any]], None] | None = None,
         replay_roots: Sequence[Path | str] = (),
         initial_records: Sequence[Mapping[str, Any]] = (),
+        control: Callable[[], str | None] | None = None,
     ):
         self.root = Path(root).absolute()
         self.root.mkdir(parents=True, exist_ok=True)
@@ -176,6 +324,7 @@ class RecordedModel:
         self.budgets = dict(budgets)
         self.prompt_version = prompt_version
         self.parameters = dict(parameters or {})
+        self.control = control or (lambda: None)
         self.elapsed = elapsed or (lambda: 0.0)
         self.fault = fault or (lambda _: None)
         self.event = event or (lambda *_: None)
@@ -267,7 +416,13 @@ class RecordedModel:
             # a fresh call ID. Cross its retry boundary without another request.
             raise ModelCallAbort("model_call_boundary_failed") from error
 
+    def _check_control(self):
+        requested = self.control()
+        if requested in {"cancel", "pause"}:
+            raise OptimizerStop("cancelled" if requested == "cancel" else "paused")
+
     def _query(self, user_prompt: str, system_prompt: str | None = None) -> str:
+        self._check_control()
         call_id = f"{self.context}:{self.ordinal:04d}"
         self.ordinal += 1
         user_prompt = sanitize(user_prompt, self.secrets)
@@ -367,19 +522,22 @@ class RecordedModel:
         try:
             response = self.provider.complete(request)
         except Exception as error:
-            uncertain = isinstance(error, (TimeoutError, ConnectionError)) or type(
-                error
-            ).__name__ in {
-                "APITimeoutError",
-                "APIConnectionError",
-                "ReadTimeout",
-                "ConnectTimeout",
-                "ConnectError",
-                "RemoteProtocolError",
-            }
+            uncertain = (
+                getattr(error, "outcome_unknown", False)
+                or isinstance(error, (TimeoutError, ConnectionError))
+                or type(error).__name__
+                in {
+                    "APITimeoutError",
+                    "APIConnectionError",
+                    "ReadTimeout",
+                    "ConnectTimeout",
+                    "ConnectError",
+                    "RemoteProtocolError",
+                }
+            )
             row.update(
                 status="started" if uncertain else "failed",
-                error_class=type(error).__name__,
+                error_class=getattr(error, "error_class", type(error).__name__),
                 error=sanitize(str(error), self.secrets)[:4096],
                 latency_seconds=time.monotonic() - started,
                 elapsed_seconds=self.elapsed(),
@@ -405,12 +563,23 @@ class RecordedModel:
             response=text,
             latency_seconds=time.monotonic() - started,
             elapsed_seconds=self.elapsed(),
-            provider_request_id=response.provider_request_id,
-            price=response.price,
+            provider_request_id=sanitize(
+                str(response.provider_request_id), self.secrets
+            )[:256]
+            if response.provider_request_id is not None
+            else None,
+            price=None
+            if response.price is None
+            else json.loads(
+                sanitize(json.dumps(response.price, allow_nan=False), self.secrets)
+            ),
             response_bytes=len(text.encode()),
         )
         if response.input_tokens is not None and response.output_tokens is not None:
-            if min(response.input_tokens, response.output_tokens) < 0:
+            if any(
+                type(value) is not int or value < 0 or value > 100000000
+                for value in (response.input_tokens, response.output_tokens)
+            ):
                 raise OptimizerStop("invalid_model_usage")
             row.update(
                 input_tokens=int(response.input_tokens),
@@ -431,4 +600,5 @@ class RecordedModel:
             raise OptimizerStop("max_tokens")
         if self.elapsed() >= float(self.budgets["max_runtime_seconds"]):
             raise OptimizerStop("max_runtime_seconds")
+        self._check_control()
         return text

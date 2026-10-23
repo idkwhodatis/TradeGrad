@@ -15,6 +15,10 @@
 > [current development setup](docs/V1_OPERATIONS.md), [M5 boundaries](docs/M5_VALIDATION.md)
 > and [remaining gates](docs/V1_IMPLEMENTATION.md).
 
+The original-V1 operator model completion slice is documented separately in
+[operator-managed models](docs/V1_OPERATOR_MODELS.md). It is disabled by default,
+native-research only, and has no real-provider acceptance claim.
+
 This is the implementation of our paper *Trading Strategy Optimization via Textual Gradient*.
 
 TradeGrad uses an LLM to iteratively rewrite a trading strategy's source code, guided by textual

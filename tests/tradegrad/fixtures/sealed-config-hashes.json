@@ -1,0 +1,8 @@
+{
+  "source_commit": "02e9718d838c5e0d1c169435ab5eda098cf291dd",
+  "seed": "# synthetic historical seed; never executed\n",
+  "sha256": {
+    "sealed-native-config.json": "5fd5d2613b3c2595770370852e5d1a804e10fb532dc11b57b87fde8cdab664e1",
+    "sealed-portable-config.json": "b4675b8890afcd79b58a53a74b2081a907c42a15e50751e196f9d7011590ffcf"
+  }
+}

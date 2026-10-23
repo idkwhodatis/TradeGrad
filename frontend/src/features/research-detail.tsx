@@ -388,6 +388,24 @@ function ResearchContent({ run }: { run: ResearchRunDetail }) {
           {run.error}
         </p>
       )}
+      {run.error?.includes("model process termination receipt") && (
+        <p className="notice error mt-4" role="alert">
+          Model-process stop evidence is missing. Recovery stays blocked and no
+          request is automatically retried. An operator must investigate; a
+          timeout or dead worker alone does not prove provider billing stopped.
+        </p>
+      )}
+      {String(
+        run.config.model &&
+          (run.config.model as Record<string, unknown>).provider,
+      ) !== "fixture" && (
+        <p className="notice mt-4">
+          Failed or uncertain model calls, including HTTP 429/5xx, are not
+          automatically retried on resume. A deliberately new experiment is a
+          separate potentially billed action. Usage may be actual tokens or a
+          conservative reservation; no dollar cost is inferred.
+        </p>
+      )}
       {Boolean(result.stop_reason) && (
         <p className="notice mt-4" role="status">
           Stop reason: {label(String(result.stop_reason))}.
@@ -413,8 +431,8 @@ function ResearchContent({ run }: { run: ResearchRunDetail }) {
         run.status === "cancel_requested") && (
         <p className="notice mt-4" role="status">
           {run.status === "pause_requested"
-            ? "Waiting for a complete checkpoint and confirmed sandbox stop. Pause is not final yet."
-            : "Cancellation requested. Waiting for durable sandbox stop confirmation."}
+            ? "Waiting for a complete checkpoint and confirmed evaluator/model process stops. Pause is not final yet."
+            : "Cancellation requested. Waiting for bounded model request completion and durable process stop confirmation."}
         </p>
       )}
       {controls.resumeReason && (
@@ -556,6 +574,11 @@ function ResearchContent({ run }: { run: ResearchRunDetail }) {
                 "Strategy version": run.strategy_version_id,
                 "Model provider": model.provider,
                 Model: model.model,
+                "Model profile": model.profile_id ?? "Deterministic fixture",
+                "Model profile SHA-256":
+                  model.profile_sha256 ?? "Not applicable",
+                "Model temperature": model.temperature,
+                "Maximum output tokens per call": model.max_output_tokens,
                 "Train [start, end)": windows.train,
                 "Validation [start, end)": windows.validation,
                 "Final test (not executed)": windows.holdout,

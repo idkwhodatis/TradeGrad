@@ -157,6 +157,16 @@ export function capabilityFixture(): ResearchCapabilities {
     portable_execution: false,
     model_providers: ["fixture"],
     models: ["deterministic-fixture-v1"],
+    model_profiles: [
+      {
+        id: "fixture",
+        label: "Deterministic fixture",
+        config: body.model,
+        synthetic: true,
+        request_timeout_seconds: 0,
+        strategy_modes: ["native_akquant", "portable"],
+      },
+    ],
     execution_modes: ["optimization"],
     limits: {
       max_active_runs_per_user: 3,
@@ -186,4 +196,30 @@ export function capabilityFixture(): ResearchCapabilities {
       ),
     ),
   };
+}
+
+export function operatorCapabilityFixture(synthetic = false) {
+  const capabilities = capabilityFixture();
+  const config: ResearchFormValues["model"] = {
+    provider: "openai-compatible",
+    model: "research-test-model",
+    credential_ref: null,
+    profile_id: "research-profile",
+    profile_sha256: "b".repeat(64),
+    temperature: 0.2,
+    max_output_tokens: 2048,
+  };
+  const profile = {
+    id: config.profile_id!,
+    label: "Operator research profile",
+    config,
+    synthetic,
+    request_timeout_seconds: 30,
+    strategy_modes: ["native_akquant"] as Array<"native_akquant" | "portable">,
+  };
+  capabilities.model_profiles!.push(profile);
+  capabilities.model_providers!.push(config.provider);
+  capabilities.models!.push(config.model);
+  capabilities.live_model_calls = !synthetic;
+  return { capabilities, profile };
 }

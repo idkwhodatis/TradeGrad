@@ -477,6 +477,7 @@ def run_optimization(
         event=event,
         replay_roots=replay_roots,
         initial_records=state["model_calls"],
+        control=control if model.provider != "fixture" else None,
     )
     elapsed_base = max(
         elapsed_base,

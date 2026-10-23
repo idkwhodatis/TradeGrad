@@ -170,6 +170,22 @@ def _reference(session, model, reference, owner_id):
     return item
 
 
+def validate_model_selection(model, settings, owner_id):
+    from packages.tradegrad_adapter.model_profiles import (
+        ModelProfileError,
+        resolve_profile,
+    )
+
+    try:
+        return resolve_profile(model, settings, owner_id)
+    except ModelProfileError as error:
+        raise DomainError(
+            error.code,
+            "Operator model profile is unavailable or changed; select a currently admitted profile",
+            422,
+        ) from None
+
+
 def validate_research_submission(session, owner_id, body, settings):
     """Shared read-only preflight. No locks, quota reservation, or writes."""
     from packages.tradegrad_adapter.environment import environment_digest
@@ -186,16 +202,13 @@ def validate_research_submission(session, owner_id, body, settings):
             "Research environment digest differs from this deployment",
             422,
         )
-    if (
-        body.prompt_version != "source_prompts.v1"
-        or body.model.provider != "fixture"
-        or body.model.model != "deterministic-fixture-v1"
-    ):
+    if body.prompt_version != "source_prompts.v1":
         raise DomainError(
             "research_capability_unavailable",
-            "This deployment supports the frozen fixture model and source_prompts.v1 only",
+            "Unsupported research prompt version",
             422,
         )
+    validate_model_selection(body.model, settings, owner_id)
     dataset = _reference(session, DatasetVersion, body.dataset, owner_id)
     strategy = _reference(session, StrategyVersion, body.seed_strategy, owner_id)
     universe = _reference(session, UniverseVersion, body.universe, owner_id)
@@ -1108,6 +1121,7 @@ def resume_research_run(session, run_id, owner_id, settings):
             "sandbox_not_stopped",
             "Every evaluation sandbox must be confirmed stopped before resume",
         )
+    validate_model_selection(research_config(run).model, settings, owner_id)
     latest_checkpoint_for_resume(session, run, settings)
     active = session.scalar(
         select(func.count())
@@ -1158,6 +1172,17 @@ def finish_research_attempt(
         )
         .limit(1)
     )
+    if config.model.provider != "fixture":
+        from backend.app.model_containment import model_processes_confirmed_stopped
+
+        if not model_processes_confirmed_stopped(session, attempt.id):
+            run.error = attempt.error = (
+                "Recovery blocked: model process termination receipt is unconfirmed"
+            )
+            append_event(
+                session, run, "recovery_blocked", {"message": run.error}, attempt.id
+            )
+            return run
     if not sandbox_stopped or outstanding:
         run.error = attempt.error = (
             "Recovery blocked: an evaluation sandbox termination is unconfirmed"

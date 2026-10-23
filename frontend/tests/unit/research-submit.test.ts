@@ -5,6 +5,7 @@ import {
   clearAcceptedResearchDraft,
   researchCompletionIsCurrent,
   forgetResearchDraft,
+  hasStoredResearchDraft,
   loadResearchDraft,
   matchingPreflight,
   preflightResearch,
@@ -15,7 +16,10 @@ import {
   submitResearch,
   type ResearchDraft,
 } from "../../src/lib/research-submit";
-import { researchFixture } from "./research-fixtures";
+import {
+  operatorCapabilityFixture,
+  researchFixture,
+} from "./research-fixtures";
 
 beforeEach(() => {
   const values = new Map<string, string>();
@@ -52,6 +56,51 @@ describe("owner-scoped draft and retry lifecycle", () => {
     const restored = loadResearchDraft("owner-a")!;
     expect(researchSubmissionFor(restored.body, restored.submission).key).toBe(
       value.submission.key,
+    );
+  });
+  it("preserves an exact operator profile across reload and changes the retry key on profile drift", () => {
+    const value = draft();
+    value.body.model = operatorCapabilityFixture().profile.config;
+    value.submission = researchSubmissionFor(value.body);
+    expect(saveResearchDraft("owner-a", value)).toBe(true);
+    const restored = loadResearchDraft("owner-a")!;
+    expect(restored.body.model).toEqual(value.body.model);
+    expect(researchSubmissionFor(restored.body, restored.submission).key).toBe(
+      value.submission.key,
+    );
+    if (restored.body.model.provider === "fixture")
+      throw new Error("Expected the persisted operator model");
+    restored.body.model.profile_sha256 = "c".repeat(64);
+    expect(
+      researchSubmissionFor(restored.body, restored.submission).key,
+    ).not.toBe(value.submission.key);
+  });
+  it("preserves the exact original fixture wire shape and pending retry identity", () => {
+    const value = draft();
+    value.submission = researchSubmissionFor(value.body);
+    const legacy = JSON.parse(JSON.stringify(value));
+    for (const model of [legacy.body.model, legacy.submission.body.model]) {
+      delete model.profile_id;
+      delete model.profile_sha256;
+      delete model.max_output_tokens;
+    }
+    const stored = JSON.stringify(legacy);
+    sessionStorage.setItem("tradegrad.research-draft.v1.owner-a", stored);
+    const restored = loadResearchDraft("owner-a")!;
+    expect(restored).toEqual(legacy);
+    expect(researchSubmissionFor(restored.body, restored.submission)).toEqual(
+      value.submission,
+    );
+    expect(Object.keys(restored.body.model).sort()).toEqual([
+      "credential_ref",
+      "model",
+      "provider",
+      "temperature",
+    ]);
+    expect(hasStoredResearchDraft("owner-a")).toBe(true);
+    expect(hasStoredResearchDraft("owner-b")).toBe(false);
+    expect(sessionStorage.getItem("tradegrad.research-draft.v1.owner-a")).toBe(
+      stored,
     );
   });
   it("invalidates every changed immutable input but ignores property order", () => {
@@ -109,7 +158,7 @@ describe("owner-scoped draft and retry lifecycle", () => {
     expect(
       saveResearchDraft("owner-a", {
         ...value,
-        authorization: "untrusted",
+        authorization: crypto.randomUUID(),
       } as ResearchDraft),
     ).toBe(false);
     expect(
@@ -117,7 +166,7 @@ describe("owner-scoped draft and retry lifecycle", () => {
         ...value,
         body: {
           ...value.body,
-          model: { ...value.body.model, credential_ref: "not-allowed" },
+          model: { ...value.body.model, credential_ref: crypto.randomUUID() },
         },
       } as unknown as ResearchDraft),
     ).toBe(false);
@@ -322,8 +371,8 @@ describe("stale research completion fencing", () => {
 });
 
 describe("generated API request contract", () => {
-  const testBearer = crypto.randomUUID();
   it("sends preflight to the authenticated non-mutating endpoint with the whole RunConfig", async () => {
+    const testBearer = crypto.randomUUID();
     const { body } = researchFixture();
     const seen: Request[] = [];
     client.setConfig({
@@ -349,11 +398,16 @@ describe("generated API request contract", () => {
       "/api/v1/research-runs/preflight",
     );
     expect(seen[0].method).toBe("POST");
-    expect(seen[0].headers.get("Authorization")).toBe(`Bearer ${testBearer}`);
+    expect(
+      seen[0].headers.get("Authorization") === `Bearer ${testBearer}`,
+    ).toBe(true);
     expect(seen[0].headers.has("Idempotency-Key")).toBe(false);
-    expect(await seen[0].json()).toEqual(body);
+    const payload = await seen[0].json();
+    expect(JSON.stringify(payload).includes(testBearer)).toBe(false);
+    expect(payload).toEqual(body);
   });
   it("resends the exact key and body after an ambiguous network result", async () => {
+    const testBearer = crypto.randomUUID();
     const value = draft();
     value.submission = researchSubmissionFor(value.body);
     saveResearchDraft("owner-a", value);
@@ -383,8 +437,10 @@ describe("generated API request contract", () => {
     await expect(
       submitResearch(pending.body, pending.key),
     ).resolves.toMatchObject({ id: "same-owned-run" });
+    expect(
+      requests.some((request) => JSON.stringify(request).includes(testBearer)),
+    ).toBe(false);
     expect(requests[1]).toEqual(requests[0]);
-    expect(JSON.stringify(requests[0].body)).not.toContain(testBearer);
   });
   it("surfaces actionable server preflight failures instead of marking success", async () => {
     client.setConfig({

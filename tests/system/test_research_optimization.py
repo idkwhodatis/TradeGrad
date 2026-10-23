@@ -36,13 +36,6 @@ from packages.tradegrad_adapter.config import (
     evaluation_windows,
 )
 from packages.tradegrad_adapter.results import validate_result_bundle
-from script.ci_owned_group import (
-    admit_owned_group,
-    peek_owned_group,
-    signal_owned_group,
-    signal_owned_process,
-    wait_owned_group,
-)
 
 GATE_SECONDS = 240
 
@@ -100,7 +93,6 @@ class ResearchProcessHarness(ProcessHarness):
             start_new_session=True,
         )
         self.processes.append((label, process))
-        admit_owned_group(process)
         if persistent:
             self.expected_alive.add(process)
         return process
@@ -275,11 +267,22 @@ with open(sys.argv[1], newline="") as source:
     def cleanup(self):
         # Stop owned producers before discovering every registered evaluator UUID.
         # Otherwise the inherited M1 cleanup knows only coordinator attempt IDs.
-        errors = []
-        try:
-            self.stop_processes(initial_signal=signal.SIGKILL)
-        except RuntimeError:
-            errors.append("owned process/session cleanup is unconfirmed")
+        groups, errors = list(self.processes), []
+        for _, process in groups:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            except OSError:
+                errors.append("owned process group stop failed")
+        remaining = []
+        for _, process in groups:
+            try:
+                process.wait(timeout=5)
+            except (subprocess.TimeoutExpired, OSError):
+                remaining.append(("research cleanup", process))
+        self.processes = remaining
+        self.expected_alive.clear()
         if self.created:
             try:
                 with self.connection(private=True) as connection:
@@ -561,7 +564,7 @@ def kill_owned_worker_at_generated_evaluation(harness, run_id):
     require(len(h.workers) == 1, "Fault injection requires one owned research worker")
     process = h.workers[0]
     require(
-        process in h.expected_alive and peek_owned_group(process) is None,
+        process in h.expected_alive and process.poll() is None,
         "Owned research worker exited before SIGKILL",
     )
     require(
@@ -573,7 +576,7 @@ def kill_owned_worker_at_generated_evaluation(harness, run_id):
         group == process.pid and group != os.getpgrp(),
         "Worker process group is not exclusively owned",
     )
-    signal_owned_process(process, signal.SIGSTOP)
+    os.kill(process.pid, signal.SIGSTOP)
     try:
         # Worker threads cannot publish while this committed snapshot is captured.
         detail = h.request(client, "GET", f"/research-runs/{run_id}").json()
@@ -616,9 +619,9 @@ def kill_owned_worker_at_generated_evaluation(harness, run_id):
     finally:
         # The PID/group were just verified and remain owned. No broad process scan.
         h.expected_alive.discard(process)
-        signal_owned_group(process, signal.SIGKILL)
+        os.killpg(group, signal.SIGKILL)
         require(
-            wait_owned_group(process, timeout=h.remaining(5)) == -signal.SIGKILL,
+            process.wait(timeout=h.remaining(5)) == -signal.SIGKILL,
             "Owned research worker was not killed by SIGKILL",
         )
         # Reaped PIDs are never signaled again by later harness cleanup.

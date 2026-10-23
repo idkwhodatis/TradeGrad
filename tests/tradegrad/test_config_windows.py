@@ -3,6 +3,7 @@
 import csv
 import hashlib
 import io
+import secrets
 import subprocess
 import sys
 from datetime import date, timedelta
@@ -141,10 +142,10 @@ def test_unknown_settings_and_secret_model_configuration_rejected():
     with pytest.raises(ValidationError):
         RunConfig.model_validate(config)
     for field, value in (
-        ("api_key", "secret"),
+        ("api_key", secrets.token_urlsafe(32)),
         ("base_url", "https://service.invalid"),
         ("model", "https://service.invalid"),
-        ("model", "sk-secret"),
+        ("model", "sk-" + secrets.token_urlsafe(32)),
     ):
         with pytest.raises(ValidationError):
             ModelConfig(**{field: value})
@@ -152,11 +153,18 @@ def test_unknown_settings_and_secret_model_configuration_rejected():
         ModelConfig(provider="unsupported")
     with pytest.raises(ValidationError):
         ModelConfig(provider="openai", model="gpt-example")
-    assert (
+    with pytest.raises(ValidationError):
         ModelConfig(
             provider="openai", model="gpt-example", credential_ref="server:openai"
+        )
+    assert (
+        ModelConfig(
+            provider="openai",
+            model="gpt-example",
+            profile_id="admitted",
+            profile_sha256="a" * 64,
         ).credential_ref
-        == "server:openai"
+        is None
     )
     config = _config().model_dump(mode="json")
     config["objective"]["ar_weight"] = 0.9

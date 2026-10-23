@@ -84,6 +84,46 @@ wire contract. Idempotency keys are owner/operation scoped, survive uncertain
 network outcomes, and change with changed inputs. Synchronous guards prevent
 multiple DOM submissions before React updates disabled state.
 
+## Native research model profiles
+
+The configured native research wizard now reads owner-scoped operator model
+profiles from `/research-capabilities`. An unconfigured deployment remains
+fixture-only; even on a configured deployment, the default is the deterministic
+synthetic fixture. The UI selects an entire immutable configuration, including
+profile ID/hash, provider, model, temperature and per-call output-token limit.
+It never accepts a base URL, credential environment name, API key or arbitrary
+provider parameters. Changing a profile invalidates preflight and retry identity;
+revoked or changed profiles are not silently replaced. Historical fixture
+requests retain their original four model fields, preserving existing config
+hashes and pending draft/retry bodies. Incompatible or corrupt drafts are not
+silently translated into a different pending submission.
+
+Synthetic operator endpoints are labeled separately from non-synthetic profiles
+that can make paid calls. The review screen discloses the strategy code and
+research context sent to the configured provider, and that token/call/runtime
+budgets are not a currency spending cap. Availability is not live-provider
+verification. Portable research still admits the fixture only.
+
+An opt-in real-stack browser case checks primary-owner-only profile visibility,
+exact preflight payload, reload persistence, switching back to fixture, and a
+double-click-protected seed-only submission with the exact synthetic profile:
+
+```sh
+E2E_MODEL_PROFILES=1 E2E_MODEL_PROFILE_ID=<primary-owner-only-profile-id> \
+  npm run test:e2e -- --grep @operator-model-profile
+```
+
+Use the real API, data and research workers, Docker evaluator, and two disposable
+accounts described below. The specified operator profile must be synthetic,
+enabled for the primary account, and unavailable to the other account. The test
+fails closed on a non-synthetic profile. It imports an explicit synthetic dataset
+and submits a zero-iteration, zero-model-call run, then verifies persisted profile
+identity, no duplicate run, empty model-call history, completed Docker seed
+evaluations and reload. This is configured-profile browser/API/queue acceptance,
+not SDK/provider-call acceptance; the separate hosted synthetic transport gate
+must establish that. Live paid-call acceptance remains a separate authorized
+operator gate. Browser test discovery is not execution evidence.
+
 ## Real-stack browser acceptance
 
 Playwright uses **real HTTP, PostgreSQL, dispatcher, data worker, research worker

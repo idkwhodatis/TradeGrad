@@ -29,6 +29,65 @@ const windowSchema = z.strictObject({
   end: z.iso.date("Choose a valid exclusive end date."),
 });
 
+const modelIdentifier = z
+  .string()
+  .min(1)
+  .max(160)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9_.:/-]*$/)
+  .refine(
+    (value) => !value.includes("://") && !/^(sk-|sk_|bearer|eyj)/i.test(value),
+    "Select a server-managed identifier, never a URL or credential.",
+  );
+// Fixture requests retain their historical four-field wire shape. Adding null
+// profile fields or an output-token default would change immutable hashes and
+// the body of an already pending idempotent submission.
+export const researchModelSchema = z.discriminatedUnion("provider", [
+  z.strictObject({
+    provider: z.literal("fixture"),
+    model: z.literal("deterministic-fixture-v1"),
+    credential_ref: z.null(),
+    temperature: z.literal(0),
+  }),
+  z.strictObject({
+    provider: z.enum(["openai", "openrouter", "openai-compatible"]),
+    model: modelIdentifier,
+    credential_ref: z.null(),
+    profile_id: z.string().regex(/^[a-z][a-z0-9_-]{0,63}$/),
+    profile_sha256: z.string().regex(/^[0-9a-f]{64}$/),
+    temperature: z.number().min(0).max(2),
+    max_output_tokens: integer(1, 16384),
+  }),
+]);
+
+/** Only expose complete, internally consistent owner-scoped capability choices. */
+export function researchModelProfiles(capabilities: ResearchCapabilities) {
+  return (capabilities.model_profiles || []).flatMap((profile, _, profiles) => {
+    const parsed = researchModelSchema.safeParse(profile.config);
+    if (
+      !parsed.success ||
+      !profile.strategy_modes?.includes("native_akquant") ||
+      profiles.filter((item) => item.id === profile.id).length !== 1 ||
+      (parsed.data.provider !== "fixture" &&
+        parsed.data.profile_id !== profile.id) ||
+      !capabilities.model_providers?.includes(parsed.data.provider) ||
+      !capabilities.models?.includes(parsed.data.model) ||
+      (!profile.synthetic && !capabilities.live_model_calls) ||
+      (parsed.data.provider === "fixture" && !profile.synthetic)
+    )
+      return [];
+    return [{ ...profile, config: parsed.data }];
+  });
+}
+
+export function researchModelProfileFor(
+  model: z.infer<typeof researchModelSchema>,
+  capabilities: ResearchCapabilities,
+) {
+  return researchModelProfiles(capabilities).find(
+    (profile) => stableJson(profile.config) === stableJson(model),
+  );
+}
+
 // These are the implemented RunConfig fields, not a second API transport contract.
 // Literal controls remain visible and pinned rather than implying unsupported options.
 export const researchFormSchema = z
@@ -99,12 +158,7 @@ export const researchFormSchema = z
       max_runtime_seconds: integer(1, 86400),
       max_repairs: integer(0, 20),
     }),
-    model: z.strictObject({
-      provider: z.literal("fixture"),
-      model: z.literal("deterministic-fixture-v1"),
-      credential_ref: z.null(),
-      temperature: z.literal(0),
-    }),
+    model: researchModelSchema,
     prompt_version: z.literal("source_prompts.v1"),
     environment_digest: z
       .string()
@@ -300,6 +354,13 @@ export function researchDefaults(
     throw new Error(
       "The deployment returned incomplete or unsupported research defaults. Reload capabilities before configuring a run.",
     );
+  if (
+    common.data.model.provider !== "fixture" ||
+    !researchModelProfileFor(common.data.model, capabilities)
+  )
+    throw new Error(
+      "The deployment must provide an available deterministic fixture default. Reload capabilities before configuring a run.",
+    );
   const body: ResearchRunCreate = {
     schema_version: "tradegrad.run.v1",
     execution_mode: "optimization",
@@ -337,6 +398,11 @@ export function researchSelectionIssues(
 ): ResearchIssue[] {
   const errors: ResearchIssue[] = [];
   const add = (path: string, message: string) => errors.push({ path, message });
+  if (!researchModelProfileFor(body.model, capabilities))
+    add(
+      "model.profile_id",
+      "The model profile is unavailable or changed for this owner. Select an available profile with its exact configuration, then run preflight again.",
+    );
   const dataset = catalog.datasets.find((row) => row.id === body.dataset.id);
   const strategy = catalog.strategies.find(
     (row) => row.id === body.seed_strategy.id,

@@ -3,6 +3,7 @@ import { ErrorState, Loading, PageHeader, Panel } from "@/components/common";
 import { currentUserOptions, statusOptions } from "@/lib/api";
 import { researchCapabilitiesOptions } from "@/lib/research-submit";
 import { label } from "@/lib/format";
+import { researchModelProfiles } from "@/lib/research-form";
 
 export function SettingsPage() {
   const user = useQuery(currentUserOptions);
@@ -92,8 +93,23 @@ export function SettingsPage() {
                 <dt>Paid model calls</dt>
                 <dd>
                   {capabilities.data?.live_model_calls
-                    ? "Enabled"
-                    : "Disabled; deterministic fixture responses only"}
+                    ? "Enabled for your available non-synthetic operator profiles"
+                    : "Disabled; available profiles are synthetic only"}
+                </dd>
+              </div>
+              <div>
+                <dt>Your model profiles</dt>
+                <dd>
+                  {capabilities.data &&
+                    researchModelProfiles(capabilities.data).map((profile) => (
+                      <p key={profile.id}>
+                        {profile.label} · {profile.config.provider} /{" "}
+                        {profile.config.model} ·{" "}
+                        {profile.synthetic
+                          ? "Synthetic"
+                          : "Operator-managed; may incur charges"}
+                      </p>
+                    ))}
                 </dd>
               </div>
               <div>

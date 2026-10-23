@@ -3,12 +3,6 @@ name: V1 staged validation
 on:
   workflow_dispatch:
     inputs:
-      validation_scope:
-        description: "Full acceptance, or targeted native-final browser diagnosis only"
-        required: true
-        default: full
-        type: choice
-        options: [full, native-final-diagnostic]
       provider_mode:
         description: "fixture is deterministic; live explicitly checks public upstreams without fallback"
         required: true
@@ -40,8 +34,6 @@ concurrency:
 
 jobs:
   baseline:
-    # A diagnostic run never substitutes for the subsequent complete gate.
-    if: ${{ !((github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'native-final-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[native-final-diagnostic]'))) }}
     name: M0 four-task engine and semantics
     runs-on: ubuntu-22.04
     timeout-minutes: 15
@@ -242,122 +234,132 @@ jobs:
         working-directory: frontend
         run: npx playwright install --with-deps chromium
       - name: Migrate and explicitly provision disposable synthetic accounts
-        id: application_ready
         run: |
           python -m script.provision_storage --root "$STORAGE_ROOT" --durable-parent "$GITHUB_WORKSPACE"
           alembic -c backend/alembic.ini upgrade head
           python -m backend.app.bootstrap --email "$E2E_EMAIL" --password-env E2E_PASSWORD --with-synthetic-fixtures --with-e2e-fixtures
           python -m backend.app.bootstrap --email "$E2E_OTHER_EMAIL" --password-env E2E_OTHER_PASSWORD --with-synthetic-fixtures
       - name: Verify real research/data worker SIGKILL and checkpoint recovery
-        id: acceptance_01
-        if: ${{ !cancelled() && steps.application_ready.outcome == 'success' }}
         env:
           TRADEGRAD_REQUIRE_PROCESS_RECOVERY: "1"
           TRADEGRAD_REQUIRE_DATA_PROCESS_RECOVERY: "1"
           DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
-        run: |
-          set +e
-          python -m pytest tests/system -q --junitxml=m1-m2-process-recovery-junit.xml
-          status=$?
-          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
-          exit "$status"
-      - name: Confirm isolated fixture teardown before the next acceptance group
-        id: acceptance_01_boundary
-        if: ${{ !cancelled() && steps.acceptance_01.outcome != 'skipped' }}
-        run: >-
-          python -m script.ci_acceptance_boundary m1-m2-process-recovery-junit.xml
-          "${{ steps.acceptance_01.outcome }}" "${{ steps.acceptance_01.outputs.exit_code }}"
-          "test_two_concurrent_runs_recover_after_real_workers_are_sigkilled,test_sigkill_reuses_checkpoints_then_original_us_seed_runs_in_real_docker"
+        run: python -m pytest tests/system -q --junitxml=m1-m2-process-recovery-junit.xml
       - name: Verify configured optimization against real PostgreSQL and Docker
-        id: acceptance_02
-        if: ${{ !cancelled() && steps.acceptance_01_boundary.outcome == 'success' }}
         env:
           TRADEGRAD_REQUIRE_RESEARCH_INTEGRATION: "1"
           DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
           RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
         run: |
           export API_PYTHON=$(command -v python)
-          set +e
           .venv-research/bin/python -m pytest tests/system/test_research_optimization.py -q --junitxml=m3-configured-application-junit.xml
-          status=$?
-          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
-          exit "$status"
-      - name: Confirm isolated fixture teardown before the next acceptance group
-        id: acceptance_02_boundary
-        if: ${{ !cancelled() && steps.acceptance_02.outcome != 'skipped' }}
-        run: >-
-          python -m script.ci_acceptance_boundary m3-configured-application-junit.xml
-          "${{ steps.acceptance_02.outcome }}" "${{ steps.acceptance_02.outputs.exit_code }}"
-          "test_real_api_queue_docker_results_and_checkpoint,test_real_sigkill_reconciles_and_resumes_generated_candidate_without_model_replay"
       - name: Verify frozen native final holdout without optimizer feedback
-        id: acceptance_03
-        if: ${{ !cancelled() && steps.acceptance_02_boundary.outcome == 'success' }}
         env:
           TRADEGRAD_REQUIRE_FINAL_INTEGRATION: "1"
           DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
           RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
         run: |
           export API_PYTHON=$(command -v python)
-          set +e
           .venv-research/bin/python -m pytest tests/system/test_final_pipeline.py -q --junitxml=m5-native-final-application-junit.xml
-          status=$?
-          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
-          exit "$status"
-      - name: Confirm isolated fixture teardown before the next acceptance group
-        id: acceptance_03_boundary
-        if: ${{ !cancelled() && steps.acceptance_03.outcome != 'skipped' }}
-        run: >-
-          python -m script.ci_acceptance_boundary m5-native-final-application-junit.xml
-          "${{ steps.acceptance_03.outcome }}" "${{ steps.acceptance_03.outputs.exit_code }}"
-          "test_real_frozen_final_result_export_and_cancelled_retry"
       - name: Verify both portable research modes, actual dual runtimes and initial-checkpoint resume
-        id: acceptance_04
-        if: ${{ !cancelled() && steps.acceptance_03_boundary.outcome == 'success' }}
         env:
           TRADEGRAD_REQUIRE_PORTABLE_RESEARCH_INTEGRATION: "1"
           DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
           RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
         run: |
           export API_PYTHON=$(command -v python)
-          set +e
           .venv-research/bin/python -m pytest tests/system/test_portable_research_pipeline.py -q --junitxml=m5-portable-application-junit.xml
-          status=$?
-          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
-          exit "$status"
-      - name: Confirm isolated fixture teardown before the next acceptance group
-        id: acceptance_04_boundary
-        if: ${{ !cancelled() && steps.acceptance_04.outcome != 'skipped' }}
-        run: >-
-          python -m script.ci_acceptance_boundary m5-portable-application-junit.xml
-          "${{ steps.acceptance_04.outcome }}" "${{ steps.acceptance_04.outputs.exit_code }}"
-          "test_real_portable_api_queue_both_containers_lineage_results_and_ownership"
       - name: Verify separate portable final holdout, cancellation, retries and reference export
-        id: acceptance_05
-        if: ${{ !cancelled() && steps.acceptance_04_boundary.outcome == 'success' }}
         env:
           TRADEGRAD_REQUIRE_PORTABLE_FINAL_INTEGRATION: "1"
           DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
           RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
         run: |
           export API_PYTHON=$(command -v python)
-          set +e
           .venv-research/bin/python -m pytest tests/system/test_portable_final_pipeline.py -q --junitxml=m5-portable-final-application-junit.xml
-          status=$?
-          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
-          exit "$status"
-      - name: Confirm isolated fixture teardown before the next acceptance group
-        id: acceptance_05_boundary
-        if: ${{ !cancelled() && steps.acceptance_05.outcome != 'skipped' }}
-        run: >-
-          python -m script.ci_acceptance_boundary m5-portable-final-application-junit.xml
-          "${{ steps.acceptance_05.outcome }}" "${{ steps.acceptance_05.outputs.exit_code }}"
-          "test_real_portable_freeze_final_reference_export_and_retry"
-      - name: Owned full fixture browser and performance acceptance or scoped live provider flows
-        if: ${{ !cancelled() && steps.acceptance_05_boundary.outcome == 'success' }}
-        env:
-          TRADEGRAD_REQUIRE_APPLICATION_BROWSER: "1"
-          TRADEGRAD_APPLICATION_STAGE: m6
-        run: python -m script.ci_application_browser
+      - name: Exercise the real HTTP, queue, engine and browser boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +m
+          mkdir -p var/ci-logs
+          setsid uvicorn backend.app.asgi:app --host 127.0.0.1 --port 8000 >var/ci-logs/api.log 2>&1 & api=$!
+          setsid python -m workers.research dispatcher >var/ci-logs/dispatcher.log 2>&1 & dispatcher=$!
+          setsid .venv-research/bin/python -m workers.research worker >var/ci-logs/worker.log 2>&1 & worker=$!
+          setsid python -m workers.research reconciler >var/ci-logs/reconciler.log 2>&1 & reconciler=$!
+          setsid .venv-data/bin/python -m workers.data dispatcher >var/ci-logs/data-dispatcher.log 2>&1 & data_dispatcher=$!
+          setsid .venv-data/bin/python -m workers.data worker >var/ci-logs/data-worker.log 2>&1 & data_worker=$!
+          benchmark_worker=
+          cleanup() {
+            outcome=$?
+            set +e
+            # Each recorded root was started in its own session. Stop only
+            # these owned process groups before listing any remaining containers.
+            owned=("$api" "$dispatcher" "$worker" "$reconciler" "$data_dispatcher" "$data_worker")
+            if [ -n "$benchmark_worker" ]; then owned+=("$benchmark_worker"); fi
+            for pid in "${owned[@]}"; do kill -TERM -- "-$pid" 2>/dev/null || true; done
+            deadline=$((SECONDS + 5))
+            alive=1
+            while [ "$SECONDS" -lt "$deadline" ]; do
+              alive=0
+              for pid in "${owned[@]}"; do kill -0 -- "-$pid" 2>/dev/null && alive=1; done
+              [ "$alive" = 0 ] && break
+              sleep 0.1
+            done
+            for pid in "${owned[@]}"; do kill -KILL -- "-$pid" 2>/dev/null || true; done
+            deadline=$((SECONDS + 5))
+            alive=1
+            while [ "$SECONDS" -lt "$deadline" ]; do
+              alive=0
+              for pid in "${owned[@]}"; do kill -0 -- "-$pid" 2>/dev/null && alive=1; done
+              [ "$alive" = 0 ] && break
+              sleep 0.1
+            done
+            if [ "$alive" != 0 ]; then
+              echo 'Owned process-group stop was not confirmed' >&2
+              outcome=1
+            fi
+            for pid in "${owned[@]}"; do
+              if ! kill -0 "$pid" 2>/dev/null; then wait "$pid" 2>/dev/null || true; fi
+            done
+            # This hosted job owns the fresh VM and all containers with these
+            # application labels. No unconfirmed worker may turn this gate green.
+            for profile in evaluator-v1 portable-evaluator-v1; do
+              docker ps -aq --filter "label=io.tradegrad.managed=$profile" | xargs -r docker rm -f >/dev/null || outcome=1
+              remaining=$(docker ps -aq --filter "label=io.tradegrad.managed=$profile") || outcome=1
+              [ -z "$remaining" ] || outcome=1
+            done
+            exit "$outcome"
+          }
+          trap cleanup EXIT
+          python - <<'PY'
+          import time, urllib.request
+          for attempt in range(60):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=2) as response:
+                      if response.status == 200:
+                          break
+              except OSError:
+                  time.sleep(1)
+          else:
+              raise SystemExit('API readiness failed; real browser gate cannot run')
+          PY
+          if [ "$DATA_PROVIDER_MODE" = live ]; then
+            npm run test:e2e --prefix frontend -- --grep @provider-flow
+          else
+            npm run test:e2e --prefix frontend
+            mkdir -p var/ci-evidence
+            python script/benchmark_v1.py --origin http://127.0.0.1:8000 \
+              --allow-result-access-records --require-result --samples 20 --warmup 2 \
+              --timeout-seconds 3 --max-points 200 --table-limit 50 --window-days 30 \
+              > var/ci-evidence/m6-reference-performance.json
+            # A second owned worker is required for actual attempt overlap,
+            # rather than presenting two queued requests as concurrent execution.
+            setsid .venv-research/bin/python -m workers.research worker >var/ci-logs/benchmark-worker.log 2>&1 & benchmark_worker=$!
+            python -m script.benchmark_v1_workloads --origin http://127.0.0.1:8000 \
+              --allow-fixture-workload-mutations --timeout-seconds 5 --total-timeout-seconds 300 \
+              > var/ci-evidence/m6-workload-performance.json
+          fi
       - name: Remove the disposable database
         if: always()
         run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
@@ -372,122 +374,4 @@ jobs:
           path: |
             var/ci-evidence/*.xml
             var/ci-evidence/m6-*-performance.json
-          retention-days: 14
-
-  native_final_diagnostic:
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'native-final-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[native-final-diagnostic]')) }}
-    name: Native final Chromium diagnostic ONLY, not full acceptance
-    runs-on: ubuntu-22.04
-    timeout-minutes: 35
-    env:
-      # Credentials are generated and masked on this disposable runner only.
-      POSTGRES_USER: tradegrad_ci
-      POSTGRES_DB: tradegrad_ci
-      STORAGE_ROOT: ${{ github.workspace }}/var/storage
-      TRADEGRAD_RUNNER_STATE_DIR: ${{ github.workspace }}/var/runner
-      EVALUATOR_IMAGE: tradegrad-evaluator:v1
-      PORTABLE_ENGINE_IMAGE: tradegrad-portable-engine:v1
-      PORTABLE_POLICY_IMAGE: tradegrad-portable-policy:v1
-      TRADEGRAD_REQUIRE_DOCKER: "1"
-      E2E_EMAIL: first@example.com
-      E2E_OTHER_EMAIL: second@example.com
-      WORKER_CONCURRENCY: "1"
-      DATA_WORKER_CONCURRENCY: "1"
-      # Ordinary pushes freeze SDK responses. Live requires explicit dispatch or
-      # a [live-data] feature-branch commit marker; no default-branch change needed.
-      DATA_PROVIDER_MODE: fixture
-      E2E_LIVE_PROVIDERS: "0"
-      TRADEGRAD_BROWSER_DIAGNOSTIC: native-final
-      HEARTBEAT_SECONDS: "1"
-      LEASE_SECONDS: "20"
-      PYTHONDONTWRITEBYTECODE: "1"
-      OPENBLAS_NUM_THREADS: "1"
-      OMP_NUM_THREADS: "1"
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: "3.12"
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Generate masked job-local fixture credentials
-        run: python script/ci_test_environment.py
-      - name: Start authenticated disposable PostgreSQL on loopback only
-        shell: bash
-        run: |
-          set -euo pipefail
-          docker run --detach --name tradegrad-ci-postgres \
-            --label io.tradegrad.ci=postgres --publish 127.0.0.1:5432:5432 \
-            --env POSTGRES_USER --env POSTGRES_PASSWORD --env POSTGRES_DB \
-            --tmpfs /var/lib/postgresql:rw,size=1g,nosuid \
-            --health-cmd 'pg_isready -U tradegrad_ci -d tradegrad_ci' \
-            --health-interval 2s --health-timeout 5s --health-retries 30 postgres:18.6
-          for attempt in $(seq 1 90); do
-            state=$(docker inspect --format '{{.State.Health.Status}}' tradegrad-ci-postgres)
-            if [ "$state" = healthy ]; then exit 0; fi
-            if [ "$state" = unhealthy ]; then break; fi
-            sleep 1
-          done
-          echo 'Disposable PostgreSQL did not become healthy' >&2
-          exit 1
-      - name: Install separately locked API runtime
-        run: python -m pip install --require-hashes -r backend/requirements.lock
-      - name: Install separately hash-locked data worker and generate lean OpenBB client
-        run: |
-          python -m venv .venv-data
-          .venv-data/bin/python -m pip install --require-hashes -r runtimes/data/requirements.lock
-          .venv-data/bin/openbb-build
-          python -m script.validate_runtime_split --runtime api
-          .venv-data/bin/python -m script.validate_runtime_split --runtime data
-      - name: Install separately hash-locked trusted research runtime
-        run: |
-          python -m venv .venv-research
-          .venv-research/bin/python -m pip install --require-hashes -r runtimes/research/requirements.lock
-          .venv-research/bin/python -m script.validate_runtime_split --runtime research
-      - name: Build local evaluator image (never published)
-        run: |
-          digest=$(python -m packages.tradegrad_adapter.environment)
-          docker build --build-arg "TRADEGRAD_ENVIRONMENT_DIGEST=$digest" -t "$EVALUATOR_IMAGE" -f runtimes/evaluator/Dockerfile .
-      - name: Install frontend and verify generated contracts
-        run: |
-          python -m backend.app.export_openapi
-          npm ci --prefix frontend
-          npm run generate-client --prefix frontend
-          git diff --exit-code -- packages/contracts frontend/src/client
-          npm run format:check --prefix frontend
-          npm run typecheck --prefix frontend
-          npm test --prefix frontend
-          npm run build --prefix frontend
-      - name: Install matched Chromium
-        working-directory: frontend
-        run: npx playwright install --with-deps chromium
-      - name: Migrate and explicitly provision disposable synthetic accounts
-        id: application_ready
-        run: |
-          python -m script.provision_storage --root "$STORAGE_ROOT" --durable-parent "$GITHUB_WORKSPACE"
-          alembic -c backend/alembic.ini upgrade head
-          python -m backend.app.bootstrap --email "$E2E_EMAIL" --password-env E2E_PASSWORD --with-synthetic-fixtures --with-e2e-fixtures
-          python -m backend.app.bootstrap --email "$E2E_OTHER_EMAIL" --password-env E2E_OTHER_PASSWORD --with-synthetic-fixtures
-      - name: Run only the native final browser case (diagnostic, not acceptance)
-        env:
-          TRADEGRAD_REQUIRE_APPLICATION_BROWSER: "1"
-          TRADEGRAD_APPLICATION_STAGE: m5
-        run: python -m script.ci_application_browser
-      - name: Remove the disposable database
-        if: always()
-        run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
-      - name: Export outcome-only evidence without diagnostic payloads
-        if: always()
-        run: python script/summarize_ci_junit.py frontend/test-results/junit.xml
-      - name: Preserve bounded test evidence (no traces, credentials or source data)
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: native-final-DIAGNOSTIC-${{ github.sha }}
-          path: var/ci-evidence/*.xml
           retention-days: 14

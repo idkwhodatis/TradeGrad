@@ -13,7 +13,14 @@ import json
 from datetime import date
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 Task = Literal["cn_time", "us_time", "cn_cross", "us_cross"]
 Profile = Literal["source_compat", "corrected_explicit_config"]
@@ -235,37 +242,53 @@ class BudgetConfig(FrozenModel):
 
 
 class ModelConfig(FrozenModel):
-    provider: Literal["fixture", "openai", "openrouter"] = "fixture"
+    provider: Literal["fixture", "openai", "openrouter", "openai-compatible"] = (
+        "fixture"
+    )
     model: Identifier = "deterministic-fixture-v1"
-    credential_ref: Identifier | None = None
+    # Retained as null for old fixture documents. No API may name an environment
+    # variable, credential reference, endpoint, arbitrary parameter or secret.
+    credential_ref: None = None
+    profile_id: Annotated[str, Field(pattern=r"^[a-z][a-z0-9_-]{0,63}$")] | None = None
+    profile_sha256: Sha256 | None = None
     temperature: float = Field(default=0, ge=0, le=2)
+    max_output_tokens: int = Field(default=4096, ge=1, le=16384)
 
-    @field_validator("model", "credential_ref")
+    @field_validator("model")
     @classmethod
     def no_credentials_or_urls(cls, value):
-        if value is not None and (
-            "://" in value or value.lower().startswith(("sk-", "sk_", "bearer", "eyj"))
-        ):
-            raise ValueError(
-                "Use a server-resolved model identifier or credential reference, never a URL or secret"
-            )
+        if "://" in value or value.lower().startswith(("sk-", "sk_", "bearer", "eyj")):
+            raise ValueError("Use an admitted model identifier, never a URL or secret")
         return value
 
     @model_validator(mode="after")
-    def credential_contract(self):
-        if self.provider == "fixture" and (
-            self.model != "deterministic-fixture-v1" or self.temperature != 0
-        ):
+    def profile_contract(self):
+        if self.provider == "fixture":
+            if (
+                self.model != "deterministic-fixture-v1"
+                or self.temperature != 0
+                or self.max_output_tokens != 4096
+                or self.profile_id is not None
+                or self.profile_sha256 is not None
+            ):
+                raise ValueError(
+                    "Fixture model requires its deterministic identity and temperature 0"
+                )
+        elif self.profile_id is None or self.profile_sha256 is None:
             raise ValueError(
-                "Fixture model requires deterministic-fixture-v1 and temperature 0"
-            )
-        if self.provider == "fixture" and self.credential_ref is not None:
-            raise ValueError("Fixture models must not carry credential references")
-        if self.provider != "fixture" and self.credential_ref is None:
-            raise ValueError(
-                "Online model requires a server-resolved credential reference"
+                "Online model requires an operator profile and immutable profile hash"
             )
         return self
+
+    @model_serializer(mode="wrap")
+    def historical_fixture_representation(self, serializer):
+        values = serializer(self)
+        if self.provider == "fixture":
+            # V1 fixture bytes/hashes are immutable historical evidence. Do not
+            # expand defaults when reading old runs, checkpoints or packages.
+            for key in ("profile_id", "profile_sha256", "max_output_tokens"):
+                values.pop(key, None)
+        return values
 
 
 class RunConfig(FrozenModel):

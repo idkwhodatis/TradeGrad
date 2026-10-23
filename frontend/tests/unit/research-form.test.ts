@@ -9,7 +9,11 @@ import {
   researchStepFor,
   profileDescriptions,
 } from "../../src/lib/research-form";
-import { capabilityFixture, researchFixture } from "./research-fixtures";
+import {
+  capabilityFixture,
+  operatorCapabilityFixture,
+  researchFixture,
+} from "./research-fixtures";
 
 const capabilities = capabilityFixture();
 describe("complete configured research form", () => {
@@ -41,7 +45,7 @@ describe("complete configured research form", () => {
       ["MarketConfig", body.market_profile],
       ["WarmupConfig", body.warmup],
       ["OptimizerConfig", body.optimizer],
-      ["ModelConfig", body.model],
+      ["ModelConfig", operatorCapabilityFixture().profile.config],
       ["ObjectiveConfig", body.objective],
       ["BudgetConfig", body.budgets],
       ["SlippageConfig", body.market_profile.slippage],
@@ -223,7 +227,7 @@ describe("exact resource references and capability checks", () => {
   it("does not silently accept unsupported model, objective or secret fields", () => {
     const { body } = researchFixture();
     for (const model of [
-      { ...body.model, credential_ref: "browser-secret-not-permitted" },
+      { ...body.model, credential_ref: crypto.randomUUID() },
       { ...body.model, temperature: 0.2 },
       { ...body.model, provider: "openai" },
     ])
@@ -237,8 +241,10 @@ describe("exact resource references and capability checks", () => {
       }).success,
     ).toBe(false);
     expect(
-      researchFormSchema.safeParse({ ...body, authorization: "unexpected" })
-        .success,
+      researchFormSchema.safeParse({
+        ...body,
+        authorization: crypto.randomUUID(),
+      }).success,
     ).toBe(false);
   });
   it.each(["dataset.id", "windows.holdout.start", "budgets.max_tokens"])(

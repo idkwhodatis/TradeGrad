@@ -104,6 +104,13 @@ export function researchSubmissionFor(
 }
 
 const storageKey = (owner: string) => `tradegrad.research-draft.v1.${owner}`;
+export function hasStoredResearchDraft(owner: string): boolean {
+  try {
+    return sessionStorage.getItem(storageKey(owner)) !== null;
+  } catch {
+    return false;
+  }
+}
 // Incomplete dates/references are useful draft state, but unknown fields and any
 // credential-bearing model are rejected. Persist form data, never auth transport.
 const draftRef = z.strictObject({

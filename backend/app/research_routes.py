@@ -344,7 +344,7 @@ def checkpoint(checkpoint_id: UUID, user: CurrentUser, session: SessionDep):
     operation_id="research_capabilities",
 )
 def research_capabilities(user: CurrentUser, request: Request):
-    return research_capability_metadata(request.app.state.settings)
+    return research_capability_metadata(request.app.state.settings, user.id)
 
 
 @router.post(
