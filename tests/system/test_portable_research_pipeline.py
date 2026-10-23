@@ -29,6 +29,7 @@ from packages.tradegrad_adapter.portable_environment import portable_environment
 from packages.tradegrad_adapter.portable_results import validate_portable_result
 from packages.tradegrad_adapter.strategy_package import validate_environment_evidence
 from runtimes.evaluator.portable_runner import PortableDockerEvaluator
+from script.ci_owned_group import peek_owned_group, signal_owned_group, wait_owned_group
 
 
 class PortableProcessHarness(ResearchProcessHarness):
@@ -51,13 +52,13 @@ class PortableProcessHarness(ResearchProcessHarness):
                 "Worker is not harness-owned",
             )
             require(
-                process.poll() is None
+                peek_owned_group(process) is None
                 and os.getpgid(process.pid) == process.pid != os.getpgrp(),
                 "Research worker has no exclusive owned process group",
             )
             self.expected_alive.discard(process)
-            os.killpg(process.pid, signal.SIGTERM)
-            process.wait(timeout=self.remaining(10))
+            signal_owned_group(process, signal.SIGTERM)
+            wait_owned_group(process, timeout=self.remaining(10))
         self.workers = []
 
     def import_fixture(self, market):
