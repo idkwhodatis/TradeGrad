@@ -321,3 +321,26 @@ records built image IDs. It never uploads resolved configuration, private raw
 logs, database archives or restart-proof records. Local source checks passed;
 real build/start/restart/Chromium acceptance remains unverified until this job
 has actually passed at the published revision.
+
+## Disposable operational logs versus immutable Run evidence
+
+Every running full-Compose service explicitly uses Docker's per-container
+`json-file` driver with `TRADEGRAD_SERVICE_LOG_MAX_SIZE` (default `10m`) and
+`TRADEGRAD_SERVICE_LOG_MAX_FILES` (default `3`). The preparation command rejects
+unlimited or malformed settings and bounds them to 64 KiB–100 MiB per file and
+1–20 files. These are maximum storage/rotation settings, not a promise of a
+minimum retention age. See the [official logging-driver options](https://docs.docker.com/engine/logging/drivers/json-file/).
+
+This only manages discardable service stdout/stderr. It does not delete a
+published Run log, result, source, model replay receipt, checkpoint, snapshot or
+backup. The separate cold-retention command only removes verified unreferenced
+atomic temporaries. Do not directly modify Docker's daemon-managed log files.
+No daemon configuration or existing host/container settings are changed by these
+source changes; new reviewed container creation is required for changed options.
+
+The hosted Compose gate reads back only each of the eight running services'
+logging configuration and checks the exact bounded policy. Its allowlisted JSON
+report contains no log contents or environment. Local preparation passed 67
+Compose/helper tests, Ruff, shell syntax and whitespace checks. Actual Compose
+read-back and rollover behavior have not run locally; the report explicitly
+states that it is configuration evidence, not a rollover stress test.

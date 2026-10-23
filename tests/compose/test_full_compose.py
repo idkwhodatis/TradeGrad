@@ -43,6 +43,41 @@ class ComposeBoundaryTests(unittest.TestCase):
         for name in CANDIDATES:
             self.assertEqual(SERVICES[name]["profiles"], ["images"])
 
+    def test_all_running_services_use_explicit_bounded_operational_log_rotation(self):
+        expected = {
+            "driver": "json-file",
+            "options": {
+                "max-size": "${TRADEGRAD_SERVICE_LOG_MAX_SIZE:-10m}",
+                "max-file": "${TRADEGRAD_SERVICE_LOG_MAX_FILES:-3}",
+            },
+        }
+        for name in APP_ROLES | {"frontend", "database"}:
+            self.assertEqual(SERVICES[name]["logging"], expected)
+        self.assertEqual(
+            runtime.validate_service_logging({}), {"max-size": "10m", "max-file": "3"}
+        )
+        self.assertEqual(
+            runtime.validate_service_logging(
+                {
+                    "TRADEGRAD_SERVICE_LOG_MAX_SIZE": "64k",
+                    "TRADEGRAD_SERVICE_LOG_MAX_FILES": "1",
+                }
+            ),
+            {"max-size": "64k", "max-file": "1"},
+        )
+        for key, value in (
+            ("TRADEGRAD_SERVICE_LOG_MAX_SIZE", "-1"),
+            ("TRADEGRAD_SERVICE_LOG_MAX_SIZE", "0m"),
+            ("TRADEGRAD_SERVICE_LOG_MAX_SIZE", "63k"),
+            ("TRADEGRAD_SERVICE_LOG_MAX_SIZE", "101m"),
+            ("TRADEGRAD_SERVICE_LOG_MAX_SIZE", "1g"),
+            ("TRADEGRAD_SERVICE_LOG_MAX_FILES", "0"),
+            ("TRADEGRAD_SERVICE_LOG_MAX_FILES", "21"),
+            ("TRADEGRAD_SERVICE_LOG_MAX_FILES", "01"),
+        ):
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                runtime.validate_service_logging({key: value})
+
     def test_only_trusted_supervisors_have_the_socket(self):
         owners = set()
         for name, service in SERVICES.items():

@@ -88,6 +88,19 @@ def validate_build(environ=os.environ) -> None:
             )
 
 
+def validate_service_logging(environ=os.environ) -> dict[str, str]:
+    """Bound disposable service logs without deleting immutable Run evidence."""
+    size = environ.get("TRADEGRAD_SERVICE_LOG_MAX_SIZE", "10m")
+    count = environ.get("TRADEGRAD_SERVICE_LOG_MAX_FILES", "3")
+    match = re.fullmatch(r"([1-9][0-9]{0,5})([km])", size)
+    if match is None or not re.fullmatch(r"[1-9][0-9]?", count):
+        raise ValueError("Require bounded service log size and file count")
+    byte_size = int(match[1]) * {"k": 1024, "m": 1024 * 1024}[match[2]]
+    if not 64 * 1024 <= byte_size <= 100 * 1024 * 1024 or not 1 <= int(count) <= 20:
+        raise ValueError("Service logs require 64KiB–100MiB per file and 1–20 files")
+    return {"max-size": size, "max-file": count}
+
+
 def prepare() -> None:
     """Explicit host-only step after the operator provisions a durable boundary."""
     validate_identity()
@@ -104,6 +117,7 @@ def prepare() -> None:
             "Remove inherited remote/context/TLS overrides; select the explicit local socket"
         )
     validate_build()
+    validate_service_logging()
     root = state_root()
     validate_owner(root)
     from backend.app.core.atomic_storage import provision_directory

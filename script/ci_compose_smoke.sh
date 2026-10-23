@@ -32,6 +32,7 @@ BOOTSTRAP_EMAIL="$E2E_ADMIN_EMAIL" BOOTSTRAP_PASSWORD="$E2E_ADMIN_PASSWORD" BOOT
   "${compose[@]}" run --rm --no-deps bootstrap >/dev/null
 "${compose[@]}" up -d --wait --wait-timeout 180
 python -m script.compose_acceptance
+python -m script.ci_compose_logging > var/ci-evidence/v1-service-log-policy.json
 # Full existing suite: real import, native/portable optimization, cancellation,
 # frozen final evaluation, ownership and artifact/browser regression coverage.
 TRADEGRAD_REQUIRE_BROWSER=1 python -m script.browser_acceptance
