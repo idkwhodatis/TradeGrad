@@ -131,48 +131,47 @@ def test_missing_mandatory_case_never_unlocks(tmp_path):
 
 
 def test_workflow_preserves_failed_steps_and_chains_verified_cleanup():
+    import re
     from pathlib import Path
 
-    import yaml
-
-    workflow = yaml.safe_load(
-        (
-            Path(__file__).resolve().parents[2] / ".github/workflows/v1-validation.yml"
-        ).read_text()
-    )
-    steps = workflow["jobs"]["application"]["steps"]
+    # Inspect this workflow's fixed step blocks without adding a YAML dependency
+    # to the separately hash-locked API runtime. GitHub parses the actual YAML.
+    workflow = (
+        Path(__file__).resolve().parents[2] / ".github/workflows/v1-validation.yml"
+    ).read_text()
+    application = workflow.split("  application:\n", 1)[1].split("\n  compose:", 1)[0]
+    blocks = re.split(r"(?=^      - name: )", application, flags=re.MULTILINE)
     previous = "application_ready"
     groups = 0
-    for step in steps:
-        identifier = step.get("id", "")
+    for block in blocks:
+        match = re.search(r"^        id: (\w+)$", block, flags=re.MULTILINE)
+        identifier = match[1] if match else ""
         if identifier.startswith("acceptance_") and not identifier.endswith(
             "_boundary"
         ):
             groups += 1
-            assert "continue-on-error" not in step
-            assert (
-                step["if"]
-                == "${{ !cancelled() && steps." + previous + ".outcome == 'success' }}"
-            )
-            script = step["run"]
-            assert "set +e\n" in script
-            assert "status=$?\n" in script
-            assert 'echo "exit_code=$status" >> "$GITHUB_OUTPUT"\n' in script
-            assert script.rstrip().endswith('exit "$status"')
+            assert "continue-on-error" not in block
+            assert re.findall(r"^        if: (.+)$", block, flags=re.MULTILINE) == [
+                "${{ !cancelled() && steps." + previous + ".outcome == 'success' }}"
+            ]
+            assert "set +e\n" in block
+            assert "status=$?\n" in block
+            assert 'echo "exit_code=$status" >> "$GITHUB_OUTPUT"\n' in block
+            assert block.rstrip().endswith('exit "$status"')
             previous = identifier + "_boundary"
         elif identifier.endswith("_boundary"):
             source = identifier.removesuffix("_boundary")
-            assert (
-                step["if"]
-                == "${{ !cancelled() && steps." + source + ".outcome != 'skipped' }}"
-            )
-            assert "script.ci_acceptance_boundary" in step["run"]
-            assert "steps." + source + ".outputs.exit_code" in step["run"]
+            assert re.findall(r"^        if: (.+)$", block, flags=re.MULTILINE) == [
+                "${{ !cancelled() && steps." + source + ".outcome != 'skipped' }}"
+            ]
+            assert "script.ci_acceptance_boundary" in block
+            assert "steps." + source + ".outputs.exit_code" in block
     assert groups >= 5
     browser = next(
-        step for step in steps if "ci_application_browser" in step.get("run", "")
+        block
+        for block in blocks
+        if "run: python -m script.ci_application_browser" in block
     )
-    assert (
-        browser["if"]
-        == "${{ !cancelled() && steps." + previous + ".outcome == 'success' }}"
-    )
+    assert re.findall(r"^        if: (.+)$", browser, flags=re.MULTILINE) == [
+        "${{ !cancelled() && steps." + previous + ".outcome == 'success' }}"
+    ]
