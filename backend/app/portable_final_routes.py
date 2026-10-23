@@ -1,5 +1,6 @@
 """Final evaluation has separate submission, lifecycle and evidence routes."""
 
+from datetime import date
 from typing import Annotated
 from uuid import UUID
 
@@ -37,6 +38,8 @@ from backend.app.portable_final_views import (
     final_result_view,
     load_owned_final_result,
 )
+from backend.app.result_exploration import price_replay, result_return_analysis
+from backend.app.result_exploration_schemas import PriceReplay, ResultReturnAnalysis
 from backend.app.schemas import AttemptPublic, Page
 from backend.app.services import DomainError, request_cancel
 from packages.tradegrad_adapter.config import DateWindow
@@ -294,6 +297,12 @@ def query_final_result(
     section: str = "account_series",
     offset: int = Query(0, ge=0, le=100000),
     limit: int = Query(100, ge=1, le=500),
+    start: date | None = None,
+    end: date | None = None,
+    listing_id: UUID | None = None,
+    sort_by: str | None = Query(None, max_length=64),
+    sort_direction: str = Query("asc", max_length=4),
+    side: str | None = Query(None, max_length=8),
 ):
     result, snapshot = _result_access(
         session, evaluation_id, user.id, request.app.state.settings, "result_preview"
@@ -304,6 +313,12 @@ def query_final_result(
         section=section,
         offset=offset,
         limit=limit,
+        start=start,
+        end=end,
+        listing_id=listing_id,
+        sort_by=sort_by,
+        sort_direction=sort_direction,
+        side=side,
     )
     session.commit()
     return response
@@ -340,3 +355,51 @@ def download_final_result(
             "Content-Disposition": f'attachment; filename="final-evaluation-{evaluation_id}.json"',
         },
     )
+
+
+@router.get(
+    "/portable-final-evaluations/evaluations/{evaluation_id}/return-analysis",
+    response_model=ResultReturnAnalysis,
+    operation_id="read_portable_final_return_analysis",
+)
+def read_portable_final_return_analysis(
+    evaluation_id: UUID, user: CurrentUser, session: SessionDep, request: Request
+):
+    result, _ = _result_access(
+        session, evaluation_id, user.id, request.app.state.settings, "result_preview"
+    )
+    response = result_return_analysis(result)
+    session.commit()
+    return response
+
+
+@router.get(
+    "/portable-final-evaluations/evaluations/{evaluation_id}/price-replay",
+    response_model=PriceReplay,
+    operation_id="read_portable_final_price_replay",
+)
+def read_portable_final_price_replay(
+    evaluation_id: UUID,
+    listing_id: UUID,
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+    start: date | None = None,
+    end: date | None = None,
+    offset: int = Query(0, ge=0, le=100000),
+    limit: int = Query(250, ge=1, le=500),
+):
+    result, _ = _result_access(
+        session, evaluation_id, user.id, request.app.state.settings, "result_preview"
+    )
+    response = price_replay(
+        result,
+        request.app.state.settings,
+        listing_id=listing_id,
+        start=start,
+        end=end,
+        offset=offset,
+        limit=limit,
+    )
+    session.commit()
+    return response

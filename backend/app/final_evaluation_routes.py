@@ -39,6 +39,8 @@ from backend.app.models import (
     ResearchRun,
 )
 from backend.app.research_view_schemas import ResultSection
+from backend.app.result_exploration import price_replay, result_return_analysis
+from backend.app.result_exploration_schemas import PriceReplay, ResultReturnAnalysis
 from backend.app.schemas import AttemptPublic, Page
 from backend.app.services import DomainError, request_cancel
 from packages.tradegrad_adapter.config import DateWindow
@@ -299,6 +301,10 @@ def query_final_result(
     max_points: int = Query(1000, ge=4, le=5000),
     offset: int = Query(0, ge=0, le=100000),
     limit: int = Query(100, ge=1, le=500),
+    sort_by: str | None = Query(None, max_length=64),
+    sort_direction: str = Query("asc", max_length=4),
+    side: str | None = Query(None, max_length=8),
+    order_status: str | None = Query(None, max_length=32),
 ):
     result, snapshot = _result_access(
         session, evaluation_id, user.id, request.app.state.settings, "result_preview"
@@ -313,6 +319,10 @@ def query_final_result(
         max_points=max_points,
         offset=offset,
         limit=limit,
+        sort_by=sort_by,
+        sort_direction=sort_direction,
+        side=side,
+        order_status=order_status,
     )
     session.commit()
     return response
@@ -349,3 +359,51 @@ def download_final_result(
             "Content-Disposition": f'attachment; filename="final-evaluation-{evaluation_id}.json"',
         },
     )
+
+
+@router.get(
+    "/final-evaluations/evaluations/{evaluation_id}/return-analysis",
+    response_model=ResultReturnAnalysis,
+    operation_id="read_final_return_analysis",
+)
+def read_final_return_analysis(
+    evaluation_id: UUID, user: CurrentUser, session: SessionDep, request: Request
+):
+    result, _ = _result_access(
+        session, evaluation_id, user.id, request.app.state.settings, "result_preview"
+    )
+    response = result_return_analysis(result)
+    session.commit()
+    return response
+
+
+@router.get(
+    "/final-evaluations/evaluations/{evaluation_id}/price-replay",
+    response_model=PriceReplay,
+    operation_id="read_final_price_replay",
+)
+def read_final_price_replay(
+    evaluation_id: UUID,
+    listing_id: UUID,
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+    start: date | None = None,
+    end: date | None = None,
+    offset: int = Query(0, ge=0, le=100000),
+    limit: int = Query(250, ge=1, le=500),
+):
+    result, _ = _result_access(
+        session, evaluation_id, user.id, request.app.state.settings, "result_preview"
+    )
+    response = price_replay(
+        result,
+        request.app.state.settings,
+        listing_id=listing_id,
+        start=start,
+        end=end,
+        offset=offset,
+        limit=limit,
+    )
+    session.commit()
+    return response

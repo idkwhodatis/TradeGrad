@@ -14,6 +14,7 @@ import zipfile
 from uuid import uuid4
 
 import pytest
+from exploration_assertions import assert_mode_exploration
 from test_final_pipeline import FinalProcessHarness
 from test_portable_research_pipeline import PortableProcessHarness
 from test_research_optimization import runtime_paths
@@ -230,6 +231,16 @@ def test_real_portable_freeze_final_reference_export_and_retry(
     )
     content = h.request(client, "GET", result_path + "/download").content
     bundle = validate_portable_result(content)
+    assert_mode_exploration(
+        h,
+        client,
+        other,
+        mode="portable_final",
+        evaluation_id=item["id"],
+        content=content,
+        bundle=bundle,
+        selection_id=view["selection_id"],
+    )
     if with_benchmark:
         comparison = bundle["benchmark"]
         require(comparison["status"] == "available", "Portable benchmark result absent")

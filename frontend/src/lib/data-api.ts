@@ -6,13 +6,22 @@ export const providersOptions = queryOptions({
   queryKey: ["data-providers"],
   queryFn: async ({ signal }) => (await sdk.listDataProviders({ signal })).data,
 });
-export const listingsOptions = (offset = 0, listingIds?: string[]) =>
+export const listingsOptions = (
+  offset = 0,
+  listingIds?: string[],
+  filters: import("@/components/named-list-controls").NamedListFilters = {},
+) =>
   queryOptions({
-    queryKey: ["data-listings", offset, listingIds],
+    queryKey: [
+      "data-listings",
+      offset,
+      listingIds,
+      ...(Object.keys(filters).length ? [filters] : []),
+    ],
     queryFn: async ({ signal }) =>
       (
         await sdk.listDataListings({
-          query: { offset, limit: 100, listing_ids: listingIds },
+          query: { offset, limit: 100, listing_ids: listingIds, ...filters },
           signal,
         })
       ).data,

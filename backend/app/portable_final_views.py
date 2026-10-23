@@ -22,6 +22,7 @@ from backend.app.portable_final_services import (
     final_config,
     validate_final_binding,
 )
+from backend.app.portable_result_tables import query_portable_table
 from backend.app.portable_schemas import PortableResultQuery
 from backend.app.portable_services import portable_score, verify_portable_bundle_binding
 from backend.app.portable_views import portable_data_evidence
@@ -185,7 +186,13 @@ def load_owned_final_result(session, evaluation_id, owner_id, settings):
 
 
 def final_result_view(
-    result, *, exposure_snapshot, section="account_series", offset=0, limit=100
+    result,
+    *,
+    exposure_snapshot,
+    section="account_series",
+    offset=0,
+    limit=100,
+    **filters,
 ):
     allowed = {
         "account_series",
@@ -227,8 +234,7 @@ def final_result_view(
         benchmark=comparison_view(bundle.get("benchmark"), max_points=500),
         combined_score=portable_score(bundle),
         section=section,
-        rows=bundle[section][offset : offset + limit],
-        count=len(bundle[section]),
+        **query_portable_table(bundle, section, offset, limit, **filters),
         offset=offset,
         limit=limit,
         config=config,

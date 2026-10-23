@@ -116,6 +116,11 @@ def stage_prices(result, root, days=("2024-02-01", "2024-02-02")):
             }
         ]
     }
+    from packages.tradegrad_adapter.config import canonical_bytes
+
+    result.dataset.content_sha256 = hashlib.sha256(
+        canonical_bytes(result.dataset.manifest)
+    ).hexdigest()
     return UUID(listing), path
 
 

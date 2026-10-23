@@ -1,3 +1,7 @@
+import {
+  NamedListControls,
+  type NamedListFilters,
+} from "@/components/named-list-controls";
 import { FreezeCandidatePanel } from "@/features/final-tests/freeze-selection";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
@@ -80,6 +84,9 @@ export function ResearchDetailPage() {
 }
 function ResearchContent({ run }: { run: ResearchRunDetail }) {
   const [candidateOffset, setCandidateOffset] = useState(0);
+  const [candidateFilters, setCandidateFilters] = useState<NamedListFilters>(
+    {},
+  );
   const [evaluationOffset, setEvaluationOffset] = useState(0);
   const [checkpointOffset, setCheckpointOffset] = useState(0);
   const [callOffset, setCallOffset] = useState(0);
@@ -93,7 +100,7 @@ function ResearchContent({ run }: { run: ResearchRunDetail }) {
   const controls = researchControls(run);
   const events = useRunEvents(run.id, stable);
   const candidates = useQuery(
-    candidatesOptions(run.id, candidateOffset, !stable),
+    candidatesOptions(run.id, candidateOffset, !stable, candidateFilters),
   );
   const evaluations = useQuery(
     evaluationsOptions(run.id, evaluationOffset, !stable),
@@ -651,6 +658,16 @@ function ResearchContent({ run }: { run: ResearchRunDetail }) {
       </div>
       <FreezeCandidatePanel run={run} />
       <div className="stack mt-6">
+        <Panel title="Candidate server filters and sorting">
+          <NamedListControls
+            kind="candidate"
+            value={candidateFilters}
+            onChange={(value) => {
+              setCandidateFilters(value);
+              setCandidateOffset(0);
+            }}
+          />
+        </Panel>
         <PagedResearch
           title="Candidate lineage and immutable repairs"
           query={candidates}

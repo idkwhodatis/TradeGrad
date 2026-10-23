@@ -2,15 +2,22 @@
 
 from __future__ import annotations
 
+import hashlib
 import itertools
 import json
 import math
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from backend.app.result_exploration_schemas import PriceReplay, ReturnAnalysis
+from backend.app.result_exploration_schemas import (
+    ExplorationContext,
+    PriceReplay,
+    ResultReturnAnalysis,
+    ReturnAnalysis,
+)
 from backend.app.services import DomainError
 from backend.app.storage import read_verified
+from packages.tradegrad_adapter.config import canonical_bytes
 from packages.tradegrad_adapter.indicators import indicator_time
 
 MAX_BARS = 500
@@ -31,9 +38,19 @@ def return_analysis(bundle, manifest=None):
     initial-capital return, interpolate missing sessions, or use chart samples.
     Session completeness cannot be certified from account observations alone.
     """
-    zone = ZoneInfo(bundle["engine"]["resolved_config"]["timezone"])
+    portable = bundle.get("evaluation_mode") == "portable"
+    zone = ZoneInfo(
+        bundle["manifest"]["timezone"]
+        if portable
+        else bundle["engine"]["resolved_config"]["timezone"]
+    )
+    equity_rows = (
+        [(row["native_at"], row["equity"]) for row in bundle["account_series"]]
+        if portable
+        else bundle["equity"]["rows"]
+    )
     closes = {}
-    for timestamp, value in bundle["equity"]["rows"]:
+    for timestamp, value in equity_rows:
         closes[datetime.fromisoformat(timestamp).astimezone(zone).date()] = value
     dates = sorted(closes)
     start = date.fromisoformat(bundle["window"]["start"])
@@ -196,7 +213,14 @@ def return_analysis(bundle, manifest=None):
                 None,
             )
         elif expected is not None and status == "observed_month":
-            reason = "Observed dates match pinned calendar expectations for this month; native equity remains untrusted."
+            reason = (
+                "Observed dates match pinned calendar expectations for this month. "
+                + (
+                    "Equity is from the verified trusted-engine ledger, not policy-reported accounting."
+                    if portable
+                    else "Native equity remains untrusted."
+                )
+            )
         months.append(
             {
                 "month": month.strftime("%Y-%m"),
@@ -229,7 +253,12 @@ def return_analysis(bundle, manifest=None):
         missing_sessions=missing,
         unexpected_observations=unexpected,
         warnings=[
-            "Display-only analysis of native portfolio equity; original metrics and optimizer reward are unchanged.",
+            (
+                "Display-only analysis of verified trusted-engine portfolio equity, not policy-reported accounting; "
+                if portable
+                else "Display-only analysis of native same-process portfolio equity; "
+            )
+            + "original metrics and optimizer reward are unchanged.",
             "All chart/listing filters are ignored for this full-evaluation portfolio analysis.",
             "Session completeness is checked only against immutable versioned dataset coverage when available, not a live exchange feed or independent ledger. Otherwise gaps may contain holidays, suspensions, or missing snapshots and returns are only inter-observation returns.",
         ],
@@ -238,7 +267,7 @@ def return_analysis(bundle, manifest=None):
         observations=len(dates),
         valid_returns=len(intervals),
         excluded_returns=excluded,
-        collapsed_intraday_observations=len(bundle["equity"]["rows"]) - len(dates),
+        collapsed_intraday_observations=len(equity_rows) - len(dates),
         status="available" if intervals else "insufficient_observations",
     )
 
@@ -253,7 +282,9 @@ def result_symbol(result, listing_id):
             422,
         )
     # A time task stages its sole listing under this exact engine alias.
-    if result.bundle["identity"]["task"].endswith("_time"):
+    if result.bundle.get("evaluation_mode") != "portable" and result.bundle["identity"][
+        "task"
+    ].endswith("_time"):
         if len(mapping) != 1:
             raise DomainError(
                 "result_integrity",
@@ -334,6 +365,7 @@ def _indicator_view(bundle, symbol, days, zone):
 def price_replay(
     result, settings, *, listing_id, start=None, end=None, offset=0, limit=250
 ):
+    context = exploration_context(result)
     window = result.bundle["window"]
     start = start or date.fromisoformat(window["start"])
     end = end or date.fromisoformat(window["end"])
@@ -406,14 +438,23 @@ def price_replay(
     bars.sort(key=lambda row: row["session_date"])
     page = bars[offset : offset + limit]
     days = {bar["session_date"] for bar in page}
-    zone = ZoneInfo(result.bundle["engine"]["resolved_config"]["timezone"])
+    zone = ZoneInfo(context.timezone)
+    portable = context.mode.startswith("portable")
     markers = []
-    columns = [item["name"] for item in result.bundle["fills"]["columns"]]
-    for index, row in enumerate(result.bundle["fills"]["rows"]):
-        item = dict(zip(columns, row))
-        if item["symbol"] != symbol:
+    if portable:
+        fills = result.bundle["fills"]
+    else:
+        columns = [item["name"] for item in result.bundle["fills"]["columns"]]
+        fills = [dict(zip(columns, row)) for row in result.bundle["fills"]["rows"]]
+    for index, item in enumerate(fills):
+        if (
+            (item["listing_id"] != str(listing_id))
+            if portable
+            else (item["symbol"] != symbol)
+        ):
             continue
-        day = datetime.fromisoformat(item["timestamp"]).astimezone(zone).date()
+        timestamp = item["native_at"] if portable else item["timestamp"]
+        day = datetime.fromisoformat(timestamp).astimezone(zone).date()
         if not start <= day < end:
             continue
         # Include absent-bar executions within the displayed page's date extent,
@@ -434,7 +475,7 @@ def price_replay(
                 "id": f"fill:{index}",
                 "row_index": index,
                 "session_date": day,
-                "timestamp": item["timestamp"],
+                "timestamp": timestamp,
                 "symbol": symbol,
                 "side": item["side"],
                 "price": item["price"],
@@ -442,10 +483,36 @@ def price_replay(
                 "commission": item["commission"],
                 "order_id": str(item["order_id"]),
                 "on_price_bar": day.isoformat() in days,
+                "listing_id": str(listing_id),
+                **(
+                    {
+                        key: item[key]
+                        for key in (
+                            "fill_id",
+                            "native_timestamp_ns",
+                            "economic_reference_time",
+                            "economic_reference",
+                        )
+                    }
+                    if portable
+                    else {}
+                ),
             }
         )
-    status, reason, indicators = _indicator_view(result.bundle, symbol, days, zone)
+    markers.sort(
+        key=lambda item: (datetime.fromisoformat(item["timestamp"]), item["row_index"])
+    )
+    status, reason, indicators = (
+        (
+            "not_persisted",
+            "The portable trusted-engine protocol does not persist declared indicator observations. Policy state and decision values are not indicator or accounting evidence; no series is inferred.",
+            [],
+        )
+        if portable
+        else _indicator_view(result.bundle, symbol, days, zone)
+    )
     return PriceReplay(
+        context=context,
         evaluation_id=result.evaluation.id,
         artifact_sha256=result.artifact.sha256,
         dataset_sha256=result.dataset.content_sha256,
@@ -467,6 +534,78 @@ def price_replay(
         warnings=[
             "OHLCV comes from the checksum-verified pinned dataset, not the engine's fill prices. Adjustment basis remains the dataset's declared semantics.",
             "Markers are actual fill rows, not orders or inferred round trips. Multiple executions on one date stay separate. A fill without a matching OHLCV bar is listed but never snapped to another bar.",
-            "Native observations are not an independently trusted ledger. Only the bounded OHLCV page is charted; missing sessions are not filled.",
+            (
+                "Fills and account observations come only from the verified trusted-engine ledger. Native timestamps and economic next-open references remain distinct; policy-reported values are not used. "
+                if portable
+                else "Native observations are not an independently trusted ledger. "
+            )
+            + "Only the bounded OHLCV page is charted; missing sessions are not filled.",
         ],
     )
+
+
+def exploration_context(result):
+    """Identity from already-authorized, verified evidence; never a user mode hint."""
+    modes = {
+        "tradegrad.run.v1": "native_research",
+        "tradegrad.final-evaluation.v1": "native_final",
+        "tradegrad.portable.run.v1": "portable_research",
+        "tradegrad.portable.final-evaluation.v1": "portable_final",
+    }
+    mode = modes.get(result.run.config.get("schema_version"))
+    if mode is None or result.dataset is None:
+        raise DomainError(
+            "result_integrity", "Missing verified exploration identity", 409
+        )
+    if (
+        hashlib.sha256(canonical_bytes(result.dataset.manifest)).hexdigest()
+        != result.dataset.content_sha256
+    ):
+        raise DomainError(
+            "snapshot_integrity",
+            "Exploration dataset metadata differs from its pinned checksum",
+            409,
+        )
+    portable = mode.startswith("portable")
+    if portable != (result.bundle.get("evaluation_mode") == "portable"):
+        raise DomainError(
+            "result_integrity", "Exploration mode differs from verified result", 409
+        )
+    split = result.evaluation.window["split"]
+    final = mode.endswith("final")
+    selection = result.run.config.get("selection_id")
+    if (split == "holdout") != final or final != bool(selection):
+        raise DomainError(
+            "result_integrity", "Exploration holdout identity differs", 409
+        )
+    mapping = result.dataset.manifest.get("evaluator_symbol_mapping", {})
+    return ExplorationContext(
+        mode=mode,
+        evaluation_id=result.evaluation.id,
+        run_id=result.run.id,
+        artifact_sha256=result.artifact.sha256,
+        dataset_id=result.dataset.id,
+        dataset_sha256=result.dataset.content_sha256,
+        evaluation_data_sha256=result.bundle["identity"].get("market_data_sha256")
+        if portable
+        else None,
+        split=split,
+        start=result.bundle["window"]["start"],
+        end=result.bundle["window"]["end"],
+        timezone=result.bundle["manifest"]["timezone"]
+        if portable
+        else result.bundle["engine"]["resolved_config"]["timezone"],
+        result_trust=result.bundle["result_trust"],
+        ledger_origin=result.bundle.get("ledger_origin", "native_same_process"),
+        selection_id=selection,
+        listings=[
+            {"listing_id": key, "symbol": value}
+            for key, value in sorted(mapping.items())
+        ],
+    )
+
+
+def result_return_analysis(result):
+    context = exploration_context(result)
+    analysis = return_analysis(result.bundle, result.dataset.manifest)
+    return ResultReturnAnalysis(**analysis.model_dump(), context=context)

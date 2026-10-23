@@ -1,3 +1,5 @@
+import { exerciseCandidateQueries } from "./named-list-queries";
+import { exerciseModeExplorer } from "./exploration-modes";
 import { createHash } from "node:crypto";
 import { test, expect, type APIRequestContext } from "@playwright/test";
 import type {
@@ -326,6 +328,7 @@ test("real portable CN/US research, frozen final retry and package flows preserv
       expect(run.portable_policy_image_digest).toMatch(/^sha256:[a-f0-9]{64}$/);
       expect(run.result?.runtime_certified).toBe(false);
       expect(run.result?.holdout_executed).toBe(false);
+      await exerciseCandidateQueries(page, id, true);
       const evaluations = await pages<PortableEvaluationPublic>(
         request,
         auth,
@@ -363,6 +366,21 @@ test("real portable CN/US research, frozen final retry and package flows preserv
       expect(result.image_digest).toBe(run.research_image_digest);
       expect(result.policy_image_digest).toBe(run.portable_policy_image_digest);
       await page.goto(`/portable/evaluations/${evaluation.id}`);
+      await exerciseModeExplorer(
+        page,
+        request,
+        auth,
+        other,
+        "portable_research",
+        {
+          evaluation_id: result.evaluation_id,
+          artifact_sha256: result.artifact_sha256,
+          window: {
+            start: String(result.window.start),
+            end: String(result.window.end),
+          },
+        },
+      );
       if (benchmarkInput) {
         await expect(page.getByTestId("benchmark-result")).toContainText(
           "not total return",

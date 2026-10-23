@@ -32,14 +32,24 @@ export const researchRunOptions = (id: string) =>
       (await sdk.readResearchRun({ path: { run_id: id }, signal })).data,
     refetchInterval: (query) => refresh(researchNeedsRefresh(query.state.data)),
   });
-export const candidatesOptions = (id: string, offset = 0, active = false) =>
+export const candidatesOptions = (
+  id: string,
+  offset = 0,
+  active = false,
+  filters: import("@/components/named-list-controls").NamedListFilters = {},
+) =>
   queryOptions({
-    queryKey: ["research-candidates", id, offset],
+    queryKey: [
+      "research-candidates",
+      id,
+      offset,
+      ...(Object.keys(filters).length ? [filters] : []),
+    ],
     queryFn: async ({ signal }) =>
       (
         await sdk.listResearchCandidates({
           path: { run_id: id },
-          query: { offset, limit: RESEARCH_PAGE_SIZE },
+          query: { offset, limit: RESEARCH_PAGE_SIZE, ...filters },
           signal,
         })
       ).data,

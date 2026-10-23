@@ -8,7 +8,7 @@ import {
   VisualMapComponent,
 } from "echarts/components";
 import { SVGRenderer } from "echarts/renderers";
-import type { ReturnAnalysis } from "@/client/types.gen";
+import type { ResultReturnAnalysis } from "@/client/types.gen";
 use([
   HeatmapChart,
   BarChart,
@@ -19,11 +19,11 @@ use([
   SVGRenderer,
 ]);
 
-export default function ReturnAnalysisChart({
+export default function ResultReturnAnalysisChart({
   value,
   kind,
 }: {
-  value: ReturnAnalysis;
+  value: ResultReturnAnalysis;
   kind: "monthly" | "distribution";
 }) {
   const element = useRef<HTMLDivElement>(null);

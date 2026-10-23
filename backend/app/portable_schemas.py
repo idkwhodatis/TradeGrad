@@ -162,6 +162,12 @@ class PortableResultQuery(BaseModel):
         "logical_orders",
     ]
     rows: list[dict[str, Any]]
+    row_indices: list[int] | None = None
+    total_rows: int | None = None
+    sortable_columns: list[str] | None = None
+    sort_by: str | None = None
+    sort_direction: Literal["asc", "desc"] = "asc"
+    side: Literal["buy", "sell"] | None = None
     count: int
     offset: int
     limit: int

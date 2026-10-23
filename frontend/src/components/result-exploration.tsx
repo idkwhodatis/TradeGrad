@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { ResultQueryPublic, TradeMarker } from "@/client/types.gen";
+import type { ExplorationContext, TradeMarker } from "@/client/types.gen";
 import { ErrorState, Loading, Panel } from "@/components/common";
 import {
   Field,
@@ -10,7 +10,12 @@ import {
 } from "@/components/data-common";
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
-import { priceReplayOptions, returnAnalysisOptions } from "@/lib/research-api";
+import {
+  modeAnalysisOptions,
+  modeReplayOptions,
+  type ExplorationMode,
+  type ExplorationReference,
+} from "@/lib/exploration-api";
 import {
   localSession,
   navigationWindow,
@@ -29,8 +34,10 @@ export function PriceReplayPanel({
   listings,
   filter,
   target,
+  mode = "native_research",
 }: {
-  result: ResultQueryPublic;
+  result: ExplorationReference & { engine_timezone: string };
+  mode?: ExplorationMode;
   listings: Record<string, unknown>[];
   filter: { start: string; end: string; listing: string };
   target: FillTarget | null;
@@ -60,9 +67,9 @@ export function PriceReplayPanel({
     setSelectedId(target.id);
     const day = localSession(target.timestamp, result.engine_timezone);
     setFocus(navigationWindow(day, result.window.start, result.window.end));
-  }, [target, result]);
+  }, [target, result.engine_timezone, result.window.start, result.window.end]);
   const replay = useQuery(
-    priceReplayOptions(result.evaluation_id, {
+    modeReplayOptions(mode, result, {
       listing_id: target && focus ? target.listing : listing,
       start: focus?.start || filter.start || result.window.start,
       end: focus?.end || filter.end || result.window.end,
@@ -205,7 +212,18 @@ export function PriceReplayPanel({
                     values={{
                       "Fill reference": selection.selected.id,
                       "Order ID": selection.selected.order_id,
-                      "Exact timestamp": selection.selected.timestamp,
+                      "Exact native timestamp": selection.selected.timestamp,
+                      ...(selection.selected.native_timestamp_ns
+                        ? {
+                            "Native nanoseconds":
+                              selection.selected.native_timestamp_ns,
+                            "Persisted fill ID": selection.selected.fill_id,
+                            "Economic reference time":
+                              selection.selected.economic_reference_time,
+                            "Economic reference meaning":
+                              selection.selected.economic_reference,
+                          }
+                        : {}),
                       "Engine-local session": selection.selected.session_date,
                       Side: selection.selected.side,
                       "Original fill price": selection.selected.price,
@@ -308,11 +326,13 @@ export function PriceReplayPanel({
 }
 
 export function ReturnAnalysisPanel({
-  evaluationId,
+  reference,
+  mode = "native_research",
 }: {
-  evaluationId: string;
+  reference: ExplorationReference;
+  mode?: ExplorationMode;
 }) {
-  const query = useQuery(returnAnalysisOptions(evaluationId));
+  const query = useQuery(modeAnalysisOptions(mode, reference));
   const [offset, setOffset] = useState(0);
   const data = query.data;
   return (
@@ -345,8 +365,15 @@ export function ReturnAnalysisPanel({
             <p className="text-xs muted">
               Pinned expected sessions:{" "}
               {data.expected_sessions ?? "Unavailable"}; missing equity
-              sessions: {data.missing_sessions?.length ?? 0}; unexpected
-              observed dates: {data.unexpected_observations?.length ?? 0}.
+              sessions:{" "}
+              {data.expected_sessions == null
+                ? "Unverified"
+                : (data.missing_sessions?.length ?? 0)}
+              ; unexpected observed dates:{" "}
+              {data.expected_sessions == null
+                ? "Unverified"
+                : (data.unexpected_observations?.length ?? 0)}
+              .
             </p>
             {Boolean(
               data.missing_sessions?.length ||
@@ -366,8 +393,8 @@ export function ReturnAnalysisPanel({
                 * Purple border means a partial observed period, not a full
                 calendar-month return. Missing months have no colored cell.
                 Coverage is compared with pinned calendar evidence when
-                available; matching dates are not an independently trusted
-                ledger.
+                available; calendar agreement does not upgrade the displayed
+                result trust or certify an external trading framework.
               </p>
               {data.months.some((item) => item.value !== null) ? (
                 <Suspense fallback={<Loading />}>
@@ -453,5 +480,48 @@ export function ReturnAnalysisPanel({
         )
       )}
     </Panel>
+  );
+}
+
+/** Mode adapters pass exact verified result identity, never a native-shaped portable artifact. */
+export function ModeResultExplorer({
+  mode,
+  reference,
+  target = null,
+  onContext,
+}: {
+  mode: ExplorationMode;
+  reference: ExplorationReference;
+  target?: FillTarget | null;
+  onContext?: (context: ExplorationContext) => void;
+}) {
+  const query = useQuery(modeAnalysisOptions(mode, reference));
+  const filter = useState({ start: "", end: "", listing: "" })[0];
+  useEffect(() => {
+    if (query.data) onContext?.(query.data.context);
+  }, [query.data, onContext]);
+  if (query.isPending)
+    return <Loading text="Verifying mode-specific exploration evidence…" />;
+  if (query.error)
+    return (
+      <ErrorState error={query.error} retry={() => void query.refetch()} />
+    );
+  const context = query.data.context;
+  return (
+    <div className="stack" data-testid={`${mode}-explorer`}>
+      <p className="notice">
+        {mode.replaceAll("_", " ")} · {context.split} · {context.result_trust}.
+        {context.split === "holdout" &&
+          " Frozen holdout observations only; excluded from selection feedback."}
+      </p>
+      <PriceReplayPanel
+        mode={mode}
+        result={{ ...reference, engine_timezone: context.timezone }}
+        listings={context.listings}
+        filter={filter}
+        target={target}
+      />
+      <ReturnAnalysisPanel mode={mode} reference={reference} />
+    </div>
   );
 }

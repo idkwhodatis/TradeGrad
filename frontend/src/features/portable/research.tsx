@@ -1,3 +1,7 @@
+import {
+  NamedListControls,
+  type NamedListFilters,
+} from "@/components/named-list-controls";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
@@ -84,6 +88,9 @@ export function PortableResearchContent({
   owner: string;
   run: PortableRunDetail;
 }) {
+  const [candidateFilters, setCandidateFilters] = useState<NamedListFilters>(
+    {},
+  );
   const [candidateOffset, setCandidateOffset] = useState(0),
     [evaluationOffset, setEvaluationOffset] = useState(0),
     [checkpointOffset, setCheckpointOffset] = useState(0),
@@ -94,7 +101,13 @@ export function PortableResearchContent({
   const active = portableNeedsRefresh(run),
     controls = portableControls(run);
   const candidates = useQuery(
-    portableCandidatesOptions(owner, run.id, candidateOffset, active),
+    portableCandidatesOptions(
+      owner,
+      run.id,
+      candidateOffset,
+      active,
+      candidateFilters,
+    ),
   );
   const evaluations = useQuery(
     portableEvaluationsOptions(owner, run.id, evaluationOffset, active),
@@ -380,6 +393,14 @@ export function PortableResearchContent({
         </Panel>
         <PortableFreezeCandidatePanel owner={owner} run={run} />
         <Panel title="Candidate lineage">
+          <NamedListControls
+            kind="candidate"
+            value={candidateFilters}
+            onChange={(value) => {
+              setCandidateFilters(value);
+              setCandidateOffset(0);
+            }}
+          />
           <Paged
             query={candidates}
             columns={candidateColumns}

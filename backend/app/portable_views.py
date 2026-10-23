@@ -13,6 +13,7 @@ from backend.app.models import (
     ModelCall,
     ResearchRun,
 )
+from backend.app.portable_result_tables import query_portable_table
 from backend.app.portable_schemas import PortablePreflightPublic, PortableResultQuery
 from backend.app.portable_services import (
     owned_portable_run,
@@ -67,6 +68,7 @@ class OwnedPortableResult:
     run: ResearchRun
     is_synthetic: bool
     data_evidence: str = "not_assessed"
+    dataset: DatasetVersion | None = None
 
 
 def portable_data_evidence(dataset):
@@ -158,10 +160,13 @@ def load_owned_portable_result(session, evaluation_id, owner_id, settings):
         run,
         dataset.is_synthetic,
         portable_data_evidence(dataset),
+        dataset=dataset,
     )
 
 
-def portable_result_view(result, section="account_series", offset=0, limit=100):
+def portable_result_view(
+    result, section="account_series", offset=0, limit=100, **filters
+):
     allowed = {
         "account_series",
         "positions",
@@ -202,8 +207,7 @@ def portable_result_view(result, section="account_series", offset=0, limit=100):
         benchmark=comparison_view(bundle.get("benchmark"), max_points=500),
         combined_score=portable_score(bundle),
         section=section,
-        rows=bundle[section][offset : offset + limit],
-        count=len(bundle[section]),
+        **query_portable_table(bundle, section, offset, limit, **filters),
         offset=offset,
         limit=limit,
     )

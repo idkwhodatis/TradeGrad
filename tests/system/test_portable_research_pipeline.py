@@ -18,6 +18,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
+from exploration_assertions import assert_mode_exploration
 from test_research_optimization import ResearchProcessHarness, runtime_paths
 from test_worker_recovery import require
 
@@ -324,6 +325,23 @@ def test_real_portable_api_queue_both_containers_lineage_results_and_ownership(
         ),
         "Optimization escaped train/validation isolation",
     )
+    ordered = h.request(
+        client,
+        "GET",
+        f"/portable-runs/{run_id}/candidates",
+        params={
+            "sort_by": "iteration",
+            "sort_direction": "desc",
+            "kind": "generated",
+            "limit": 1,
+        },
+    ).json()
+    expected = sorted(
+        [row for row in rows["candidates"] if row["kind"] == "generated"],
+        key=lambda row: (-row["iteration"], row["id"]),
+    )
+    assert ordered["count"] == len(expected)
+    assert [row["id"] for row in ordered["data"]] == [row["id"] for row in expected[:1]]
     for evaluation in rows["evaluations"]:
         h.attempts.add(evaluation["id"])
         require(
@@ -345,6 +363,15 @@ def test_real_portable_api_queue_both_containers_lineage_results_and_ownership(
         )
         content = h.request(client, "GET", path + "/download").content
         bundle = validate_portable_result(content)
+        assert_mode_exploration(
+            h,
+            client,
+            other,
+            mode="portable_research",
+            evaluation_id=evaluation["id"],
+            content=content,
+            bundle=bundle,
+        )
         require(
             bundle["identity"]["run_config_sha256"] == config.sha256,
             "Downloaded result config differs",

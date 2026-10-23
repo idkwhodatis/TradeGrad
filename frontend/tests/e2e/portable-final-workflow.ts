@@ -1,3 +1,4 @@
+import { exerciseModeExplorer } from "./exploration-modes";
 import { createHash } from "node:crypto";
 import { expect, type APIRequestContext, type Page } from "@playwright/test";
 import type {
@@ -356,6 +357,16 @@ export async function exercisePortableFinal({
       "not total return",
     );
   }
+  await exerciseModeExplorer(page, request, auth, other, "portable_final", {
+    evaluation_id: result.evaluation_id,
+    artifact_sha256: result.artifact_sha256,
+    selection_id: result.selection_id,
+    split: "holdout",
+    window: {
+      start: String(result.window.start),
+      end: String(result.window.end),
+    },
+  });
   expect(result.runtime_certified).toBe(false);
   expect(result.result_trust).toBe("isolated_policy_trusted_akquant_engine");
   expect(result.ledger_origin).toBe("trusted_engine");

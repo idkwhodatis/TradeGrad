@@ -693,6 +693,37 @@ test("universe UI preserves fixed, current and historical evidence without promo
     await page
       .getByRole("checkbox", { name: "Include AAPL on XNAS", exact: true })
       .check();
+    const controls = page.getByRole("group", {
+      name: "Listing server query controls",
+    });
+    await controls
+      .getByLabel("Listing search", { exact: true })
+      .fill("B6-NO-SUCH-LISTING");
+    await controls
+      .getByLabel("Listing server sort", { exact: true })
+      .selectOption("symbol");
+    await controls
+      .getByLabel("Listing sort direction", { exact: true })
+      .selectOption("desc");
+    const filtered = page.waitForResponse(
+      (response) =>
+        response.url().includes("/data/listings?") &&
+        response.url().includes("search=B6-NO-SUCH-LISTING"),
+    );
+    await controls
+      .getByRole("button", { name: "Apply listing query", exact: true })
+      .click();
+    expect((await (await filtered).json()).count).toBe(0);
+    await expect(
+      page.getByRole("checkbox", { name: "Include AAPL on XNAS", exact: true }),
+    ).toHaveCount(0);
+    await controls
+      .getByRole("button", { name: "Reset listing query", exact: true })
+      .click();
+    await expect(
+      page.getByRole("checkbox", { name: "Include AAPL on XNAS", exact: true }),
+    ).toBeChecked();
+
     if (state === "historical_membership") {
       await page.getByLabel("AAPL valid from", { exact: true }).fill(start);
       await page

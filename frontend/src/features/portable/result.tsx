@@ -1,3 +1,12 @@
+import {
+  ModeResultExplorer,
+  type FillTarget,
+} from "@/components/result-exploration";
+import {
+  ResultTableControls,
+  type TableFilters,
+} from "@/components/result-table-controls";
+import type { ExplorationContext } from "@/client/types.gen";
 import { BenchmarkResult } from "@/components/benchmark-result";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
@@ -98,6 +107,10 @@ export function PortableResultContent({
   owner: string;
   evaluationId: string;
 }) {
+  const [tableFilters, setTableFilters] = useState<TableFilters>({});
+  const [exploration, setExploration] = useState<ExplorationContext | null>(
+    null,
+  );
   const [section, setSection] = useState<PortableSection>("decision_trace"),
     [offset, setOffset] = useState(0),
     [chartOffset, setChartOffset] = useState(0),
@@ -112,8 +125,16 @@ export function PortableResultContent({
     ),
   );
   const rows = useQuery(
-    portableResultsOptions(owner, evaluationId, section, offset, LIMIT),
+    portableResultsOptions(
+      owner,
+      evaluationId,
+      section,
+      offset,
+      LIMIT,
+      tableFilters,
+    ),
   );
+  const [fillTarget, setFillTarget] = useState<FillTarget | null>(null);
   const [downloading, setDownloading] = useState(false),
     [downloadError, setDownloadError] = useState<unknown>(null);
   const mounted = useRef(true),
@@ -265,6 +286,19 @@ export function PortableResultContent({
         <Panel title="Immutable benchmark comparison">
           <BenchmarkResult value={data.benchmark} />
         </Panel>
+        <ModeResultExplorer
+          mode="portable_research"
+          target={fillTarget}
+          onContext={setExploration}
+          reference={{
+            evaluation_id: data.evaluation_id,
+            artifact_sha256: data.artifact_sha256,
+            window: {
+              start: String(data.window.start),
+              end: String(data.window.end),
+            },
+          }}
+        />
         <Panel title="Persisted account charts · bounded page">
           <p className="notice">
             Only the returned {LIMIT}-row account page is plotted. There is no
@@ -322,6 +356,7 @@ export function PortableResultContent({
               value={section}
               onChange={(event) => {
                 setSection(event.target.value as PortableSection);
+                setTableFilters({});
                 setOffset(0);
               }}
             >
@@ -339,6 +374,23 @@ export function PortableResultContent({
             no decision. No state or signal is reconstructed from prices in this
             UI.
           </p>
+          <ResultTableControls
+            section={section}
+            columns={rows.data?.sortable_columns || []}
+            value={tableFilters}
+            dates={{
+              start: String(data.window.start),
+              end: String(data.window.end),
+            }}
+            listings={exploration?.listings.map((item) => ({
+              listing_id: item.listing_id,
+              symbol: item.symbol,
+            }))}
+            onChange={(value) => {
+              setTableFilters(value);
+              setOffset(0);
+            }}
+          />
           {rows.isPending ? (
             <Loading text="Loading bounded persisted evidence…" />
           ) : rows.error ? (
@@ -361,6 +413,21 @@ export function PortableResultContent({
               <>
                 <PortableTable
                   rows={rows.data.rows}
+                  onReviewFill={
+                    section === "fills"
+                      ? (index) => {
+                          const row = rows.data!.rows[index];
+                          const original = rows.data!.row_indices?.[index];
+                          if (typeof original === "number")
+                            setFillTarget({
+                              listing: String(row.listing_id),
+                              id: `fill:${original}`,
+                              timestamp: String(row.native_at),
+                            });
+                        }
+                      : undefined
+                  }
+                  rowIndices={rows.data.row_indices || undefined}
                   label={`Portable ${section.replaceAll("_", " ")}`}
                 />
                 <Pagination
@@ -383,9 +450,13 @@ export function PortableResultContent({
 export function PortableTable({
   rows,
   label,
+  onReviewFill,
+  rowIndices,
 }: {
   rows: PortableResultQuery["rows"];
   label: string;
+  onReviewFill?: (index: number) => void;
+  rowIndices?: number[];
 }) {
   const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
   return (
@@ -400,6 +471,7 @@ export function PortableTable({
           <caption className="sr-only">{label}</caption>
           <thead>
             <tr>
+              {onReviewFill && <th scope="col">Replay</th>}
               {columns.map((column) => (
                 <th key={column} scope="col">
                   {column.replaceAll("_", " ")}
@@ -410,6 +482,17 @@ export function PortableTable({
           <tbody>
             {rows.map((row, index) => (
               <tr key={index}>
+                {onReviewFill && (
+                  <td>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onReviewFill(index)}
+                    >
+                      Review fill {rowIndices?.[index] ?? index}
+                    </Button>
+                  </td>
+                )}
                 {columns.map((column) => (
                   <td key={column}>{rawCell(row[column])}</td>
                 ))}

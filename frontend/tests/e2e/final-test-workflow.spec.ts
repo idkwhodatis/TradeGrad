@@ -1,3 +1,4 @@
+import { exerciseModeExplorer } from "./exploration-modes";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import {
@@ -471,6 +472,14 @@ test("bound native research → freeze → lost-response final submit → actual
     expect(result.selection_id).toBe(selection.id);
     expect(result.tables.equity?.rows.length).toBeGreaterThan(0);
     expect(result.window).toMatchObject(windows.holdout);
+    await exerciseModeExplorer(
+      page,
+      request,
+      auth,
+      await token(request, true),
+      "native_final",
+      result,
+    );
     await page
       .getByRole("button", {
         name: "Show holdout equity and drawdown charts",

@@ -142,15 +142,22 @@ export const portableCandidatesOptions = (
   id: string,
   offset = 0,
   active = false,
+  filters: import("@/components/named-list-controls").NamedListFilters = {},
 ) =>
   queryOptions({
-    queryKey: portableKey(owner, "candidates", id, offset),
+    queryKey: portableKey(
+      owner,
+      "candidates",
+      id,
+      offset,
+      ...(Object.keys(filters).length ? [filters] : []),
+    ),
     enabled: Boolean(owner && id),
     queryFn: async ({ signal }) =>
       (
         await sdk.listPortableCandidates({
           path: { run_id: id },
-          query: { offset, limit: PORTABLE_PAGE_SIZE },
+          query: { offset, limit: PORTABLE_PAGE_SIZE, ...filters },
           signal,
         })
       ).data,
@@ -264,15 +271,24 @@ export const portableResultsOptions = (
   section: PortableSection = "account_series",
   offset = 0,
   limit = 50,
+  filters: import("@/components/result-table-controls").TableFilters = {},
 ) =>
   queryOptions({
-    queryKey: portableKey(owner, "results", id, section, offset, limit),
+    queryKey: portableKey(
+      owner,
+      "results",
+      id,
+      section,
+      offset,
+      limit,
+      ...(Object.keys(filters).length ? [filters] : []),
+    ),
     enabled: Boolean(owner && id),
     queryFn: async ({ signal }) =>
       (
         await sdk.readPortableResults({
           path: { evaluation_id: id },
-          query: { section, offset, limit },
+          query: { section, offset, limit, ...filters },
           signal,
         })
       ).data,

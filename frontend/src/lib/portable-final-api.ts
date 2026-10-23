@@ -154,15 +154,24 @@ export const portableFinalResultsOptions = (
   section: PortableSection = "account_series",
   offset = 0,
   limit = 50,
+  filters: import("@/components/result-table-controls").TableFilters = {},
 ) =>
   queryOptions({
-    queryKey: portableFinalKey(owner, "result", id, section, offset, limit),
+    queryKey: portableFinalKey(
+      owner,
+      "result",
+      id,
+      section,
+      offset,
+      limit,
+      ...(Object.keys(filters).length ? [filters] : []),
+    ),
     enabled: enabled(owner, id),
     queryFn: async ({ signal }) =>
       (
         await sdk.portableQueryFinalResult({
           path: { evaluation_id: id },
-          query: { section, offset, limit },
+          query: { section, offset, limit, ...filters },
           signal,
         })
       ).data,

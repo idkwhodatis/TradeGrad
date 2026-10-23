@@ -1152,6 +1152,74 @@ export type ExperimentPublic = {
 };
 
 /**
+ * ExplorationContext
+ */
+export type ExplorationContext = {
+    /**
+     * Artifact Sha256
+     */
+    artifact_sha256: string;
+    /**
+     * Dataset Id
+     */
+    dataset_id: string;
+    /**
+     * Dataset Sha256
+     */
+    dataset_sha256: string;
+    /**
+     * End
+     */
+    end: string;
+    /**
+     * Evaluation Data Sha256
+     */
+    evaluation_data_sha256?: string | null;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    /**
+     * Ledger Origin
+     */
+    ledger_origin: string;
+    /**
+     * Listings
+     */
+    listings: Array<{
+        [key: string]: string;
+    }>;
+    /**
+     * Mode
+     */
+    mode: 'native_research' | 'native_final' | 'portable_research' | 'portable_final';
+    /**
+     * Result Trust
+     */
+    result_trust: string;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Selection Id
+     */
+    selection_id?: string | null;
+    /**
+     * Split
+     */
+    split: 'train' | 'validation' | 'holdout';
+    /**
+     * Start
+     */
+    start: string;
+    /**
+     * Timezone
+     */
+    timezone: string;
+};
+
+/**
  * ExposureSnapshot
  */
 export type ExposureSnapshot = {
@@ -3941,6 +4009,10 @@ export type PortableFinalResultQuery = {
      */
     result_trust: 'isolated_policy_trusted_akquant_engine';
     /**
+     * Row Indices
+     */
+    row_indices?: Array<number> | null;
+    /**
      * Rows
      */
     rows: Array<{
@@ -3971,11 +4043,31 @@ export type PortableFinalResultQuery = {
      */
     selection_id: string;
     /**
+     * Side
+     */
+    side?: 'buy' | 'sell' | null;
+    /**
+     * Sort By
+     */
+    sort_by?: string | null;
+    /**
+     * Sort Direction
+     */
+    sort_direction?: 'asc' | 'desc';
+    /**
+     * Sortable Columns
+     */
+    sortable_columns?: Array<string> | null;
+    /**
      * Summary
      */
     summary: {
         [key: string]: unknown;
     };
+    /**
+     * Total Rows
+     */
+    total_rows?: number | null;
     /**
      * Window
      */
@@ -4199,6 +4291,10 @@ export type PortableResultQuery = {
      */
     result_trust: 'isolated_policy_trusted_akquant_engine';
     /**
+     * Row Indices
+     */
+    row_indices?: Array<number> | null;
+    /**
      * Rows
      */
     rows: Array<{
@@ -4221,11 +4317,31 @@ export type PortableResultQuery = {
      */
     section: 'account_series' | 'positions' | 'orders' | 'fills' | 'closed_trades' | 'native_metrics' | 'decision_trace' | 'logical_orders';
     /**
+     * Side
+     */
+    side?: 'buy' | 'sell' | null;
+    /**
+     * Sort By
+     */
+    sort_by?: string | null;
+    /**
+     * Sort Direction
+     */
+    sort_direction?: 'asc' | 'desc';
+    /**
+     * Sortable Columns
+     */
+    sortable_columns?: Array<string> | null;
+    /**
      * Summary
      */
     summary: {
         [key: string]: unknown;
     };
+    /**
+     * Total Rows
+     */
+    total_rows?: number | null;
     /**
      * Window
      */
@@ -4891,6 +5007,7 @@ export type PriceReplay = {
      * Bars
      */
     bars: Array<PreviewBar>;
+    context: ExplorationContext;
     /**
      * Dataset Sha256
      */
@@ -6061,6 +6178,81 @@ export type ResultQueryPublic = {
 };
 
 /**
+ * ResultReturnAnalysis
+ */
+export type ResultReturnAnalysis = {
+    /**
+     * Bins
+     */
+    bins: Array<ReturnBin>;
+    /**
+     * Collapsed Intraday Observations
+     */
+    collapsed_intraday_observations: number;
+    context: ExplorationContext;
+    /**
+     * Coverage Status
+     */
+    coverage_status?: 'exchange_session_completeness_not_verified' | 'matches_pinned_session_dates' | 'missing_pinned_sessions';
+    /**
+     * Definition Version
+     */
+    definition_version?: 'tradegrad.observed-equity-returns.v1';
+    /**
+     * Distribution Definition
+     */
+    distribution_definition: string;
+    /**
+     * Excluded Returns
+     */
+    excluded_returns: number;
+    /**
+     * Expected Sessions
+     */
+    expected_sessions?: number | null;
+    /**
+     * Missing Sessions
+     */
+    missing_sessions?: Array<string>;
+    /**
+     * Monthly Definition
+     */
+    monthly_definition: string;
+    /**
+     * Months
+     */
+    months: Array<ReturnMonth>;
+    /**
+     * Observations
+     */
+    observations: number;
+    /**
+     * Scope
+     */
+    scope?: 'full_persisted_evaluation_portfolio';
+    /**
+     * Status
+     */
+    status: 'available' | 'insufficient_observations';
+    /**
+     * Unexpected Observations
+     */
+    unexpected_observations?: Array<string>;
+    /**
+     * Unit
+     */
+    unit?: 'fraction';
+    /**
+     * Valid Returns
+     */
+    valid_returns: number;
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+};
+
+/**
  * ResultTable
  */
 export type ResultTable = {
@@ -6128,80 +6320,6 @@ export type ResultTable = {
      * Total Rows
      */
     total_rows: number;
-};
-
-/**
- * ReturnAnalysis
- */
-export type ReturnAnalysis = {
-    /**
-     * Bins
-     */
-    bins: Array<ReturnBin>;
-    /**
-     * Collapsed Intraday Observations
-     */
-    collapsed_intraday_observations: number;
-    /**
-     * Coverage Status
-     */
-    coverage_status?: 'exchange_session_completeness_not_verified' | 'matches_pinned_session_dates' | 'missing_pinned_sessions';
-    /**
-     * Definition Version
-     */
-    definition_version?: 'tradegrad.observed-equity-returns.v1';
-    /**
-     * Distribution Definition
-     */
-    distribution_definition: string;
-    /**
-     * Excluded Returns
-     */
-    excluded_returns: number;
-    /**
-     * Expected Sessions
-     */
-    expected_sessions?: number | null;
-    /**
-     * Missing Sessions
-     */
-    missing_sessions?: Array<string>;
-    /**
-     * Monthly Definition
-     */
-    monthly_definition: string;
-    /**
-     * Months
-     */
-    months: Array<ReturnMonth>;
-    /**
-     * Observations
-     */
-    observations: number;
-    /**
-     * Scope
-     */
-    scope?: 'full_persisted_evaluation_portfolio';
-    /**
-     * Status
-     */
-    status: 'available' | 'insufficient_observations';
-    /**
-     * Unexpected Observations
-     */
-    unexpected_observations?: Array<string>;
-    /**
-     * Unit
-     */
-    unit?: 'fraction';
-    /**
-     * Valid Returns
-     */
-    valid_returns: number;
-    /**
-     * Warnings
-     */
-    warnings: Array<string>;
 };
 
 /**
@@ -6993,9 +7111,29 @@ export type TradeMarker = {
      */
     commission: number;
     /**
+     * Economic Reference
+     */
+    economic_reference?: string | null;
+    /**
+     * Economic Reference Time
+     */
+    economic_reference_time?: string | null;
+    /**
+     * Fill Id
+     */
+    fill_id?: string | null;
+    /**
      * Id
      */
     id: string;
+    /**
+     * Listing Id
+     */
+    listing_id?: string | null;
+    /**
+     * Native Timestamp Ns
+     */
+    native_timestamp_ns?: string | null;
     /**
      * On Price Bar
      */
@@ -7751,6 +7889,26 @@ export type ListDataListingsData = {
          * Limit
          */
         limit?: number;
+        /**
+         * Sort By
+         */
+        sort_by?: string;
+        /**
+         * Sort Direction
+         */
+        sort_direction?: string;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Mic
+         */
+        mic?: string | null;
+        /**
+         * Currency
+         */
+        currency?: string | null;
     };
     url: '/api/v1/data/listings';
 };
@@ -8669,6 +8827,69 @@ export type CreateFinalEvaluationResponses = {
 
 export type CreateFinalEvaluationResponse = CreateFinalEvaluationResponses[keyof CreateFinalEvaluationResponses];
 
+export type ReadFinalPriceReplayData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query: {
+        /**
+         * Listing Id
+         */
+        listing_id: string;
+        /**
+         * Start
+         */
+        start?: string | null;
+        /**
+         * End
+         */
+        end?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/final-evaluations/evaluations/{evaluation_id}/price-replay';
+};
+
+export type ReadFinalPriceReplayErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadFinalPriceReplayError = ReadFinalPriceReplayErrors[keyof ReadFinalPriceReplayErrors];
+
+export type ReadFinalPriceReplayResponses = {
+    /**
+     * Successful Response
+     */
+    200: PriceReplay;
+};
+
+export type ReadFinalPriceReplayResponse = ReadFinalPriceReplayResponses[keyof ReadFinalPriceReplayResponses];
+
 export type QueryFinalResultData = {
     body?: never;
     path: {
@@ -8706,6 +8927,22 @@ export type QueryFinalResultData = {
          * Limit
          */
         limit?: number;
+        /**
+         * Sort By
+         */
+        sort_by?: string | null;
+        /**
+         * Sort Direction
+         */
+        sort_direction?: string;
+        /**
+         * Side
+         */
+        side?: string | null;
+        /**
+         * Order Status
+         */
+        order_status?: string | null;
     };
     url: '/api/v1/final-evaluations/evaluations/{evaluation_id}/result';
 };
@@ -8781,6 +9018,48 @@ export type DownloadFinalResultResponses = {
 };
 
 export type DownloadFinalResultResponse = DownloadFinalResultResponses[keyof DownloadFinalResultResponses];
+
+export type ReadFinalReturnAnalysisData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/final-evaluations/evaluations/{evaluation_id}/return-analysis';
+};
+
+export type ReadFinalReturnAnalysisErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadFinalReturnAnalysisError = ReadFinalReturnAnalysisErrors[keyof ReadFinalReturnAnalysisErrors];
+
+export type ReadFinalReturnAnalysisResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResultReturnAnalysis;
+};
+
+export type ReadFinalReturnAnalysisResponse = ReadFinalReturnAnalysisResponses[keyof ReadFinalReturnAnalysisResponses];
 
 export type PreflightFinalEvaluationData = {
     body: FinalEvaluationCreate;
@@ -9546,6 +9825,69 @@ export type ReadPortableEvaluationResponses = {
 
 export type ReadPortableEvaluationResponse = ReadPortableEvaluationResponses[keyof ReadPortableEvaluationResponses];
 
+export type ReadPortablePriceReplayData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query: {
+        /**
+         * Listing Id
+         */
+        listing_id: string;
+        /**
+         * Start
+         */
+        start?: string | null;
+        /**
+         * End
+         */
+        end?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/portable-evaluations/{evaluation_id}/price-replay';
+};
+
+export type ReadPortablePriceReplayErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadPortablePriceReplayError = ReadPortablePriceReplayErrors[keyof ReadPortablePriceReplayErrors];
+
+export type ReadPortablePriceReplayResponses = {
+    /**
+     * Successful Response
+     */
+    200: PriceReplay;
+};
+
+export type ReadPortablePriceReplayResponse = ReadPortablePriceReplayResponses[keyof ReadPortablePriceReplayResponses];
+
 export type ReadPortableResultsData = {
     body?: never;
     path: {
@@ -9567,6 +9909,30 @@ export type ReadPortableResultsData = {
          * Limit
          */
         limit?: number;
+        /**
+         * Start
+         */
+        start?: string | null;
+        /**
+         * End
+         */
+        end?: string | null;
+        /**
+         * Listing Id
+         */
+        listing_id?: string | null;
+        /**
+         * Sort By
+         */
+        sort_by?: string | null;
+        /**
+         * Sort Direction
+         */
+        sort_direction?: string;
+        /**
+         * Side
+         */
+        side?: string | null;
     };
     url: '/api/v1/portable-evaluations/{evaluation_id}/results';
 };
@@ -9642,6 +10008,48 @@ export type DownloadPortableResultsResponses = {
 };
 
 export type DownloadPortableResultsResponse = DownloadPortableResultsResponses[keyof DownloadPortableResultsResponses];
+
+export type ReadPortableReturnAnalysisData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-evaluations/{evaluation_id}/return-analysis';
+};
+
+export type ReadPortableReturnAnalysisErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadPortableReturnAnalysisError = ReadPortableReturnAnalysisErrors[keyof ReadPortableReturnAnalysisErrors];
+
+export type ReadPortableReturnAnalysisResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResultReturnAnalysis;
+};
+
+export type ReadPortableReturnAnalysisResponse = ReadPortableReturnAnalysisResponses[keyof ReadPortableReturnAnalysisResponses];
 
 export type PortableListFinalEvaluationsData = {
     body?: never;
@@ -9736,6 +10144,69 @@ export type PortableCreateFinalEvaluationResponses = {
 
 export type PortableCreateFinalEvaluationResponse = PortableCreateFinalEvaluationResponses[keyof PortableCreateFinalEvaluationResponses];
 
+export type ReadPortableFinalPriceReplayData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query: {
+        /**
+         * Listing Id
+         */
+        listing_id: string;
+        /**
+         * Start
+         */
+        start?: string | null;
+        /**
+         * End
+         */
+        end?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/portable-final-evaluations/evaluations/{evaluation_id}/price-replay';
+};
+
+export type ReadPortableFinalPriceReplayErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadPortableFinalPriceReplayError = ReadPortableFinalPriceReplayErrors[keyof ReadPortableFinalPriceReplayErrors];
+
+export type ReadPortableFinalPriceReplayResponses = {
+    /**
+     * Successful Response
+     */
+    200: PriceReplay;
+};
+
+export type ReadPortableFinalPriceReplayResponse = ReadPortableFinalPriceReplayResponses[keyof ReadPortableFinalPriceReplayResponses];
+
 export type PortableQueryFinalResultData = {
     body?: never;
     path: {
@@ -9757,6 +10228,30 @@ export type PortableQueryFinalResultData = {
          * Limit
          */
         limit?: number;
+        /**
+         * Start
+         */
+        start?: string | null;
+        /**
+         * End
+         */
+        end?: string | null;
+        /**
+         * Listing Id
+         */
+        listing_id?: string | null;
+        /**
+         * Sort By
+         */
+        sort_by?: string | null;
+        /**
+         * Sort Direction
+         */
+        sort_direction?: string;
+        /**
+         * Side
+         */
+        side?: string | null;
     };
     url: '/api/v1/portable-final-evaluations/evaluations/{evaluation_id}/result';
 };
@@ -9832,6 +10327,48 @@ export type PortableDownloadFinalResultResponses = {
 };
 
 export type PortableDownloadFinalResultResponse = PortableDownloadFinalResultResponses[keyof PortableDownloadFinalResultResponses];
+
+export type ReadPortableFinalReturnAnalysisData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-final-evaluations/evaluations/{evaluation_id}/return-analysis';
+};
+
+export type ReadPortableFinalReturnAnalysisErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadPortableFinalReturnAnalysisError = ReadPortableFinalReturnAnalysisErrors[keyof ReadPortableFinalReturnAnalysisErrors];
+
+export type ReadPortableFinalReturnAnalysisResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResultReturnAnalysis;
+};
+
+export type ReadPortableFinalReturnAnalysisResponse = ReadPortableFinalReturnAnalysisResponses[keyof ReadPortableFinalReturnAnalysisResponses];
 
 export type PortablePreflightFinalEvaluationData = {
     body: PortableFinalEvaluationCreate;
@@ -10408,6 +10945,26 @@ export type ListPortableCandidatesData = {
          * Limit
          */
         limit?: number;
+        /**
+         * Sort By
+         */
+        sort_by?: string;
+        /**
+         * Sort Direction
+         */
+        sort_direction?: string;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Kind
+         */
+        kind?: string | null;
+        /**
+         * Min Iteration
+         */
+        min_iteration?: number | null;
     };
     url: '/api/v1/portable-runs/{run_id}/candidates';
 };
@@ -11361,7 +11918,7 @@ export type ReadResearchReturnAnalysisResponses = {
     /**
      * Successful Response
      */
-    200: ReturnAnalysis;
+    200: ResultReturnAnalysis;
 };
 
 export type ReadResearchReturnAnalysisResponse = ReadResearchReturnAnalysisResponses[keyof ReadResearchReturnAnalysisResponses];
@@ -11602,6 +12159,26 @@ export type ListResearchCandidatesData = {
          * Limit
          */
         limit?: number;
+        /**
+         * Sort By
+         */
+        sort_by?: string;
+        /**
+         * Sort Direction
+         */
+        sort_direction?: string;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Kind
+         */
+        kind?: string | null;
+        /**
+         * Min Iteration
+         */
+        min_iteration?: number | null;
     };
     url: '/api/v1/research-runs/{run_id}/candidates';
 };

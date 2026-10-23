@@ -188,6 +188,10 @@ def final_result_view(
     max_points=1000,
     offset=0,
     limit=100,
+    sort_by=None,
+    sort_direction="asc",
+    side=None,
+    order_status=None,
 ):
     config = FinalEvaluationConfig.model_validate(result.run.config)
     sections = sections or ["equity", "drawdown"]
@@ -245,6 +249,10 @@ def final_result_view(
                 offset=offset,
                 limit=limit,
                 timezone=bundle["engine"]["resolved_config"]["timezone"],
+                sort_by=sort_by,
+                sort_direction=sort_direction,
+                side=side,
+                order_status=order_status,
             )
             for section in sections
         },

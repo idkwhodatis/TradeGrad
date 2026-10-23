@@ -1,6 +1,7 @@
 """Owner-scoped portable API, explicit separate schemas and result validator."""
 
 import hashlib
+from datetime import date
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -8,6 +9,7 @@ from fastapi import APIRouter, Header, Query, Request, Response
 from sqlalchemy import func, select
 
 from backend.app.api.deps import CurrentUser, SessionDep
+from backend.app.list_queries import candidate_query, query_page
 from backend.app.models import (
     Candidate,
     Evaluation,
@@ -61,6 +63,8 @@ from backend.app.result_access import (
     record_result_access,
     record_verified_result_access,
 )
+from backend.app.result_exploration import price_replay, result_return_analysis
+from backend.app.result_exploration_schemas import PriceReplay, ResultReturnAnalysis
 from backend.app.schemas import AttemptPublic, Page
 from backend.app.services import DomainError, request_cancel
 from packages.tradegrad_adapter.portable_prompts import PROMPT_VERSION, template_source
@@ -380,10 +384,28 @@ def candidates(
     run_id: UUID,
     user: CurrentUser,
     session: SessionDep,
-    offset: int = Query(0, ge=0),
+    offset: int = Query(0, ge=0, le=100000),
     limit: int = Query(50, ge=1, le=100),
+    sort_by: str = Query("created_at", max_length=32),
+    sort_direction: str = Query("asc", max_length=4),
+    search: str | None = Query(None, max_length=128),
+    kind: str | None = Query(None, max_length=16),
+    min_iteration: int | None = Query(None, ge=0, le=100000),
 ):
-    return _page(session, Candidate, run_id, user.id, offset, limit)
+    owned_portable_run(session, run_id, user.id)
+    return query_page(
+        session,
+        candidate_query(
+            run_id,
+            sort_by=sort_by,
+            sort_direction=sort_direction,
+            search=search,
+            kind=kind,
+            min_iteration=min_iteration,
+        ),
+        offset,
+        limit,
+    )
 
 
 @router.get(
@@ -498,11 +520,28 @@ def results(
     ] = "account_series",
     offset: int = Query(0, ge=0, le=100000),
     limit: int = Query(100, ge=1, le=500),
+    start: date | None = None,
+    end: date | None = None,
+    listing_id: UUID | None = None,
+    sort_by: str | None = Query(None, max_length=64),
+    sort_direction: str = Query("asc", max_length=4),
+    side: str | None = Query(None, max_length=8),
 ):
     result = load_owned_portable_result(
         session, evaluation_id, user.id, request.app.state.settings
     )
-    response = portable_result_view(result, section, offset, limit)
+    response = portable_result_view(
+        result,
+        section,
+        offset,
+        limit,
+        start=start,
+        end=end,
+        listing_id=listing_id,
+        sort_by=sort_by,
+        sort_direction=sort_direction,
+        side=side,
+    )
     record_verified_result_access(session, result, user.id)
     session.commit()
     return response
@@ -537,3 +576,53 @@ def download(
             "Content-Disposition": f'attachment; filename="portable-evaluation-{evaluation_id}.json"',
         },
     )
+
+
+@router.get(
+    "/portable-evaluations/{evaluation_id}/return-analysis",
+    response_model=ResultReturnAnalysis,
+    operation_id="read_portable_return_analysis",
+)
+def read_portable_return_analysis(
+    evaluation_id: UUID, user: CurrentUser, session: SessionDep, request: Request
+):
+    result = load_owned_portable_result(
+        session, evaluation_id, user.id, request.app.state.settings
+    )
+    response = result_return_analysis(result)
+    record_verified_result_access(session, result, user.id)
+    session.commit()
+    return response
+
+
+@router.get(
+    "/portable-evaluations/{evaluation_id}/price-replay",
+    response_model=PriceReplay,
+    operation_id="read_portable_price_replay",
+)
+def read_portable_price_replay(
+    evaluation_id: UUID,
+    listing_id: UUID,
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+    start: date | None = None,
+    end: date | None = None,
+    offset: int = Query(0, ge=0, le=100000),
+    limit: int = Query(250, ge=1, le=500),
+):
+    result = load_owned_portable_result(
+        session, evaluation_id, user.id, request.app.state.settings
+    )
+    response = price_replay(
+        result,
+        request.app.state.settings,
+        listing_id=listing_id,
+        start=start,
+        end=end,
+        offset=offset,
+        limit=limit,
+    )
+    record_verified_result_access(session, result, user.id)
+    session.commit()
+    return response

@@ -379,7 +379,7 @@ function BacktestContent({ result }: { result: ResultQueryPublic }) {
           filter={filter}
           target={replayTarget}
         />
-        <ReturnAnalysisPanel evaluationId={result.evaluation_id} />
+        <ReturnAnalysisPanel reference={result} />
         <Panel title="Positions, orders, fills and account series">
           <Field label="Persisted result table" id="result-section">
             <select
@@ -646,7 +646,7 @@ export function ResultMetrics({ metrics }: { metrics: ResultMetric[] }) {
     />
   );
 }
-function ResultTableView({
+export function ResultTableView({
   table,
   title,
   collapsed = false,

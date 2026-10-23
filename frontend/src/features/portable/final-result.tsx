@@ -1,3 +1,12 @@
+import {
+  ModeResultExplorer,
+  type FillTarget,
+} from "@/components/result-exploration";
+import {
+  ResultTableControls,
+  type TableFilters,
+} from "@/components/result-table-controls";
+import type { ExplorationContext } from "@/client/types.gen";
 import { BenchmarkResult } from "@/components/benchmark-result";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -33,6 +42,10 @@ export function PortableFinalResult({
   job: PortableFinalEvaluationDetail;
 }) {
   const evaluationId = acceptedPortableFinalReference(job) || "";
+  const [tableFilters, setTableFilters] = useState<TableFilters>({});
+  const [exploration, setExploration] = useState<ExplorationContext | null>(
+    null,
+  );
   const [section, setSection] = useState<PortableSection>("decision_trace"),
     [offset, setOffset] = useState(0),
     [chartOffset, setChartOffset] = useState(0),
@@ -47,8 +60,16 @@ export function PortableFinalResult({
     ),
   );
   const rows = useQuery(
-    portableFinalResultsOptions(owner, evaluationId, section, offset, LIMIT),
+    portableFinalResultsOptions(
+      owner,
+      evaluationId,
+      section,
+      offset,
+      LIMIT,
+      tableFilters,
+    ),
   );
+  const [fillTarget, setFillTarget] = useState<FillTarget | null>(null);
   const [downloading, setDownloading] = useState(false),
     [downloadError, setDownloadError] = useState<unknown>(null);
   const mounted = useRef(true),
@@ -198,6 +219,21 @@ export function PortableFinalResult({
       <Panel title="Immutable benchmark comparison">
         <BenchmarkResult value={data.benchmark} />
       </Panel>
+      <ModeResultExplorer
+        mode="portable_final"
+        target={fillTarget}
+        onContext={setExploration}
+        reference={{
+          evaluation_id: data.evaluation_id,
+          artifact_sha256: data.artifact_sha256,
+          window: {
+            start: String(data.window.start),
+            end: String(data.window.end),
+          },
+          selection_id: data.selection_id,
+          split: "holdout",
+        }}
+      />
       <Panel title="Persisted account charts · bounded page">
         <p className="notice">
           Only the returned {LIMIT}-row account page is plotted. There is no
@@ -251,6 +287,7 @@ export function PortableFinalResult({
             value={section}
             onChange={(event) => {
               setSection(event.target.value as PortableSection);
+              setTableFilters({});
               setOffset(0);
             }}
           >
@@ -268,6 +305,23 @@ export function PortableFinalResult({
           no decision. No state or signal is reconstructed from prices in this
           UI.
         </p>
+        <ResultTableControls
+          section={section}
+          columns={rows.data?.sortable_columns || []}
+          value={tableFilters}
+          dates={{
+            start: String(data.window.start),
+            end: String(data.window.end),
+          }}
+          listings={exploration?.listings.map((item) => ({
+            listing_id: item.listing_id,
+            symbol: item.symbol,
+          }))}
+          onChange={(value) => {
+            setTableFilters(value);
+            setOffset(0);
+          }}
+        />
         {rows.isPending ? (
           <Loading text="Loading bounded persisted evidence…" />
         ) : rows.error ? (
@@ -291,6 +345,21 @@ export function PortableFinalResult({
             <>
               <PortableTable
                 rows={rows.data.rows}
+                onReviewFill={
+                  section === "fills"
+                    ? (index) => {
+                        const row = rows.data!.rows[index];
+                        const original = rows.data!.row_indices?.[index];
+                        if (typeof original === "number")
+                          setFillTarget({
+                            listing: String(row.listing_id),
+                            id: `fill:${original}`,
+                            timestamp: String(row.native_at),
+                          });
+                      }
+                    : undefined
+                }
+                rowIndices={rows.data.row_indices || undefined}
                 label={`Portable ${section.replaceAll("_", " ")}`}
               />
               <Pagination

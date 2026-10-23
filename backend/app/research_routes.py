@@ -8,6 +8,7 @@ from fastapi import APIRouter, Header, Query, Request, Response
 from sqlalchemy import func, select
 
 from backend.app.api.deps import CurrentUser, SessionDep
+from backend.app.list_queries import candidate_query, query_page
 from backend.app.models import (
     Candidate,
     Evaluation,
@@ -59,8 +60,8 @@ from backend.app.result_access import (
     record_result_access,
     record_verified_result_access,
 )
-from backend.app.result_exploration import price_replay, return_analysis
-from backend.app.result_exploration_schemas import PriceReplay, ReturnAnalysis
+from backend.app.result_exploration import price_replay, result_return_analysis
+from backend.app.result_exploration_schemas import PriceReplay, ResultReturnAnalysis
 from backend.app.schemas import AttemptPublic, Page
 from backend.app.services import DomainError, request_cancel
 
@@ -253,10 +254,28 @@ def candidates(
     run_id: UUID,
     user: CurrentUser,
     session: SessionDep,
-    offset: int = Query(0, ge=0),
+    offset: int = Query(0, ge=0, le=100000),
     limit: int = Query(50, ge=1, le=100),
+    sort_by: str = Query("created_at", max_length=32),
+    sort_direction: str = Query("asc", max_length=4),
+    search: str | None = Query(None, max_length=128),
+    kind: str | None = Query(None, max_length=16),
+    min_iteration: int | None = Query(None, ge=0, le=100000),
 ):
-    return _page(session, Candidate, run_id, user.id, offset, limit)
+    owned_research_run(session, run_id, user.id)
+    return query_page(
+        session,
+        candidate_query(
+            run_id,
+            sort_by=sort_by,
+            sort_direction=sort_direction,
+            search=search,
+            kind=kind,
+            min_iteration=min_iteration,
+        ),
+        offset,
+        limit,
+    )
 
 
 @router.get(
@@ -514,7 +533,7 @@ def read_research_usage(run_id: UUID, user: CurrentUser, session: SessionDep):
 
 @router.get(
     "/research-evaluations/{evaluation_id}/return-analysis",
-    response_model=ReturnAnalysis,
+    response_model=ResultReturnAnalysis,
     operation_id="read_research_return_analysis",
 )
 def read_research_return_analysis(
@@ -523,7 +542,7 @@ def read_research_return_analysis(
     result = load_owned_result(
         session, evaluation_id, user.id, request.app.state.settings
     )
-    response = return_analysis(result.bundle, result.dataset.manifest)
+    response = result_return_analysis(result)
     record_verified_result_access(session, result, user.id)
     session.commit()
     return response

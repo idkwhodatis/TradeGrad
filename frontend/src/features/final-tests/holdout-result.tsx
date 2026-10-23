@@ -1,7 +1,11 @@
+import {
+  ModeResultExplorer,
+  type FillTarget,
+} from "@/components/result-exploration";
 import { BenchmarkResult } from "@/components/benchmark-result";
 import { lazy, Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { ResultTable } from "@/client/types.gen";
+import type { ExplorationContext, ResultTable } from "@/client/types.gen";
 import { ErrorState, Loading, Panel } from "@/components/common";
 import {
   Field,
@@ -11,11 +15,15 @@ import {
 } from "@/components/data-common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ResultMetrics } from "@/features/backtest-detail";
+import {
+  ResultTableControls,
+  type TableFilters,
+} from "@/components/result-table-controls";
+import { fillNavigation } from "@/lib/result-exploration";
+import { ResultMetrics, ResultTableView } from "@/features/backtest-detail";
 import { downloadFinalResult, finalResultsOptions } from "@/lib/final-api";
 import { label } from "@/lib/format";
 import {
-  rawCell,
   resultSections,
   resultWindowError,
   saveResearchDownload,
@@ -41,6 +49,11 @@ export function HoldoutResult({
   const [section, setSection] = useState<ResultSection>("positions");
   const [offset, setOffset] = useState(0);
   const [showCharts, setShowCharts] = useState(false);
+  const [fillTarget, setFillTarget] = useState<FillTarget | null>(null);
+  const [exploration, setExploration] = useState<ExplorationContext | null>(
+    null,
+  );
+  const [tableFilters, setTableFilters] = useState<TableFilters>({});
   const result = useQuery(
     finalResultsOptions(evaluationId, {
       sections: ["equity", "drawdown"],
@@ -51,6 +64,7 @@ export function HoldoutResult({
   );
   const rows = useQuery(
     finalResultsOptions(evaluationId, {
+      ...tableFilters,
       sections: [section],
       max_points: MAX_POINTS,
       offset,
@@ -263,6 +277,7 @@ export function HoldoutResult({
               onChange={(event) => {
                 setSection(event.target.value as ResultSection);
                 setOffset(0);
+                setTableFilters({});
               }}
             >
               {resultSections.map((name) => (
@@ -273,13 +288,48 @@ export function HoldoutResult({
             </select>
           </Field>
         </div>
+        <ResultTableControls
+          section={section}
+          columns={rows.data?.tables[section]?.sortable_columns || []}
+          value={tableFilters}
+          listings={exploration?.listings.map((item) => ({
+            listing_id: item.listing_id,
+            symbol: item.symbol,
+          }))}
+          onChange={(value) => {
+            setTableFilters(value);
+            setOffset(0);
+          }}
+        />
         {rows.isPending ? (
           <Loading />
         ) : rows.error ? (
           <ErrorState error={rows.error} retry={() => void rows.refetch()} />
         ) : rows.data?.tables[section] ? (
           <>
-            <HoldoutTable table={rows.data.tables[section]} />
+            <ResultTableView
+              title={`Holdout ${section}`}
+              table={rows.data.tables[section]}
+              onReviewFill={
+                section === "fills"
+                  ? (index) => {
+                      const mapping = Object.fromEntries(
+                        (exploration?.listings || []).map((item) => [
+                          item.listing_id,
+                          item.symbol,
+                        ]),
+                      );
+                      setFillTarget(
+                        fillNavigation(
+                          rows.data!.tables[section]!,
+                          index,
+                          mapping,
+                        ),
+                      );
+                    }
+                  : undefined
+              }
+            />
             {!["equity", "drawdown", "cash", "margin"].includes(section) && (
               <Pagination
                 offset={offset}
@@ -296,6 +346,12 @@ export function HoldoutResult({
           </p>
         )}
       </Panel>
+      <ModeResultExplorer
+        mode="native_final"
+        reference={data}
+        target={fillTarget}
+        onContext={setExploration}
+      />
       <CreateStrategyPackage
         selectionId={selectionId}
         evaluationId={evaluationId}
@@ -304,43 +360,9 @@ export function HoldoutResult({
   );
 }
 export function HoldoutTable({ table }: { table: ResultTable }) {
-  return (
-    <>
-      <p className="text-xs muted my-3">
-        {table.returned_rows} returned / {table.filtered_rows} filtered /{" "}
-        {table.total_rows} total rows.{" "}
-        {table.downsampled
-          ? `Downsampled: ${table.sampling}.`
-          : "Not downsampled."}
-      </p>
-      {!table.rows.length ? (
-        <p className="notice">No persisted rows in this window.</p>
-      ) : (
-        <div className="overflow-auto max-h-96" tabIndex={0}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr>
-                {table.columns.map((column, index) => (
-                  <th className="text-left p-2" key={index}>
-                    {column.name} ({column.unit})
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {table.rows.map((row, index) => (
-                <tr key={index}>
-                  {table.columns.map((_column, column) => (
-                    <td className="p-2" key={column}>
-                      {rawCell(row[column])}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </>
+  return table.rows.length ? (
+    <ResultTableView table={table} title="Persisted holdout values" />
+  ) : (
+    <p className="notice">No persisted rows in this window.</p>
   );
 }

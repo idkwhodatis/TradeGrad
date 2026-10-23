@@ -1,3 +1,7 @@
+import {
+  NamedListControls,
+  type NamedListFilters,
+} from "@/components/named-list-controls";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -26,8 +30,11 @@ import { useDataAction } from "@/lib/use-data-action";
 export function UniversesPage() {
   const [offset, setOffset] = useState(0);
   const [listingOffset, setListingOffset] = useState(0);
+  const [listingFilters, setListingFilters] = useState<NamedListFilters>({});
   const universes = useQuery(universesOptions(offset));
-  const listings = useQuery(listingsOptions(listingOffset));
+  const listings = useQuery(
+    listingsOptions(listingOffset, undefined, listingFilters),
+  );
   const [selected, setSelected] = useState<ListingPublic[]>([]);
   const [members, setMembers] = useState<Record<string, UniverseMember>>({});
   const [name, setName] = useState("");
@@ -181,6 +188,14 @@ export function UniversesPage() {
               </p>
               <section aria-label="Universe listing selection">
                 <h3>Choose resolved listings</h3>
+                <NamedListControls
+                  kind="listing"
+                  value={listingFilters}
+                  onChange={(value) => {
+                    setListingFilters(value);
+                    setListingOffset(0);
+                  }}
+                />
                 {listings.isPending ? (
                   <Loading />
                 ) : listings.error ? (

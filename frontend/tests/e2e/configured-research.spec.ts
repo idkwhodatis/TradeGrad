@@ -1,3 +1,4 @@
+import { exerciseCandidateQueries } from "./named-list-queries";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import {
@@ -24,7 +25,7 @@ import type {
   ResearchRunPublic,
   ResultQueryPublic,
   PriceReplay,
-  ReturnAnalysis,
+  ResultReturnAnalysis,
   StrategyDetail,
   StrategyPublic,
   Token,
@@ -1412,6 +1413,7 @@ test("persisted execution replay, declared indicators, monthly analysis and serv
   const accepted = await submit(page, owned);
   await waitStatus(request, owned.auth, accepted.id, "succeeded");
   await assertStopped(request, owned.auth, accepted.id);
+  await exerciseCandidateQueries(page, accepted.id, false);
   const completed = (await evaluations(request, owned.auth, accepted.id)).find(
     (item) => item.split === "train",
   )!;
@@ -1432,7 +1434,7 @@ test("persisted execution replay, declared indicators, monthly analysis and serv
       "Declared observed volume",
     ]),
   );
-  const analysis = await read<ReturnAnalysis>(
+  const analysis = await read<ResultReturnAnalysis>(
     request,
     owned.auth,
     `${base}/return-analysis`,
@@ -1523,6 +1525,10 @@ test("persisted execution replay, declared indicators, monthly analysis and serv
   );
   expect(denied.status()).toBe(404);
   expect(
-    await read<ReturnAnalysis>(request, owned.auth, `${base}/return-analysis`),
+    await read<ResultReturnAnalysis>(
+      request,
+      owned.auth,
+      `${base}/return-analysis`,
+    ),
   ).toEqual(analysis);
 });

@@ -108,7 +108,7 @@ MAX_REPORT_BYTES = 2 * 1024 * 1024
 MAX_USAGE_CALLS = 10_000
 WARNINGS = [
     "Native strategy and engine share a process; these snapshots are not an independently trusted ledger or proof against look-ahead.",
-    "Train and validation are selection data. Final holdout execution and portable execution are unavailable.",
+    "Native optimization uses train and validation as selection data. Final holdout execution requires a separately frozen selection; portable execution uses its separate workflow.",
     "Metrics describe the full persisted evaluation window, not a filtered chart or table slice.",
     "Missing benchmark, internal decisions, and fee component breakdown are not inferred.",
 ]

@@ -36,11 +36,10 @@ from backend.app.data_services import (
     retry_import,
     submit_import,
 )
+from backend.app.list_queries import listing_query, query_page
 from backend.app.models import (
     DataBlock,
     DataImport,
-    Listing,
-    OwnerListing,
     UniverseVersion,
 )
 from backend.app.schemas import Page
@@ -190,21 +189,32 @@ def listings(
     user: CurrentUser,
     session: SessionDep,
     listing_ids: Annotated[list[UUID] | None, Query(max_length=100)] = None,
-    offset: int = Query(0, ge=0),
+    offset: int = Query(0, ge=0, le=100000),
     limit: int = Query(50, ge=1, le=100),
+    sort_by: str = Query("symbol", max_length=32),
+    sort_direction: str = Query("asc", max_length=4),
+    search: str | None = Query(None, max_length=128),
+    mic: str | None = Query(None, max_length=4),
+    currency: str | None = Query(None, max_length=16),
 ):
-    query = (
-        select(Listing)
-        .join(OwnerListing, OwnerListing.listing_id == Listing.id)
-        .where(OwnerListing.owner_id == user.id)
+    page = query_page(
+        session,
+        listing_query(
+            user.id,
+            listing_ids=listing_ids,
+            sort_by=sort_by,
+            sort_direction=sort_direction,
+            search=search,
+            mic=mic,
+            currency=currency,
+        ),
+        offset,
+        limit,
     )
-    if listing_ids:
-        query = query.where(Listing.id.in_(listing_ids))
-    items = session.scalars(
-        query.order_by(Listing.symbol, Listing.id).offset(offset).limit(limit)
-    ).all()
-    count = session.scalar(select(func.count()).select_from(query.subquery()))
-    return {"data": [i.metadata_json for i in items], "count": count}
+    return {
+        "data": [item.metadata_json for item in page["data"]],
+        "count": page["count"],
+    }
 
 
 @router.post(

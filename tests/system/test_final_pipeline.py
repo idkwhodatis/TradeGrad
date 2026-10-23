@@ -25,6 +25,7 @@ import zipfile
 from uuid import uuid4
 
 import pytest
+from exploration_assertions import assert_mode_exploration
 from test_research_optimization import ResearchProcessHarness, runtime_paths
 from test_worker_recovery import require
 
@@ -299,6 +300,16 @@ def test_real_frozen_final_result_export_and_cancelled_retry(
     )
     bundle = json.loads(content)
     validate_result_bundle(bundle)
+    assert_mode_exploration(
+        h,
+        client,
+        other,
+        mode="native_final",
+        evaluation_id=item["id"],
+        content=content,
+        bundle=bundle,
+        selection_id=query["selection_id"],
+    )
     if with_benchmark:
         comparison = bundle["benchmark"]
         require(

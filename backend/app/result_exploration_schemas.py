@@ -10,6 +10,26 @@ from backend.app.data_schemas import PreviewBar
 from backend.app.research_view_schemas import ViewModel
 
 
+class ExplorationContext(ViewModel):
+    mode: Literal[
+        "native_research", "native_final", "portable_research", "portable_final"
+    ]
+    evaluation_id: UUID
+    run_id: UUID
+    artifact_sha256: str
+    dataset_id: UUID
+    dataset_sha256: str
+    evaluation_data_sha256: str | None = None
+    split: Literal["train", "validation", "holdout"]
+    start: date
+    end: date
+    timezone: str
+    result_trust: str
+    ledger_origin: str
+    selection_id: UUID | None = None
+    listings: list[dict[str, str]]
+
+
 class ReturnMonth(ViewModel):
     month: str
     value: float | None
@@ -70,6 +90,15 @@ class TradeMarker(ViewModel):
     commission: float
     order_id: str
     on_price_bar: bool
+    listing_id: str | None = None
+    fill_id: str | None = None
+    native_timestamp_ns: str | None = None
+    economic_reference_time: str | None = None
+    economic_reference: str | None = None
+
+
+class ResultReturnAnalysis(ReturnAnalysis):
+    context: ExplorationContext
 
 
 class IndicatorPoint(ViewModel):
@@ -95,6 +124,7 @@ class IndicatorSeries(ViewModel):
 
 class PriceReplay(ViewModel):
     schema_version: Literal["tradegrad.price-replay.v1"] = "tradegrad.price-replay.v1"
+    context: ExplorationContext
     evaluation_id: UUID
     artifact_sha256: str
     dataset_sha256: str
