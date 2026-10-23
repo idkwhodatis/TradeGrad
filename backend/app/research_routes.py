@@ -369,8 +369,8 @@ def research_capabilities(user: CurrentUser, request: Request, session: SessionD
 
     settings = admitted_model_settings(session, user.id, request.app.state.settings)
     result = research_capability_metadata(settings, user.id)
-    result.limits["max_active_runs_per_user"] = quota_limit(session, user.id, settings)
-    result.limits["max_active_imports_per_user"] = quota_limit(
+    result.limits.max_active_runs_per_user = quota_limit(session, user.id, settings)
+    result.limits.max_active_imports_per_user = quota_limit(
         session, user.id, settings, "imports"
     )
     return result

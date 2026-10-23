@@ -408,6 +408,57 @@ def test_capability_defaults_are_typed_run_config_compatible_and_settings_derive
         )
 
 
+@pytest.mark.parametrize("runs,imports", [(0, 0), (1, 2), (7, 4)])
+def test_capability_route_applies_owner_quotas_to_typed_limits(
+    monkeypatch, runs, imports
+):
+    from backend.app import workspace_policy
+    from backend.app.research_routes import research_capabilities
+    from backend.app.research_view_schemas import ResearchCapabilities, ResearchLimits
+
+    settings = Settings(
+        database_url="postgresql://localhost/not_used",
+        secret_key=secrets.token_urlsafe(48),
+        max_active_runs_per_user=7,
+        max_active_imports_per_user=4,
+    )
+    owner, session = uuid4(), object()
+    calls = []
+
+    def admitted(actual_session, actual_owner, actual_settings):
+        assert (actual_session, actual_owner, actual_settings) == (
+            session,
+            owner,
+            settings,
+        )
+        return actual_settings
+
+    def quota(actual_session, actual_owner, actual_settings, kind="runs"):
+        assert (actual_session, actual_owner, actual_settings) == (
+            session,
+            owner,
+            settings,
+        )
+        calls.append(kind)
+        return {"runs": runs, "imports": imports}[kind]
+
+    monkeypatch.setattr(workspace_policy, "admitted_model_settings", admitted)
+    monkeypatch.setattr(workspace_policy, "quota_limit", quota)
+    request = SimpleNamespace(
+        app=SimpleNamespace(state=SimpleNamespace(settings=settings))
+    )
+    result = research_capabilities(SimpleNamespace(id=owner), request, session)
+    assert isinstance(result.limits, ResearchLimits)
+    public = ResearchCapabilities.model_validate(result.model_dump(mode="json"))
+    assert public.limits.max_active_runs_per_user == runs
+    assert public.limits.max_active_imports_per_user == imports
+    assert public.limits.max_upload_bytes == settings.max_upload_bytes
+    assert public.limits.max_artifact_bytes == settings.max_artifact_bytes
+    assert calls == ["runs", "imports"]
+    assert settings.max_active_runs_per_user == 7
+    assert settings.max_active_imports_per_user == 4
+
+
 def test_preflight_is_read_only_uses_shared_validator_and_returns_no_quota_claim(
     monkeypatch, result
 ):
