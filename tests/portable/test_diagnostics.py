@@ -161,3 +161,49 @@ def test_rejection_proof_requires_exact_role_reviewed_frame_and_fixed_message(co
     ):
         with pytest.raises(pytest.fail.Exception):
             assert_rejection({"status": "failed", "logs": logs}, code)
+
+
+def test_hosted_import_harness_uses_current_publication_state_and_api_routes():
+    source = (
+        Path(__file__).parents[1] / "system/test_portable_research_pipeline.py"
+    ).read_text()
+    tree = ast.parse(source)
+    owner = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "PortableProcessHarness"
+    )
+    method = next(
+        node
+        for node in owner.body
+        if isinstance(node, ast.FunctionDef) and node.name == "import_fixture"
+    )
+    constants = {
+        node.value
+        for node in ast.walk(method)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str)
+    }
+    assert "ready" in constants and "completed" not in constants
+    assert "/datasets/" in constants and "/data/universes" in constants
+    assert not any(
+        "dataset-versions" in value or "universe-versions" in value
+        for value in constants
+    )
+    # This harness exercises CN event (one listing) and US portfolio (two).
+    mapping = next(
+        node
+        for node in ast.walk(method)
+        if isinstance(node, ast.Dict)
+        and any(
+            isinstance(key, ast.Constant) and key.value == "symbols"
+            for key in node.keys
+        )
+    )
+    selected = next(
+        value
+        for key, value in zip(mapping.keys, mapping.values)
+        if isinstance(key, ast.Constant) and key.value == "symbols"
+    )
+    assert isinstance(selected, ast.IfExp)
+    assert ast.literal_eval(selected.body) == ["600000"]
+    assert ast.literal_eval(selected.orelse) == ["AAPL", "MSFT"]
