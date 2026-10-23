@@ -27,7 +27,13 @@ from uuid import UUID, uuid4
 import pytest
 
 from backend.app.core.config import Settings
-from backend.app.models import DatasetVersion, ResearchRun, StrategyVersion
+from backend.app.models import (
+    DatasetVersion,
+    ResearchRun,
+    StrategyVersion,
+    User,
+    UserWorkspaceSettings,
+)
 from backend.app.services import DomainError, FenceLost
 from packages.tradegrad_adapter.config import (
     MarketConfig,
@@ -250,7 +256,7 @@ class FakePersistence:
     @contextmanager
     def begin(self):
         session = SimpleNamespace(
-            get=lambda model, key: self.records.get((model, key)),
+            get=lambda model, key, **kwargs: self.records.get((model, key)),
             execute=lambda statement: None,
             add=lambda record: self.trace.append(("artifact", record)),
             registered=[],
@@ -297,6 +303,7 @@ def orchestration(tmp_path, monkeypatch):
     factory = FakePersistence(
         {
             (ResearchRun, run.id): run,
+            (User, owner_id): SimpleNamespace(id=owner_id, is_active=True),
             (DatasetVersion, run.dataset_version_id): dataset,
             (StrategyVersion, run.strategy_version_id): strategy,
         },
@@ -630,3 +637,34 @@ def test_worker_never_reports_success_without_committed_attempt_finish(orchestra
     outcome = h.execute()
     assert h.sandbox.evaluate.call_count > 0
     assert outcome == {"status": "fence_lost", "sandbox_stopped": True}
+
+
+@pytest.mark.parametrize("restriction", ["inactive_owner", "disabled_reference"])
+def test_persisted_workspace_policy_stops_worker_before_model_or_evaluation(
+    orchestration, restriction
+):
+    h = orchestration
+    if restriction == "inactive_owner":
+        h.factory.records[(User, h.run.owner_id)].is_active = False
+    else:
+        from packages.tradegrad_adapter.model_profiles import OperatorModelProfile
+
+        profile = OperatorModelProfile(
+            id="trusted",
+            label="Trusted",
+            model="model-a",
+            base_url="https://models.example.com/v1",
+            secret_env="UNSET_UNIT_ONLY_MODEL_KEY",
+            owner_ids=[h.run.owner_id],
+        )
+        h.settings.model_profiles_enabled = True
+        h.settings.model_profiles = (profile,)
+        h.config = h.config.model_copy(update={"model": profile.public_config()})
+        h.factory.records[(UserWorkspaceSettings, h.run.owner_id)] = SimpleNamespace(
+            disabled_model_profiles=["trusted"]
+        )
+    assert h.execute()["status"] == "failed"
+    h.sandbox.bind_environment.assert_not_called()
+    h.sandbox.evaluate.assert_not_called()
+    h.optimizer.assert_not_called()
+    assert not h.model_requests

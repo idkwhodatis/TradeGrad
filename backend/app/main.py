@@ -194,7 +194,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
         try:
             session.execute(
                 text(
-                    "SELECT version_num FROM alembic_version WHERE version_num = '004_m5'"
+                    "SELECT version_num FROM alembic_version WHERE version_num = '005_settings'"
                 )
             ).scalar_one()
         except SQLAlchemyError:
@@ -626,4 +626,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
     from backend.app.portable_final_routes import router as portable_final_router
 
     app.include_router(portable_final_router, prefix=PREFIX)
+    from backend.app.settings_routes import router as settings_router
+
+    app.include_router(settings_router, prefix=PREFIX)
     return app

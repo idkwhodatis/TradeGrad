@@ -1,3 +1,4 @@
+import { SettingsManagement } from "./settings-management";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorState, Loading, PageHeader, Panel } from "@/components/common";
 import { currentUserOptions, statusOptions } from "@/lib/api";
@@ -13,7 +14,7 @@ export function SettingsPage() {
     <>
       <PageHeader
         title="Settings & runtime status"
-        subtitle="Observed service state and effective capabilities. No credentials are displayed or stored by this page."
+        subtitle="Observed service state and effective capabilities. Provider credentials are never displayed or accepted by this page."
       />
       <div className="grid gap-5 lg:grid-cols-2">
         <Panel title="Your workspace">
@@ -34,8 +35,9 @@ export function SettingsPage() {
               <div>
                 <dt>Account and key management</dt>
                 <dd>
-                  Operator managed. This preview does not create accounts, keys,
-                  grants, or credentials.
+                  Administrators manage accounts and restrict existing
+                  operator-owned references below. Raw provider keys and new
+                  allowlist grants are not accepted.
                 </dd>
               </div>
             </dl>
@@ -150,11 +152,13 @@ export function SettingsPage() {
           <p className="text-xs muted mt-3">
             Native engine output is untrusted strategy-process evidence, not an
             independent ledger. Live-data capabilities carry their own
-            verification status. Runtime settings are read-only here; deployment
-            and restore rehearsal remain separate operator gates.
+            verification status. Per-account quotas can only narrow deployment
+            limits. Deployment and restore rehearsal remain separate operator
+            gates.
           </p>
         </Panel>
       </div>
+      <SettingsManagement capabilities={capabilities.data} />
     </>
   );
 }

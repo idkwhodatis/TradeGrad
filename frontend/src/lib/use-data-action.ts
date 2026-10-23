@@ -21,5 +21,5 @@ export function useDataAction<T extends unknown[]>(
       setPending(false);
     }
   }
-  return { run, pending, error };
+  return { run, pending, error, resetError: () => setError(null) };
 }

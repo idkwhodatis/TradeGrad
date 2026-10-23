@@ -45,6 +45,24 @@ class User(Base):
     )
 
 
+class UserWorkspaceSettings(Base):
+    __tablename__ = "user_workspace_settings"
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    defaults: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    max_active_runs: Mapped[int | None] = mapped_column(Integer)
+    max_active_imports: Mapped[int | None] = mapped_column(Integer)
+    disabled_model_profiles: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    __table_args__ = (
+        CheckConstraint("max_active_runs BETWEEN 0 AND 100"),
+        CheckConstraint("max_active_imports BETWEEN 0 AND 100"),
+        CheckConstraint("jsonb_typeof(defaults) = 'object'"),
+        CheckConstraint("jsonb_typeof(disabled_model_profiles) = 'array'"),
+    )
+
+
 class DatasetVersion(Base):
     __tablename__ = "dataset_versions"
     id: Mapped[UUID] = mapped_column(

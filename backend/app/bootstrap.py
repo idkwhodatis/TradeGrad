@@ -186,6 +186,11 @@ def main():
         help="Environment variable holding the initial password; never pass it on the command line",
     )
     parser.add_argument("--full-name")
+    parser.add_argument(
+        "--superuser",
+        action="store_true",
+        help="Explicitly create a NEW administrator; never promotes an existing account",
+    )
     parser.add_argument("--with-synthetic-fixtures", action="store_true")
     parser.add_argument(
         "--with-e2e-fixtures",
@@ -209,9 +214,14 @@ def main():
                 email=email,
                 hashed_password=get_password_hash(password),
                 full_name=args.full_name,
+                is_superuser=args.superuser,
             )
             session.add(user)
             session.flush()
+        elif args.superuser and not user.is_superuser:
+            raise SystemExit(
+                "Existing ordinary accounts cannot be promoted by bootstrap; use an authorized administrator"
+            )
         result = {"user_id": str(user.id), "created_or_existing": True}
         if args.with_synthetic_fixtures:
             datasets, strategies = seed_fixtures(session, user, settings.storage_root)

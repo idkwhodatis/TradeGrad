@@ -265,6 +265,12 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
             else confirm_model_process_stopped
         )
         with factory.begin() as session:
+            if phase == "admitted":
+                from backend.app.services import advisory_lock
+                from backend.app.workspace_policy import enforce_model_policy
+
+                advisory_lock(session, f"submit:{model_owner_id}")
+                enforce_model_policy(session, model_owner_id, config.model)
             operation(session, attempt_id, generation, token, call_id)
 
     def committed(reference):
@@ -286,8 +292,10 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
             config = research_config(run)
             if config.execution_mode != "optimization":
                 raise ValueError("This worker requires optimization mode")
+            from backend.app.workspace_policy import enforce_model_policy
             from packages.tradegrad_adapter.model_profiles import resolve_profile
 
+            enforce_model_policy(session, run.owner_id, config.model)
             resolve_profile(config.model, settings, run.owner_id)
             model_owner_id = run.owner_id
             if config.environment_digest != environment_digest():

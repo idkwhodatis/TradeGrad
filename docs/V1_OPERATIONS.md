@@ -147,7 +147,7 @@ boundary documented there rather than manually releasing an attempt.
    over the original, delete it, or use a downgrade as an automatic rollback.
 5. On the isolated restored copy, run the next migration, verify historical
    config/hash/artifact identities and then run ownership, containment, recovery
-   and browser gates. The prepared drill exercises genuine 003_m3 to 004_m5
+   and browser gates. The prepared drill exercises genuine 003_m3 to 004_m5 to 005_settings
    schema upgrade, not `create_all` or a fabricated Alembic stamp.
 6. Before restarting, ensure no old deployment can write to the new paths or DB.
    Recheck image IDs and environment compatibility. Historical artifacts remain

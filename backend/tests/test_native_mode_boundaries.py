@@ -105,11 +105,11 @@ def test_native_strategy_detail_applies_mode_filter(fake_api):
     assert "native_akquant" in sql
 
 
-def test_readiness_requires_current_m5_schema(fake_api):
+def test_readiness_requires_current_settings_schema(fake_api):
     client, session, _ = fake_api
     assert client.get("/api/v1/health/ready").status_code == 200
     statement = str(session.execute.call_args.args[0])
-    assert "version_num = '004_m5'" in statement
+    assert "version_num = '005_settings'" in statement
 
 
 def test_readiness_fails_closed_on_stale_schema(fake_api):

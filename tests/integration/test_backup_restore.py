@@ -1,4 +1,4 @@
-"""Opt-in, real PostgreSQL cold-restore and genuine M3-to-M5 upgrade drill.
+"""Opt-in, real PostgreSQL cold-restore and genuine M3-to-M5-to-Settings upgrade drill.
 
 RUN_BACKUP_RESTORE_DRILL=1 is mandatory. TEST_DATABASE_URL is a maintenance
 connection on a dedicated test server; its role must have CREATEDB. Only two
@@ -467,7 +467,7 @@ def _assert_storage(storage: Path, expected: dict[str, bytes]) -> None:
     assert not any(path.is_symlink() for path in storage.rglob("*"))
 
 
-def test_real_m3_backup_restore_then_m5_upgrade_preserves_history(
+def test_real_m3_backup_restore_then_current_upgrade_preserves_history(
     drill_databases: DrillDatabases,
     tmp_path: Path,
 ) -> None:
@@ -616,10 +616,110 @@ def test_real_m3_backup_restore_then_m5_upgrade_preserves_history(
         _assert_historical_snapshot(restored, old_rows)
         assert _config_identity(restored) == config_identity
         _assert_storage(restored_storage, expected_files)
+        # Continue through the genuine additive Settings revision. Defaults and
+        # quotas are mutable management state, never historical RunConfig edits.
+        _upgrade(restored, "005_settings")
+        with restored.connect() as connection:
+            assert (
+                connection.execute(
+                    text("SELECT version_num FROM alembic_version")
+                ).scalar_one()
+                == "005_settings"
+            )
+            assert (
+                connection.execute(
+                    text("SELECT count(*) FROM user_workspace_settings")
+                ).scalar_one()
+                == 0
+            )
+        _assert_historical_snapshot(restored, old_rows)
+        assert _config_identity(restored) == config_identity
+        _assert_storage(restored_storage, expected_files)
         # Original database and immutable backup remain usable and unchanged.
         _assert_historical_snapshot(source, old_rows)
         assert (
             verify_backup(backup, application_ref=APPLICATION_REF, limits=limits)
+            == manifest
+        )
+    finally:
+        source.dispose()
+        restored.dispose()
+
+
+def test_real_settings_backup_restores_management_and_immutable_history(
+    drill_databases: DrillDatabases,
+    tmp_path: Path,
+) -> None:
+    from backend.app.operations_backup import (
+        BackupLimits,
+        PgTools,
+        PostgresDatabase,
+        create_backup,
+        restore_backup,
+        verify_backup,
+    )
+
+    source, restored = (
+        _engine(drill_databases.source),
+        _engine(drill_databases.restored),
+    )
+    storage, restored_storage = (
+        tmp_path / "source-storage",
+        tmp_path / "restored-storage",
+    )
+    backup_root = tmp_path / "private-settings-backup"
+    tools = PgTools(
+        pg_dump=(drill_databases.pg_dump,), pg_restore=(drill_databases.pg_restore,)
+    )
+    limits = BackupLimits()
+    try:
+        _upgrade(source, "003_m3")
+        files = _seed_m3(source, storage)
+        identity = _config_identity(source)
+        _upgrade(source, "005_settings")
+        with source.begin() as connection:
+            connection.execute(
+                text("""INSERT INTO user_workspace_settings
+                (owner_id, defaults, max_active_runs, max_active_imports, disabled_model_profiles)
+                SELECT id, '{"initial_cash":250000,"model_profile_id":"fixture"}'::jsonb,
+                1, 2, '["existing-disabled-profile"]'::jsonb FROM users""")
+            )
+        expected = _historical_snapshot(source)
+        manifest = create_backup(
+            database=PostgresDatabase(
+                drill_databases.source.render_as_string(hide_password=False)
+            ),
+            storage_root=storage,
+            destination=backup_root,
+            durable_parent=tmp_path,
+            application_ref=APPLICATION_REF,
+            quiesced=True,
+            tools=tools,
+            limits=limits,
+        )
+        assert manifest["schema_revision"] == "005_settings"
+        assert (
+            restore_backup(
+                database=PostgresDatabase(
+                    drill_databases.restored.render_as_string(hide_password=False)
+                ),
+                backup_root=backup_root,
+                storage_root=restored_storage,
+                durable_parent=tmp_path,
+                application_ref=APPLICATION_REF,
+                quiesced=True,
+                trust_backup=True,
+                tools=tools,
+                limits=limits,
+            )
+            == manifest
+        )
+        _assert_historical_snapshot(restored, expected)
+        assert _config_identity(restored) == identity
+        _assert_storage(restored_storage, files)
+        _assert_historical_snapshot(source, expected)
+        assert (
+            verify_backup(backup_root, application_ref=APPLICATION_REF, limits=limits)
             == manifest
         )
     finally:

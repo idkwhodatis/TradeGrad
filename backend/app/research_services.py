@@ -41,6 +41,7 @@ from backend.app.services import (
     owned_run,
 )
 from backend.app.storage import read_verified, redact, safe_path
+from backend.app.workspace_policy import enforce_model_policy, quota_limit
 from packages.tradegrad_adapter.checkpoint import CheckpointRef, CheckpointStore
 from packages.tradegrad_adapter.config import RunConfig, evaluation_windows
 
@@ -208,6 +209,7 @@ def validate_research_submission(session, owner_id, body, settings):
             "Unsupported research prompt version",
             422,
         )
+    enforce_model_policy(session, owner_id, body.model)
     validate_model_selection(body.model, settings, owner_id)
     dataset = _reference(session, DatasetVersion, body.dataset, owner_id)
     strategy = _reference(session, StrategyVersion, body.seed_strategy, owner_id)
@@ -343,7 +345,7 @@ def submit_research_run(
         .select_from(ResearchRun)
         .where(ResearchRun.owner_id == owner_id, ResearchRun.status.not_in(TERMINAL))
     )
-    if active >= settings.max_active_runs_per_user:
+    if active >= quota_limit(session, owner_id, settings):
         raise DomainError("run_quota", "Active run limit reached", 429)
     from backend.app.experiment_services import (
         bind_research_submission,
@@ -1121,6 +1123,7 @@ def resume_research_run(session, run_id, owner_id, settings):
             "sandbox_not_stopped",
             "Every evaluation sandbox must be confirmed stopped before resume",
         )
+    enforce_model_policy(session, owner_id, research_config(run).model)
     validate_model_selection(research_config(run).model, settings, owner_id)
     latest_checkpoint_for_resume(session, run, settings)
     active = session.scalar(
@@ -1128,7 +1131,7 @@ def resume_research_run(session, run_id, owner_id, settings):
         .select_from(ResearchRun)
         .where(ResearchRun.owner_id == owner_id, ResearchRun.status.not_in(TERMINAL))
     )
-    if active >= settings.max_active_runs_per_user:
+    if active >= quota_limit(session, owner_id, settings):
         raise DomainError("run_quota", "Active run limit reached", 429)
     run.resume_checkpoint_id = run.latest_checkpoint_id
     run.generation += 1

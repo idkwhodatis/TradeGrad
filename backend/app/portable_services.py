@@ -37,6 +37,7 @@ from backend.app.services import (
     owned_run,
 )
 from backend.app.storage import read_verified, redact
+from backend.app.workspace_policy import quota_limit
 from packages.strategy_sdk import (
     DataRequirements,
     EngineProfile,
@@ -413,7 +414,7 @@ def submit_portable_run(
         .select_from(ResearchRun)
         .where(ResearchRun.owner_id == owner_id, ResearchRun.status.not_in(TERMINAL))
     )
-    if active >= settings.max_active_runs_per_user:
+    if active >= quota_limit(session, owner_id, settings):
         raise DomainError("run_quota", "Active run limit reached", 429)
     from backend.app.experiment_services import (
         bind_research_submission,
@@ -765,7 +766,7 @@ def resume_portable_run(session, run_id, owner_id, settings):
         .select_from(ResearchRun)
         .where(ResearchRun.owner_id == owner_id, ResearchRun.status.not_in(TERMINAL))
     )
-    if active >= settings.max_active_runs_per_user:
+    if active >= quota_limit(session, owner_id, settings):
         raise DomainError("run_quota", "Active run limit reached", 429)
     run.resume_checkpoint_id = run.latest_checkpoint_id
     run.generation += 1

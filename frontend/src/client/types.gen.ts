@@ -1860,6 +1860,50 @@ export type ListingPublic = {
 };
 
 /**
+ * ManagedUserCreate
+ */
+export type ManagedUserCreate = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Full Name
+     */
+    full_name?: string | null;
+    /**
+     * Is Active
+     */
+    is_active?: boolean;
+    /**
+     * Is Superuser
+     */
+    is_superuser?: boolean;
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
+ * ManagedUserUpdate
+ */
+export type ManagedUserUpdate = {
+    /**
+     * Full Name
+     */
+    full_name?: string | null;
+    /**
+     * Is Active
+     */
+    is_active: boolean;
+    /**
+     * Is Superuser
+     */
+    is_superuser: boolean;
+};
+
+/**
  * MarketConfig
  */
 export type MarketConfig = {
@@ -2602,6 +2646,20 @@ export type PageUniversePublic = {
      * Data
      */
     data: Array<UniversePublic>;
+};
+
+/**
+ * Page[UserPublic]
+ */
+export type PageUserPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<UserPublic>;
 };
 
 /**
@@ -4310,6 +4368,62 @@ export type ProviderPublic = {
 };
 
 /**
+ * QuotaPublic
+ */
+export type QuotaPublic = {
+    /**
+     * Active Imports
+     */
+    active_imports: number;
+    /**
+     * Active Runs
+     */
+    active_runs: number;
+    /**
+     * Deployment Active Imports
+     */
+    deployment_active_imports: number;
+    /**
+     * Deployment Active Runs
+     */
+    deployment_active_runs: number;
+    /**
+     * Effective Active Imports
+     */
+    effective_active_imports: number;
+    /**
+     * Effective Active Runs
+     */
+    effective_active_runs: number;
+    /**
+     * Max Active Imports
+     */
+    max_active_imports?: number | null;
+    /**
+     * Max Active Runs
+     */
+    max_active_runs?: number | null;
+    /**
+     * User Id
+     */
+    user_id: string;
+};
+
+/**
+ * QuotaUpdate
+ */
+export type QuotaUpdate = {
+    /**
+     * Max Active Imports
+     */
+    max_active_imports?: number | null;
+    /**
+     * Max Active Runs
+     */
+    max_active_runs?: number | null;
+};
+
+/**
  * ResearchCapabilities
  */
 export type ResearchCapabilities = {
@@ -5384,6 +5498,50 @@ export type RunPublic = {
 };
 
 /**
+ * SecretReferencePublic
+ */
+export type SecretReferencePublic = {
+    /**
+     * Deployment Enabled
+     */
+    deployment_enabled: boolean;
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Synthetic
+     */
+    synthetic: boolean;
+};
+
+/**
+ * SecretReferenceUpdate
+ */
+export type SecretReferenceUpdate = {
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+};
+
+/**
  * SeedOnlyResearch
  */
 export type SeedOnlyResearch = {
@@ -5398,6 +5556,48 @@ export type SeedOptimizer = {
      * Max Iterations
      */
     max_iterations?: 0;
+};
+
+/**
+ * SelfProfileUpdate
+ */
+export type SelfProfileUpdate = {
+    /**
+     * Full Name
+     */
+    full_name?: string | null;
+};
+
+/**
+ * SettingsStatus
+ */
+export type SettingsStatus = {
+    /**
+     * Backup Note
+     */
+    backup_note?: string;
+    /**
+     * Backup Status
+     */
+    backup_status?: 'not_reported';
+    /**
+     * Dependencies
+     */
+    dependencies: {
+        [key: string]: string;
+    };
+    /**
+     * Permissions
+     */
+    permissions: Array<string>;
+    /**
+     * Schema Revision
+     */
+    schema_revision: string;
+    /**
+     * Secret Reference Boundary
+     */
+    secret_reference_boundary?: string;
 };
 
 /**
@@ -5917,6 +6117,36 @@ export type WindowSet = {
     holdout?: DateWindow | null;
     train: DateWindow;
     validation?: DateWindow | null;
+};
+
+/**
+ * WorkspaceDefaults
+ */
+export type WorkspaceDefaults = {
+    /**
+     * Initial Cash
+     */
+    initial_cash?: number;
+    /**
+     * Max Iterations
+     */
+    max_iterations?: number;
+    /**
+     * Max Model Calls
+     */
+    max_model_calls?: number;
+    /**
+     * Max Runtime Seconds
+     */
+    max_runtime_seconds?: number;
+    /**
+     * Max Tokens
+     */
+    max_tokens?: number;
+    /**
+     * Model Profile Id
+     */
+    model_profile_id?: string;
 };
 
 export type DownloadArtifactData = {
@@ -10465,6 +10695,492 @@ export type ResumeRunResponses = {
 };
 
 export type ResumeRunResponse = ResumeRunResponses[keyof ResumeRunResponses];
+
+export type ReadWorkspaceDefaultsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/settings/defaults';
+};
+
+export type ReadWorkspaceDefaultsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadWorkspaceDefaultsError = ReadWorkspaceDefaultsErrors[keyof ReadWorkspaceDefaultsErrors];
+
+export type ReadWorkspaceDefaultsResponses = {
+    /**
+     * Successful Response
+     */
+    200: WorkspaceDefaults;
+};
+
+export type ReadWorkspaceDefaultsResponse = ReadWorkspaceDefaultsResponses[keyof ReadWorkspaceDefaultsResponses];
+
+export type UpdateWorkspaceDefaultsData = {
+    body: WorkspaceDefaults;
+    path?: never;
+    query?: never;
+    url: '/api/v1/settings/defaults';
+};
+
+export type UpdateWorkspaceDefaultsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateWorkspaceDefaultsError = UpdateWorkspaceDefaultsErrors[keyof UpdateWorkspaceDefaultsErrors];
+
+export type UpdateWorkspaceDefaultsResponses = {
+    /**
+     * Successful Response
+     */
+    200: WorkspaceDefaults;
+};
+
+export type UpdateWorkspaceDefaultsResponse = UpdateWorkspaceDefaultsResponses[keyof UpdateWorkspaceDefaultsResponses];
+
+export type UpdateSelfProfileData = {
+    body: SelfProfileUpdate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/settings/profile';
+};
+
+export type UpdateSelfProfileErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateSelfProfileError = UpdateSelfProfileErrors[keyof UpdateSelfProfileErrors];
+
+export type UpdateSelfProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserPublic;
+};
+
+export type UpdateSelfProfileResponse = UpdateSelfProfileResponses[keyof UpdateSelfProfileResponses];
+
+export type ReadWorkspaceQuotaData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/settings/quota';
+};
+
+export type ReadWorkspaceQuotaErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadWorkspaceQuotaError = ReadWorkspaceQuotaErrors[keyof ReadWorkspaceQuotaErrors];
+
+export type ReadWorkspaceQuotaResponses = {
+    /**
+     * Successful Response
+     */
+    200: QuotaPublic;
+};
+
+export type ReadWorkspaceQuotaResponse = ReadWorkspaceQuotaResponses[keyof ReadWorkspaceQuotaResponses];
+
+export type ReadSettingsStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/settings/status';
+};
+
+export type ReadSettingsStatusErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadSettingsStatusError = ReadSettingsStatusErrors[keyof ReadSettingsStatusErrors];
+
+export type ReadSettingsStatusResponses = {
+    /**
+     * Successful Response
+     */
+    200: SettingsStatus;
+};
+
+export type ReadSettingsStatusResponse = ReadSettingsStatusResponses[keyof ReadSettingsStatusResponses];
+
+export type ListManagedUsersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/settings/users';
+};
+
+export type ListManagedUsersErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListManagedUsersError = ListManagedUsersErrors[keyof ListManagedUsersErrors];
+
+export type ListManagedUsersResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageUserPublic;
+};
+
+export type ListManagedUsersResponse = ListManagedUsersResponses[keyof ListManagedUsersResponses];
+
+export type CreateManagedUserData = {
+    body: ManagedUserCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/settings/users';
+};
+
+export type CreateManagedUserErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateManagedUserError = CreateManagedUserErrors[keyof CreateManagedUserErrors];
+
+export type CreateManagedUserResponses = {
+    /**
+     * Successful Response
+     */
+    201: UserPublic;
+};
+
+export type CreateManagedUserResponse = CreateManagedUserResponses[keyof CreateManagedUserResponses];
+
+export type UpdateManagedUserData = {
+    body: ManagedUserUpdate;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/settings/users/{user_id}';
+};
+
+export type UpdateManagedUserErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateManagedUserError = UpdateManagedUserErrors[keyof UpdateManagedUserErrors];
+
+export type UpdateManagedUserResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserPublic;
+};
+
+export type UpdateManagedUserResponse = UpdateManagedUserResponses[keyof UpdateManagedUserResponses];
+
+export type ReadManagedQuotaData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/settings/users/{user_id}/quota';
+};
+
+export type ReadManagedQuotaErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadManagedQuotaError = ReadManagedQuotaErrors[keyof ReadManagedQuotaErrors];
+
+export type ReadManagedQuotaResponses = {
+    /**
+     * Successful Response
+     */
+    200: QuotaPublic;
+};
+
+export type ReadManagedQuotaResponse = ReadManagedQuotaResponses[keyof ReadManagedQuotaResponses];
+
+export type UpdateManagedQuotaData = {
+    body: QuotaUpdate;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/settings/users/{user_id}/quota';
+};
+
+export type UpdateManagedQuotaErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateManagedQuotaError = UpdateManagedQuotaErrors[keyof UpdateManagedQuotaErrors];
+
+export type UpdateManagedQuotaResponses = {
+    /**
+     * Successful Response
+     */
+    200: QuotaPublic;
+};
+
+export type UpdateManagedQuotaResponse = UpdateManagedQuotaResponses[keyof UpdateManagedQuotaResponses];
+
+export type ListManagedSecretReferencesData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/settings/users/{user_id}/secret-references';
+};
+
+export type ListManagedSecretReferencesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListManagedSecretReferencesError = ListManagedSecretReferencesErrors[keyof ListManagedSecretReferencesErrors];
+
+export type ListManagedSecretReferencesResponses = {
+    /**
+     * Response List Managed Secret References
+     *
+     * Successful Response
+     */
+    200: Array<SecretReferencePublic>;
+};
+
+export type ListManagedSecretReferencesResponse = ListManagedSecretReferencesResponses[keyof ListManagedSecretReferencesResponses];
+
+export type UpdateManagedSecretReferenceData = {
+    body: SecretReferenceUpdate;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+        /**
+         * Profile Id
+         */
+        profile_id: string;
+    };
+    query?: never;
+    url: '/api/v1/settings/users/{user_id}/secret-references/{profile_id}';
+};
+
+export type UpdateManagedSecretReferenceErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateManagedSecretReferenceError = UpdateManagedSecretReferenceErrors[keyof UpdateManagedSecretReferenceErrors];
+
+export type UpdateManagedSecretReferenceResponses = {
+    /**
+     * Response Update Managed Secret Reference
+     *
+     * Successful Response
+     */
+    200: Array<SecretReferencePublic>;
+};
+
+export type UpdateManagedSecretReferenceResponse = UpdateManagedSecretReferenceResponses[keyof UpdateManagedSecretReferenceResponses];
 
 export type ListSplitVersionsData = {
     body?: never;

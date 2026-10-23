@@ -54,6 +54,7 @@ from backend.app.services import (
     owned_run,
 )
 from backend.app.storage import redact
+from backend.app.workspace_policy import quota_limit
 from packages.tradegrad_adapter.config import DateWindow, VersionRef
 from packages.tradegrad_adapter.final_config import FinalEvaluationConfig
 
@@ -256,7 +257,7 @@ def _quota(session, owner_id, settings):
         .select_from(ResearchRun)
         .where(ResearchRun.owner_id == owner_id, ResearchRun.status.not_in(TERMINAL))
     )
-    return max(0, settings.max_active_runs_per_user - active)
+    return max(0, quota_limit(session, owner_id, settings) - active)
 
 
 def preflight_final_evaluation(session, owner_id, body, settings):

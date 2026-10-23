@@ -27,6 +27,7 @@ from backend.app.models import (
     utcnow,
 )
 from backend.app.schemas import RunCreate
+from backend.app.workspace_policy import quota_limit
 
 TERMINAL = {"succeeded", "failed", "cancelled", "interrupted", "paused"}
 
@@ -194,7 +195,7 @@ def submit_run(
         .select_from(ResearchRun)
         .where(ResearchRun.owner_id == owner_id, ResearchRun.status.not_in(TERMINAL))
     )
-    if active >= settings.max_active_runs_per_user:
+    if active >= quota_limit(session, owner_id, settings):
         raise DomainError("run_quota", "Active run limit reached", 429)
     config.update(
         market=market,
@@ -492,7 +493,7 @@ def resume_run(
         .select_from(ResearchRun)
         .where(ResearchRun.owner_id == owner_id, ResearchRun.status.not_in(TERMINAL))
     )
-    if active >= (settings.max_active_runs_per_user if settings else 4):
+    if active >= quota_limit(session, owner_id, settings):
         raise DomainError("run_quota", "Active run limit reached", 429)
     run.generation += 1
     run.active_attempt_id = None

@@ -343,8 +343,16 @@ def checkpoint(checkpoint_id: UUID, user: CurrentUser, session: SessionDep):
     response_model=ResearchCapabilities,
     operation_id="research_capabilities",
 )
-def research_capabilities(user: CurrentUser, request: Request):
-    return research_capability_metadata(request.app.state.settings, user.id)
+def research_capabilities(user: CurrentUser, request: Request, session: SessionDep):
+    from backend.app.workspace_policy import admitted_model_settings, quota_limit
+
+    settings = admitted_model_settings(session, user.id, request.app.state.settings)
+    result = research_capability_metadata(settings, user.id)
+    result.limits["max_active_runs_per_user"] = quota_limit(session, user.id, settings)
+    result.limits["max_active_imports_per_user"] = quota_limit(
+        session, user.id, settings, "imports"
+    )
+    return result
 
 
 @router.post(

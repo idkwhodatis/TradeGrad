@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type ServerSentEventsResult, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { CancelDataImportData, CancelDataImportErrors, CancelDataImportResponses, CancelFinalEvaluationData, CancelFinalEvaluationErrors, CancelFinalEvaluationResponses, CancelPortableRunData, CancelPortableRunErrors, CancelPortableRunResponses, CancelResearchRunData, CancelResearchRunErrors, CancelResearchRunResponses, CancelRunData, CancelRunErrors, CancelRunResponses, CompareResearchResultsData, CompareResearchResultsErrors, CompareResearchResultsResponses, CreateDataImportData, CreateDataImportErrors, CreateDataImportResponses, CreateDataUniverseData, CreateDataUniverseErrors, CreateDataUniverseResponses, CreateExperimentData, CreateExperimentErrors, CreateExperimentResponses, CreateFinalEvaluationData, CreateFinalEvaluationErrors, CreateFinalEvaluationResponses, CreatePortableRunData, CreatePortableRunErrors, CreatePortableRunResponses, CreatePortableStrategyData, CreatePortableStrategyErrors, CreatePortableStrategyResponses, CreateResearchRunData, CreateResearchRunErrors, CreateResearchRunResponses, CreateRunData, CreateRunErrors, CreateRunResponses, CreateSplitVersionData, CreateSplitVersionErrors, CreateSplitVersionResponses, CreateStrategyPackageData, CreateStrategyPackageErrors, CreateStrategyPackageResponses, CreateStrategyVersionData, CreateStrategyVersionErrors, CreateStrategyVersionResponses, DefaultPortableConfigData, DefaultPortableConfigErrors, DefaultPortableConfigResponses, DownloadArtifactData, DownloadArtifactErrors, DownloadArtifactResponses, DownloadFinalResultData, DownloadFinalResultErrors, DownloadFinalResultResponses, DownloadPortableResultsData, DownloadPortableResultsErrors, DownloadPortableResultsResponses, DownloadResearchReportData, DownloadResearchReportErrors, DownloadResearchReportResponses, DownloadResearchResultsData, DownloadResearchResultsErrors, DownloadResearchResultsResponses, DownloadStrategyPackageData, DownloadStrategyPackageErrors, DownloadStrategyPackageResponses, FreezeFinalSelectionData, FreezeFinalSelectionErrors, FreezeFinalSelectionResponses, GetStrategyPackageData, GetStrategyPackageErrors, GetStrategyPackageResponses, HealthLiveData, HealthLiveErrors, HealthLiveResponses, HealthReadyData, HealthReadyErrors, HealthReadyResponses, ListDataImportsData, ListDataImportsErrors, ListDataImportsResponses, ListDataListingsData, ListDataListingsErrors, ListDataListingsResponses, ListDataProvidersData, ListDataProvidersErrors, ListDataProvidersResponses, ListDatasetsData, ListDatasetsErrors, ListDatasetsResponses, ListDataUniversesData, ListDataUniversesErrors, ListDataUniversesResponses, ListDataUsageExposuresData, ListDataUsageExposuresErrors, ListDataUsageExposuresResponses, ListExperimentsData, ListExperimentsErrors, ListExperimentsResponses, ListFinalEvaluationEvidenceData, ListFinalEvaluationEvidenceErrors, ListFinalEvaluationEvidenceResponses, ListFinalEvaluationsData, ListFinalEvaluationsErrors, ListFinalEvaluationsResponses, ListFinalSelectionsData, ListFinalSelectionsErrors, ListFinalSelectionsResponses, ListPortableCandidatesData, ListPortableCandidatesErrors, ListPortableCandidatesResponses, ListPortableCheckpointsData, ListPortableCheckpointsErrors, ListPortableCheckpointsResponses, ListPortableEvaluationsData, ListPortableEvaluationsErrors, ListPortableEvaluationsResponses, ListPortableModelCallsData, ListPortableModelCallsErrors, ListPortableModelCallsResponses, ListPortableRunsData, ListPortableRunsErrors, ListPortableRunsResponses, ListPortableStrategiesData, ListPortableStrategiesErrors, ListPortableStrategiesResponses, ListPortableTemplatesData, ListPortableTemplatesErrors, ListPortableTemplatesResponses, ListResearchCandidatesData, ListResearchCandidatesErrors, ListResearchCandidatesResponses, ListResearchCheckpointsData, ListResearchCheckpointsErrors, ListResearchCheckpointsResponses, ListResearchEvaluationsData, ListResearchEvaluationsErrors, ListResearchEvaluationsResponses, ListResearchModelCallsData, ListResearchModelCallsErrors, ListResearchModelCallsResponses, ListResearchRunsData, ListResearchRunsErrors, ListResearchRunsResponses, ListRunArtifactsData, ListRunArtifactsErrors, ListRunArtifactsResponses, ListRunEventsData, ListRunEventsErrors, ListRunEventsResponse, ListRunEventsResponses, ListRunsData, ListRunsErrors, ListRunsResponses, ListSplitVersionsData, ListSplitVersionsErrors, ListSplitVersionsResponses, ListStrategiesData, ListStrategiesErrors, ListStrategiesResponses, LoginAccessTokenData, LoginAccessTokenErrors, LoginAccessTokenResponses, PauseFinalEvaluationUnsupportedData, PauseFinalEvaluationUnsupportedErrors, PauseFinalEvaluationUnsupportedResponses, PausePortableRunData, PausePortableRunErrors, PausePortableRunResponses, PauseResearchRunData, PauseResearchRunErrors, PauseResearchRunResponses, PauseRunData, PauseRunErrors, PauseRunResponses, PortableCancelFinalEvaluationData, PortableCancelFinalEvaluationErrors, PortableCancelFinalEvaluationResponses, PortableCreateFinalEvaluationData, PortableCreateFinalEvaluationErrors, PortableCreateFinalEvaluationResponses, PortableDownloadFinalResultData, PortableDownloadFinalResultErrors, PortableDownloadFinalResultResponses, PortableListFinalEvaluationEvidenceData, PortableListFinalEvaluationEvidenceErrors, PortableListFinalEvaluationEvidenceResponses, PortableListFinalEvaluationsData, PortableListFinalEvaluationsErrors, PortableListFinalEvaluationsResponses, PortablePauseFinalEvaluationUnsupportedData, PortablePauseFinalEvaluationUnsupportedErrors, PortablePauseFinalEvaluationUnsupportedResponses, PortablePreflightFinalEvaluationData, PortablePreflightFinalEvaluationErrors, PortablePreflightFinalEvaluationResponses, PortableQueryFinalResultData, PortableQueryFinalResultErrors, PortableQueryFinalResultResponses, PortableReadFinalEvaluationData, PortableReadFinalEvaluationErrors, PortableReadFinalEvaluationResponses, PortableRetryFinalEvaluationData, PortableRetryFinalEvaluationErrors, PortableRetryFinalEvaluationResponses, PreflightFinalEvaluationData, PreflightFinalEvaluationErrors, PreflightFinalEvaluationResponses, PreflightPortableRunData, PreflightPortableRunErrors, PreflightPortableRunResponses, PreflightResearchRunData, PreflightResearchRunErrors, PreflightResearchRunResponses, PreviewDataSnapshotData, PreviewDataSnapshotErrors, PreviewDataSnapshotResponses, QueryFinalResultData, QueryFinalResultErrors, QueryFinalResultResponses, ReadDataCoverageData, ReadDataCoverageErrors, ReadDataCoverageResponses, ReadDataImportData, ReadDataImportErrors, ReadDataImportResponses, ReadDatasetData, ReadDatasetErrors, ReadDatasetResponses, ReadDataUniverseData, ReadDataUniverseErrors, ReadDataUniverseResponses, ReadExperimentData, ReadExperimentErrors, ReadExperimentResponses, ReadFinalEvaluationData, ReadFinalEvaluationErrors, ReadFinalEvaluationResponses, ReadFinalSelectionData, ReadFinalSelectionErrors, ReadFinalSelectionResponses, ReadMeData, ReadMeErrors, ReadMeResponses, ReadPortableCandidateData, ReadPortableCandidateErrors, ReadPortableCandidateResponses, ReadPortableCheckpointData, ReadPortableCheckpointErrors, ReadPortableCheckpointResponses, ReadPortableEvaluationData, ReadPortableEvaluationErrors, ReadPortableEvaluationResponses, ReadPortableModelCallData, ReadPortableModelCallErrors, ReadPortableModelCallResponses, ReadPortableResultsData, ReadPortableResultsErrors, ReadPortableResultsResponses, ReadPortableRunData, ReadPortableRunErrors, ReadPortableRunResponses, ReadPortableStrategyData, ReadPortableStrategyErrors, ReadPortableStrategyResponses, ReadPortableUsageData, ReadPortableUsageErrors, ReadPortableUsageResponses, ReadResearchCandidateData, ReadResearchCandidateErrors, ReadResearchCandidateResponses, ReadResearchCheckpointData, ReadResearchCheckpointErrors, ReadResearchCheckpointResponses, ReadResearchEvaluationData, ReadResearchEvaluationErrors, ReadResearchEvaluationResponses, ReadResearchModelCallData, ReadResearchModelCallErrors, ReadResearchModelCallResponses, ReadResearchResultsData, ReadResearchResultsErrors, ReadResearchResultsResponses, ReadResearchRunData, ReadResearchRunErrors, ReadResearchRunResponses, ReadResearchUsageData, ReadResearchUsageErrors, ReadResearchUsageResponses, ReadRunData, ReadRunErrors, ReadRunResponses, ReadSplitExposureData, ReadSplitExposureErrors, ReadSplitExposureResponses, ReadSplitVersionData, ReadSplitVersionErrors, ReadSplitVersionResponses, ReadStatusData, ReadStatusErrors, ReadStatusResponses, ReadStrategyData, ReadStrategyErrors, ReadStrategyResponses, RefreshDataSnapshotData, RefreshDataSnapshotErrors, RefreshDataSnapshotResponses, ResearchCapabilitiesData, ResearchCapabilitiesErrors, ResearchCapabilitiesResponses, ResolveDataInstrumentsData, ResolveDataInstrumentsErrors, ResolveDataInstrumentsResponses, ResumePortableRunData, ResumePortableRunErrors, ResumePortableRunResponses, ResumeResearchRunData, ResumeResearchRunErrors, ResumeResearchRunResponses, ResumeRunData, ResumeRunErrors, ResumeRunResponses, RetryDataImportData, RetryDataImportErrors, RetryDataImportResponses, RetryFinalEvaluationData, RetryFinalEvaluationErrors, RetryFinalEvaluationResponses, UploadDataFileData, UploadDataFileErrors, UploadDataFileResponses, ValidateUploadMappingData, ValidateUploadMappingErrors, ValidateUploadMappingResponses } from './types.gen';
+import type { CancelDataImportData, CancelDataImportErrors, CancelDataImportResponses, CancelFinalEvaluationData, CancelFinalEvaluationErrors, CancelFinalEvaluationResponses, CancelPortableRunData, CancelPortableRunErrors, CancelPortableRunResponses, CancelResearchRunData, CancelResearchRunErrors, CancelResearchRunResponses, CancelRunData, CancelRunErrors, CancelRunResponses, CompareResearchResultsData, CompareResearchResultsErrors, CompareResearchResultsResponses, CreateDataImportData, CreateDataImportErrors, CreateDataImportResponses, CreateDataUniverseData, CreateDataUniverseErrors, CreateDataUniverseResponses, CreateExperimentData, CreateExperimentErrors, CreateExperimentResponses, CreateFinalEvaluationData, CreateFinalEvaluationErrors, CreateFinalEvaluationResponses, CreateManagedUserData, CreateManagedUserErrors, CreateManagedUserResponses, CreatePortableRunData, CreatePortableRunErrors, CreatePortableRunResponses, CreatePortableStrategyData, CreatePortableStrategyErrors, CreatePortableStrategyResponses, CreateResearchRunData, CreateResearchRunErrors, CreateResearchRunResponses, CreateRunData, CreateRunErrors, CreateRunResponses, CreateSplitVersionData, CreateSplitVersionErrors, CreateSplitVersionResponses, CreateStrategyPackageData, CreateStrategyPackageErrors, CreateStrategyPackageResponses, CreateStrategyVersionData, CreateStrategyVersionErrors, CreateStrategyVersionResponses, DefaultPortableConfigData, DefaultPortableConfigErrors, DefaultPortableConfigResponses, DownloadArtifactData, DownloadArtifactErrors, DownloadArtifactResponses, DownloadFinalResultData, DownloadFinalResultErrors, DownloadFinalResultResponses, DownloadPortableResultsData, DownloadPortableResultsErrors, DownloadPortableResultsResponses, DownloadResearchReportData, DownloadResearchReportErrors, DownloadResearchReportResponses, DownloadResearchResultsData, DownloadResearchResultsErrors, DownloadResearchResultsResponses, DownloadStrategyPackageData, DownloadStrategyPackageErrors, DownloadStrategyPackageResponses, FreezeFinalSelectionData, FreezeFinalSelectionErrors, FreezeFinalSelectionResponses, GetStrategyPackageData, GetStrategyPackageErrors, GetStrategyPackageResponses, HealthLiveData, HealthLiveErrors, HealthLiveResponses, HealthReadyData, HealthReadyErrors, HealthReadyResponses, ListDataImportsData, ListDataImportsErrors, ListDataImportsResponses, ListDataListingsData, ListDataListingsErrors, ListDataListingsResponses, ListDataProvidersData, ListDataProvidersErrors, ListDataProvidersResponses, ListDatasetsData, ListDatasetsErrors, ListDatasetsResponses, ListDataUniversesData, ListDataUniversesErrors, ListDataUniversesResponses, ListDataUsageExposuresData, ListDataUsageExposuresErrors, ListDataUsageExposuresResponses, ListExperimentsData, ListExperimentsErrors, ListExperimentsResponses, ListFinalEvaluationEvidenceData, ListFinalEvaluationEvidenceErrors, ListFinalEvaluationEvidenceResponses, ListFinalEvaluationsData, ListFinalEvaluationsErrors, ListFinalEvaluationsResponses, ListFinalSelectionsData, ListFinalSelectionsErrors, ListFinalSelectionsResponses, ListManagedSecretReferencesData, ListManagedSecretReferencesErrors, ListManagedSecretReferencesResponses, ListManagedUsersData, ListManagedUsersErrors, ListManagedUsersResponses, ListPortableCandidatesData, ListPortableCandidatesErrors, ListPortableCandidatesResponses, ListPortableCheckpointsData, ListPortableCheckpointsErrors, ListPortableCheckpointsResponses, ListPortableEvaluationsData, ListPortableEvaluationsErrors, ListPortableEvaluationsResponses, ListPortableModelCallsData, ListPortableModelCallsErrors, ListPortableModelCallsResponses, ListPortableRunsData, ListPortableRunsErrors, ListPortableRunsResponses, ListPortableStrategiesData, ListPortableStrategiesErrors, ListPortableStrategiesResponses, ListPortableTemplatesData, ListPortableTemplatesErrors, ListPortableTemplatesResponses, ListResearchCandidatesData, ListResearchCandidatesErrors, ListResearchCandidatesResponses, ListResearchCheckpointsData, ListResearchCheckpointsErrors, ListResearchCheckpointsResponses, ListResearchEvaluationsData, ListResearchEvaluationsErrors, ListResearchEvaluationsResponses, ListResearchModelCallsData, ListResearchModelCallsErrors, ListResearchModelCallsResponses, ListResearchRunsData, ListResearchRunsErrors, ListResearchRunsResponses, ListRunArtifactsData, ListRunArtifactsErrors, ListRunArtifactsResponses, ListRunEventsData, ListRunEventsErrors, ListRunEventsResponse, ListRunEventsResponses, ListRunsData, ListRunsErrors, ListRunsResponses, ListSplitVersionsData, ListSplitVersionsErrors, ListSplitVersionsResponses, ListStrategiesData, ListStrategiesErrors, ListStrategiesResponses, LoginAccessTokenData, LoginAccessTokenErrors, LoginAccessTokenResponses, PauseFinalEvaluationUnsupportedData, PauseFinalEvaluationUnsupportedErrors, PauseFinalEvaluationUnsupportedResponses, PausePortableRunData, PausePortableRunErrors, PausePortableRunResponses, PauseResearchRunData, PauseResearchRunErrors, PauseResearchRunResponses, PauseRunData, PauseRunErrors, PauseRunResponses, PortableCancelFinalEvaluationData, PortableCancelFinalEvaluationErrors, PortableCancelFinalEvaluationResponses, PortableCreateFinalEvaluationData, PortableCreateFinalEvaluationErrors, PortableCreateFinalEvaluationResponses, PortableDownloadFinalResultData, PortableDownloadFinalResultErrors, PortableDownloadFinalResultResponses, PortableListFinalEvaluationEvidenceData, PortableListFinalEvaluationEvidenceErrors, PortableListFinalEvaluationEvidenceResponses, PortableListFinalEvaluationsData, PortableListFinalEvaluationsErrors, PortableListFinalEvaluationsResponses, PortablePauseFinalEvaluationUnsupportedData, PortablePauseFinalEvaluationUnsupportedErrors, PortablePauseFinalEvaluationUnsupportedResponses, PortablePreflightFinalEvaluationData, PortablePreflightFinalEvaluationErrors, PortablePreflightFinalEvaluationResponses, PortableQueryFinalResultData, PortableQueryFinalResultErrors, PortableQueryFinalResultResponses, PortableReadFinalEvaluationData, PortableReadFinalEvaluationErrors, PortableReadFinalEvaluationResponses, PortableRetryFinalEvaluationData, PortableRetryFinalEvaluationErrors, PortableRetryFinalEvaluationResponses, PreflightFinalEvaluationData, PreflightFinalEvaluationErrors, PreflightFinalEvaluationResponses, PreflightPortableRunData, PreflightPortableRunErrors, PreflightPortableRunResponses, PreflightResearchRunData, PreflightResearchRunErrors, PreflightResearchRunResponses, PreviewDataSnapshotData, PreviewDataSnapshotErrors, PreviewDataSnapshotResponses, QueryFinalResultData, QueryFinalResultErrors, QueryFinalResultResponses, ReadDataCoverageData, ReadDataCoverageErrors, ReadDataCoverageResponses, ReadDataImportData, ReadDataImportErrors, ReadDataImportResponses, ReadDatasetData, ReadDatasetErrors, ReadDatasetResponses, ReadDataUniverseData, ReadDataUniverseErrors, ReadDataUniverseResponses, ReadExperimentData, ReadExperimentErrors, ReadExperimentResponses, ReadFinalEvaluationData, ReadFinalEvaluationErrors, ReadFinalEvaluationResponses, ReadFinalSelectionData, ReadFinalSelectionErrors, ReadFinalSelectionResponses, ReadManagedQuotaData, ReadManagedQuotaErrors, ReadManagedQuotaResponses, ReadMeData, ReadMeErrors, ReadMeResponses, ReadPortableCandidateData, ReadPortableCandidateErrors, ReadPortableCandidateResponses, ReadPortableCheckpointData, ReadPortableCheckpointErrors, ReadPortableCheckpointResponses, ReadPortableEvaluationData, ReadPortableEvaluationErrors, ReadPortableEvaluationResponses, ReadPortableModelCallData, ReadPortableModelCallErrors, ReadPortableModelCallResponses, ReadPortableResultsData, ReadPortableResultsErrors, ReadPortableResultsResponses, ReadPortableRunData, ReadPortableRunErrors, ReadPortableRunResponses, ReadPortableStrategyData, ReadPortableStrategyErrors, ReadPortableStrategyResponses, ReadPortableUsageData, ReadPortableUsageErrors, ReadPortableUsageResponses, ReadResearchCandidateData, ReadResearchCandidateErrors, ReadResearchCandidateResponses, ReadResearchCheckpointData, ReadResearchCheckpointErrors, ReadResearchCheckpointResponses, ReadResearchEvaluationData, ReadResearchEvaluationErrors, ReadResearchEvaluationResponses, ReadResearchModelCallData, ReadResearchModelCallErrors, ReadResearchModelCallResponses, ReadResearchResultsData, ReadResearchResultsErrors, ReadResearchResultsResponses, ReadResearchRunData, ReadResearchRunErrors, ReadResearchRunResponses, ReadResearchUsageData, ReadResearchUsageErrors, ReadResearchUsageResponses, ReadRunData, ReadRunErrors, ReadRunResponses, ReadSettingsStatusData, ReadSettingsStatusErrors, ReadSettingsStatusResponses, ReadSplitExposureData, ReadSplitExposureErrors, ReadSplitExposureResponses, ReadSplitVersionData, ReadSplitVersionErrors, ReadSplitVersionResponses, ReadStatusData, ReadStatusErrors, ReadStatusResponses, ReadStrategyData, ReadStrategyErrors, ReadStrategyResponses, ReadWorkspaceDefaultsData, ReadWorkspaceDefaultsErrors, ReadWorkspaceDefaultsResponses, ReadWorkspaceQuotaData, ReadWorkspaceQuotaErrors, ReadWorkspaceQuotaResponses, RefreshDataSnapshotData, RefreshDataSnapshotErrors, RefreshDataSnapshotResponses, ResearchCapabilitiesData, ResearchCapabilitiesErrors, ResearchCapabilitiesResponses, ResolveDataInstrumentsData, ResolveDataInstrumentsErrors, ResolveDataInstrumentsResponses, ResumePortableRunData, ResumePortableRunErrors, ResumePortableRunResponses, ResumeResearchRunData, ResumeResearchRunErrors, ResumeResearchRunResponses, ResumeRunData, ResumeRunErrors, ResumeRunResponses, RetryDataImportData, RetryDataImportErrors, RetryDataImportResponses, RetryFinalEvaluationData, RetryFinalEvaluationErrors, RetryFinalEvaluationResponses, UpdateManagedQuotaData, UpdateManagedQuotaErrors, UpdateManagedQuotaResponses, UpdateManagedSecretReferenceData, UpdateManagedSecretReferenceErrors, UpdateManagedSecretReferenceResponses, UpdateManagedUserData, UpdateManagedUserErrors, UpdateManagedUserResponses, UpdateSelfProfileData, UpdateSelfProfileErrors, UpdateSelfProfileResponses, UpdateWorkspaceDefaultsData, UpdateWorkspaceDefaultsErrors, UpdateWorkspaceDefaultsResponses, UploadDataFileData, UploadDataFileErrors, UploadDataFileResponses, ValidateUploadMappingData, ValidateUploadMappingErrors, ValidateUploadMappingResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -1011,6 +1011,138 @@ export const resumeRun = <ThrowOnError extends boolean = true>(options: Options<
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/runs/{run_id}/resume',
     ...options
+});
+
+/**
+ * Read Defaults
+ */
+export const readWorkspaceDefaults = <ThrowOnError extends boolean = true>(options?: Options<ReadWorkspaceDefaultsData, ThrowOnError>): RequestResult<ReadWorkspaceDefaultsResponses, ReadWorkspaceDefaultsErrors, ThrowOnError> => (options?.client ?? client).get<ReadWorkspaceDefaultsResponses, ReadWorkspaceDefaultsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/settings/defaults',
+    ...options
+});
+
+/**
+ * Update Defaults
+ */
+export const updateWorkspaceDefaults = <ThrowOnError extends boolean = true>(options: Options<UpdateWorkspaceDefaultsData, ThrowOnError>): RequestResult<UpdateWorkspaceDefaultsResponses, UpdateWorkspaceDefaultsErrors, ThrowOnError> => (options.client ?? client).post<UpdateWorkspaceDefaultsResponses, UpdateWorkspaceDefaultsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/settings/defaults',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update Self Profile
+ */
+export const updateSelfProfile = <ThrowOnError extends boolean = true>(options: Options<UpdateSelfProfileData, ThrowOnError>): RequestResult<UpdateSelfProfileResponses, UpdateSelfProfileErrors, ThrowOnError> => (options.client ?? client).post<UpdateSelfProfileResponses, UpdateSelfProfileErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/settings/profile',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Read Quota
+ */
+export const readWorkspaceQuota = <ThrowOnError extends boolean = true>(options?: Options<ReadWorkspaceQuotaData, ThrowOnError>): RequestResult<ReadWorkspaceQuotaResponses, ReadWorkspaceQuotaErrors, ThrowOnError> => (options?.client ?? client).get<ReadWorkspaceQuotaResponses, ReadWorkspaceQuotaErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/settings/quota',
+    ...options
+});
+
+/**
+ * Read Status
+ */
+export const readSettingsStatus = <ThrowOnError extends boolean = true>(options?: Options<ReadSettingsStatusData, ThrowOnError>): RequestResult<ReadSettingsStatusResponses, ReadSettingsStatusErrors, ThrowOnError> => (options?.client ?? client).get<ReadSettingsStatusResponses, ReadSettingsStatusErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/settings/status',
+    ...options
+});
+
+/**
+ * List Users
+ */
+export const listManagedUsers = <ThrowOnError extends boolean = true>(options?: Options<ListManagedUsersData, ThrowOnError>): RequestResult<ListManagedUsersResponses, ListManagedUsersErrors, ThrowOnError> => (options?.client ?? client).get<ListManagedUsersResponses, ListManagedUsersErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/settings/users',
+    ...options
+});
+
+/**
+ * Create User
+ */
+export const createManagedUser = <ThrowOnError extends boolean = true>(options: Options<CreateManagedUserData, ThrowOnError>): RequestResult<CreateManagedUserResponses, CreateManagedUserErrors, ThrowOnError> => (options.client ?? client).post<CreateManagedUserResponses, CreateManagedUserErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/settings/users',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update User
+ */
+export const updateManagedUser = <ThrowOnError extends boolean = true>(options: Options<UpdateManagedUserData, ThrowOnError>): RequestResult<UpdateManagedUserResponses, UpdateManagedUserErrors, ThrowOnError> => (options.client ?? client).post<UpdateManagedUserResponses, UpdateManagedUserErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/settings/users/{user_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Read Managed Quota
+ */
+export const readManagedQuota = <ThrowOnError extends boolean = true>(options: Options<ReadManagedQuotaData, ThrowOnError>): RequestResult<ReadManagedQuotaResponses, ReadManagedQuotaErrors, ThrowOnError> => (options.client ?? client).get<ReadManagedQuotaResponses, ReadManagedQuotaErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/settings/users/{user_id}/quota',
+    ...options
+});
+
+/**
+ * Update Quota
+ */
+export const updateManagedQuota = <ThrowOnError extends boolean = true>(options: Options<UpdateManagedQuotaData, ThrowOnError>): RequestResult<UpdateManagedQuotaResponses, UpdateManagedQuotaErrors, ThrowOnError> => (options.client ?? client).post<UpdateManagedQuotaResponses, UpdateManagedQuotaErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/settings/users/{user_id}/quota',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List Secret References
+ */
+export const listManagedSecretReferences = <ThrowOnError extends boolean = true>(options: Options<ListManagedSecretReferencesData, ThrowOnError>): RequestResult<ListManagedSecretReferencesResponses, ListManagedSecretReferencesErrors, ThrowOnError> => (options.client ?? client).get<ListManagedSecretReferencesResponses, ListManagedSecretReferencesErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/settings/users/{user_id}/secret-references',
+    ...options
+});
+
+/**
+ * Update Secret Reference
+ */
+export const updateManagedSecretReference = <ThrowOnError extends boolean = true>(options: Options<UpdateManagedSecretReferenceData, ThrowOnError>): RequestResult<UpdateManagedSecretReferenceResponses, UpdateManagedSecretReferenceErrors, ThrowOnError> => (options.client ?? client).post<UpdateManagedSecretReferenceResponses, UpdateManagedSecretReferenceErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/settings/users/{user_id}/secret-references/{profile_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**

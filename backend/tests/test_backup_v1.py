@@ -1208,3 +1208,29 @@ def test_relative_home_profile_fails_before_inspection_or_client_invocation(
         database.environment()
     with pytest.raises(backup.BackupError, match="absolute path"):
         database.empty_target_major()
+
+
+@pytest.mark.parametrize("revision", ["003_m3", "004_m5", "005_settings"])
+def test_supported_revisions_backup_roundtrip_without_relabeling(
+    tmp_path, source, revision
+):
+    source[2]["schema_revision"] = revision
+    clients = FakeClients()
+    manifest = create(tmp_path, source, clients=clients)
+    assert manifest["schema_revision"] == revision
+    assert restore(tmp_path, source, clients=clients) == manifest
+
+
+@pytest.mark.parametrize("revision", ["004_m5", "005_settings"])
+def test_source_inventory_retains_strategy_packages_after_settings_revision(
+    monkeypatch, revision
+):
+    database = backup.PostgresDatabase(
+        "postgresql://operator@localhost/unit_inspection"
+    )
+    connection = InspectionConnection(revisions=[revision])
+    monkeypatch.setattr(database, "_inspect", lambda inspect: inspect(connection))
+    assert (
+        database.source_snapshot(backup.BackupLimits())["schema_revision"] == revision
+    )
+    assert any("FROM strategy_packages" in query for query in connection.queries)

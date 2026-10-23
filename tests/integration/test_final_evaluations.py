@@ -412,7 +412,12 @@ def test_freeze_and_first_admission_share_owner_transaction_lock(
 
 
 def test_final_quota_race_is_atomic(migrated_engine, owner, settings, frozen_selection):
-    settings.max_active_runs_per_user = 1
+    from backend.app.models import UserWorkspaceSettings
+
+    assert settings.max_active_runs_per_user > 1
+    with Session(migrated_engine) as session:
+        session.add(UserWorkspaceSettings(owner_id=owner.user.id, max_active_runs=1))
+        session.commit()
 
     def submit(_):
         try:

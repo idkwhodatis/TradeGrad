@@ -20,6 +20,7 @@ from backend.app.models import (
     utcnow,
 )
 from backend.app.services import DomainError, FenceLost, advisory_lock
+from backend.app.workspace_policy import quota_limit
 from packages.marketdata.contracts import Listing as ListingContract
 
 TERMINAL_IMPORT = {"ready", "partial", "failed", "cancelled"}
@@ -292,7 +293,7 @@ def submit_import(
             DataImport.owner_id == owner_id, DataImport.status.not_in(TERMINAL_IMPORT)
         )
     )
-    if active >= settings.max_active_imports_per_user:
+    if active >= quota_limit(session, owner_id, settings, "imports"):
         raise DomainError("import_quota", "Active import limit reached", 429)
     from packages.marketdata.contracts import (
         FIXTURE_VERSION,
@@ -365,7 +366,7 @@ def retry_import(session, import_id, owner_id, settings):
             DataImport.owner_id == owner_id, DataImport.status.not_in(TERMINAL_IMPORT)
         )
     )
-    if active >= settings.max_active_imports_per_user:
+    if active >= quota_limit(session, owner_id, settings, "imports"):
         raise DomainError("import_quota", "Active import limit reached", 429)
     item.generation += 1
     item.status = "requested"
