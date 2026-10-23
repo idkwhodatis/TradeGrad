@@ -43,9 +43,12 @@ def research_payload(migrated_engine, settings, owner):
             }
         ]
         raw = canonical_bytes(bars)
-        name = "preview-test.json"
-        (settings.storage_root / dataset.storage_key / name).write_bytes(raw)
-        manifest["files"][name] = hashlib.sha256(raw).hexdigest()
+        # Match published snapshots: preview pages are separately hash-pinned,
+        # never members of the evaluator's CSV-only input set.
+        name = f"preview/{listing}/0.json"
+        path = settings.storage_root / dataset.storage_key / name
+        path.parent.mkdir(parents=True)
+        path.write_bytes(raw)
         manifest["preview_files"] = {
             listing: [
                 {

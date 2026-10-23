@@ -259,6 +259,7 @@ def test_yahoo_flags_adjclose_actions_and_split_semantics():
 
 def test_upstream_single_listing_failure_and_schema_drift_are_partial_not_filled():
     marker = secrets.token_hex(32)
+
     class Client:
         def stock_zh_a_hist(self, **kwargs):
             if kwargs["symbol"] == "000001":
@@ -532,6 +533,111 @@ def test_upload_preserves_exact_original_once_not_expanded_dataframe(
     ]:
         with pytest.raises(ValueError, match="source reference"):
             normalize_upload(path, upload_mapping(), request(), source_reference=bad)
+
+
+@pytest.mark.parametrize("file_format", ["csv", "parquet"])
+def test_native_upload_stages_only_windowed_evaluator_inputs(tmp_path, file_format):
+    """Real upload normalization/bundle, inert staging; no SDK or strategy runs."""
+    import csv
+    import hashlib
+    import io
+
+    from packages.marketdata.normalize import canonical_json
+    from packages.tradegrad_adapter.config import (
+        MarketConfig,
+        RunConfig,
+        canonical_bytes,
+    )
+    from packages.tradegrad_adapter.windows import stage_dataset_window
+
+    days = [f"2024-01-{day:02d}" for day in (2, 3, 4, 5, 8, 9, 10, 11, 12)]
+    original = (
+        "session_date,open,high,low,close,volume,unused\n"
+        + "".join(f"{day},10,11,9,10,100,not-evaluator-input\n" for day in days)
+    ).encode()
+    if file_format == "parquet":
+        original = pd.read_csv(io.BytesIO(original)).to_parquet(index=False)
+    source_name = f"source.{file_format}"
+    path = tmp_path / source_name
+    path.write_bytes(original)
+    reference = {
+        "artifact": source_name,
+        "sha256": hashlib.sha256(original).hexdigest(),
+        "size_bytes": len(original),
+    }
+    req = request(end="2024-01-13")
+    result = normalize_upload(
+        path,
+        upload_mapping(currency="USD", volume_unit="shares"),
+        req,
+        source_reference=reference,
+    )
+    assert result.raw[0].content == reference
+    assert result.raw[0].provenance_id == result.provenance[0].provenance_id
+    assert result.provenance[0].evidence == "uploaded"
+    root = tmp_path / "bundle"
+    manifest = write_bundle(root, req, result)
+    assert manifest["ready"]
+    # Mirror the worker's original-byte and separately pinned preview publication.
+    (root / source_name).write_bytes(original)
+    manifest["artifact_files"][source_name] = reference["sha256"]
+    manifest["upload_source"] = reference
+    listing_id = req.listings[0].listing_id
+    preview_name = f"preview/{listing_id}/0.json"
+    preview = (root / "preview.json").read_bytes()
+    preview_path = root / preview_name
+    preview_path.parent.mkdir(parents=True)
+    preview_path.write_bytes(preview)
+    manifest["preview_files"] = {
+        listing_id: [
+            {
+                "path": preview_name,
+                "sha256": hashlib.sha256(preview).hexdigest(),
+                "start_date": str(req.start),
+                "end_date": str(req.end),
+            }
+        ]
+    }
+    manifest.pop("content_hash")
+    manifest["content_hash"] = hashlib.sha256(canonical_json(manifest)).hexdigest()
+    encoded = canonical_bytes(manifest)
+    (root / "manifest.json").write_bytes(encoded)
+    verify_bundle(root, manifest)
+    ref = {"id": "test-version", "sha256": "a" * 64}
+    config = RunConfig(
+        execution_mode="optimization",
+        task="us_cross",
+        dataset={"id": "test-upload", "sha256": hashlib.sha256(encoded).hexdigest()},
+        seed_strategy=ref,
+        universe=ref,
+        windows={
+            "train": {"start": "2024-01-08", "end": "2024-01-10"},
+            "validation": {"start": "2024-01-10", "end": "2024-01-12"},
+            "holdout": {"start": "2024-01-12", "end": "2024-01-13"},
+        },
+        warmup={"sessions": 3},
+        market_profile=MarketConfig.for_market("US"),
+        environment_digest="b" * 64,
+    )
+    reads = []
+
+    def read_file(name):
+        reads.append(name)
+        return (root / name).read_bytes()
+
+    staged = stage_dataset_window(config, "train", manifest, read_file)
+    assert set(reads) == set(manifest["files"])
+    assert not set(reads) & (set(manifest["artifact_files"]) | {preview_name})
+    assert set(staged.files) == {
+        "data/INDEX.csv",
+        "universe/members_list_2024-01-02.csv",
+    }
+    rows = list(csv.DictReader(io.StringIO(staged.files["data/INDEX.csv"].decode())))
+    assert [row["date"] for row in rows] == days[1:6]
+    assert "unused" not in rows[0]
+    assert (root / source_name).read_bytes() == original
+    assert (root / "manifest.json").read_bytes() == canonical_bytes(manifest) == encoded
+    verify_bundle(root, manifest)
 
 
 @pytest.mark.parametrize(

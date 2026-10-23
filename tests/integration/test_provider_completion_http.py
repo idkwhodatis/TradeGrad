@@ -67,6 +67,7 @@ def parent_snapshot(migrated_engine, settings, owner):
         publish_bytes(
             settings.storage_root / key / name,
             content,
+            sha256=hashlib.sha256(content).hexdigest(),
             durable_root=settings.storage_root,
         )
     with Session(migrated_engine) as session:

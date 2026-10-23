@@ -463,7 +463,17 @@ def test_unsupported_fixture_model_prompt_and_benchmark_fail_instead_of_ignored(
 
 @pytest.mark.parametrize(
     "path",
-    ["data/../A.csv", "/data/A.csv", "data//A.csv", "data/./A.csv", "data\\A.csv"],
+    [
+        "data/../A.csv",
+        "/data/A.csv",
+        "data//A.csv",
+        "data/./A.csv",
+        "data\\A.csv",
+        "preview-test.json",
+        "preview/listing-A/0.json",
+        "source.csv",
+        "source.parquet",
+    ],
 )
 def test_manifest_paths_must_be_canonical_and_contained(path):
     config, manifest, files = _bundle(second=False)
