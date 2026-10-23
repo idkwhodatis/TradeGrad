@@ -143,3 +143,12 @@ payloads, test names/parameters, HTML reports, screenshots, traces or raw logs.
 - Portable policies, separate trusted ledger and holdout/export gates (M5).
 - Production deployment, restore rehearsal and performance release gate (M6).
 - Any real trading, financial transaction or paid external model request.
+
+## After-hours history rewrite revalidation
+
+The authorized feature-only timestamp rewrite preserved the M1 tree
+`06b8acad8e3f990e23384d4262ed2110419d4810`. The new M1 head
+`f2e1209e96c18de930a6fd869eedab16fd4cb191` passed the complete gate again in
+[run 39861794800](https://github.com/idkwhodatis/TradeGrad/actions/runs/39861794800).
+Commit metadata changed; actual GitHub push and CI timestamps did not move.
+The default branch was not changed.

@@ -51,6 +51,9 @@ def synthetic_result(
     attempt_id=None,
     evaluation_id=None,
     dataset_manifest=None,
+    evaluation_window=None,
+    binding_config_sha256=None,
+    binding_strategy=None,
 ):
     owner_id, run_id, attempt_id, evaluation_id = (
         owner_id or uuid4(),
@@ -87,7 +90,9 @@ def synthetic_result(
                 "environment_digest": "d" * 64,
             }
         )
-    window = evaluation_windows(config)[0]
+    window = evaluation_window or evaluation_windows(config)[0]
+    binding_hash = binding_config_sha256 or config.sha256
+    selected = binding_strategy or config.seed_strategy
     warmup = {
         "sessions": config.warmup.sessions,
         "history_policy": config.warmup.history_policy,
@@ -101,7 +106,7 @@ def synthetic_result(
         },
         "warmup": warmup,
         "benchmark": None,
-        "run_config_sha256": config.sha256,
+        "run_config_sha256": binding_hash,
     }
     request = {
         "task": config.task,
@@ -113,7 +118,7 @@ def synthetic_result(
     }
     request_bytes = canonical_bytes(request)
     inputs = [
-        {"path": "strategy.py", "sha256": config.seed_strategy.sha256, "bytes": 12},
+        {"path": "strategy.py", "sha256": selected.sha256, "bytes": 12},
         {
             "path": "request.json",
             "sha256": digest(request_bytes),
@@ -121,8 +126,8 @@ def synthetic_result(
         },
     ]
     identity = {
-        "strategy_sha256": config.seed_strategy.sha256,
-        "run_config_sha256": config.sha256,
+        "strategy_sha256": selected.sha256,
+        "run_config_sha256": binding_hash,
         "evaluation_config_sha256": digest(canonical_json_bytes(eval_config)),
         "input_manifest_sha256": digest(canonical_json_bytes(inputs)),
         "inputs": inputs,
@@ -405,10 +410,10 @@ def synthetic_result(
     run = ResearchRun(
         id=run_id,
         owner_id=owner_id,
-        request_sha256=config.sha256,
+        request_sha256=binding_hash,
         config=config.model_dump(mode="json"),
         dataset_version_id=UUID(config.dataset.id),
-        strategy_version_id=UUID(config.seed_strategy.id),
+        strategy_version_id=UUID(selected.id),
         research_image_digest=payload["image_digest"],
     )
     evaluation = Evaluation(
@@ -417,7 +422,7 @@ def synthetic_result(
         attempt_id=attempt_id,
         generation=1,
         candidate_key="candidate-0000",
-        code_sha256=config.seed_strategy.sha256,
+        code_sha256=selected.sha256,
         split=window["split"],
         window=window,
         window_sha256=payload_hash(window),

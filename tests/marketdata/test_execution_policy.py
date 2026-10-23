@@ -46,3 +46,20 @@ def test_old_fixture_prices_cannot_mix_with_new_checkpoints(revision):
 )
 def test_incompatible_policy_rejected_before_provider_access(field, value):
     assert not execution_policy_compatible({**policy(), field: value}, "fixture")
+
+
+def test_portable_fixture_has_independent_generation_fence():
+    from packages.marketdata.contracts import PORTABLE_FIXTURE_VERSION
+
+    current = {**policy(), "fixture_version": PORTABLE_FIXTURE_VERSION}
+    assert execution_policy_compatible(
+        current, "fixture", provider_name="portable_fixture"
+    )
+    assert not execution_policy_compatible(
+        policy(), "fixture", provider_name="portable_fixture"
+    )
+    assert not execution_policy_compatible(current, "fixture", provider_name="yfinance")
+    assert not execution_policy_compatible(current, "fixture")
+    assert not execution_policy_compatible(
+        policy("live"), "live", provider_name="portable_fixture"
+    )

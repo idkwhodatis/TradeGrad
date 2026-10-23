@@ -70,6 +70,12 @@ def write_bundle(directory: Path, request: BarsRequest, result: ProviderResult) 
     write("coverage.json", [entry.model_dump(mode="json") for entry in result.coverage])
     write("quality.json", [entry.model_dump(mode="json") for entry in result.warnings])
     write("actions.json", [entry.model_dump(mode="json") for entry in result.actions])
+    # Created only in the separately locked data runtime, never from price rows.
+    from .calendars import session_schedule
+    from .portable_fixture import action_coverage
+
+    write("sessions.json", session_schedule(request))
+    write("corporate-action-coverage.json", action_coverage(request, result))
     write("preview.json", bars)
     evaluator_files, symbol_mapping = {}, {}
     for listing in request.listings:

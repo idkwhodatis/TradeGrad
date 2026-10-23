@@ -34,7 +34,8 @@ isolation, two-worker SIGKILL/recovery and nine real Chromium scenarios.
 Downloaded outcome artifacts were hash-verified. See
 [staged evidence](M1_VALIDATION.md) and [development operations](M1_OPERATIONS.md).
 
-M2 data integration is prepared locally but its hosted gate is pending. See
+M2 data integration passed its deterministic hosted gate on `0f6e8359` in
+[run 39868584582](https://github.com/idkwhodatis/TradeGrad/actions/runs/39868584582). See
 [M2 acceptance and limitations](M2_VALIDATION.md), including the transitional
 cold-start seed behavior and still-incomplete short-optimization slice.
 M3's available local gate passed 518 tests, including actual unchanged upstream
@@ -45,7 +46,10 @@ and the [separate research runtime](../runtimes/research/README.md). The user's
 while retaining, rather than silently passing, unavailable integration gates.
 M4's available local gate passed 780 tests, including real native-result-to-query
 component checks and 184 frontend contracts. Its complete browser/queue/database
-acceptance remains deferred. See [M4 evidence](M4_VALIDATION.md). M5–M6 have not
-started. Live provider verification is separate from deterministic
+acceptance remains deferred. See [M4 evidence](M4_VALIDATION.md). M5 portable
+research, frozen selection and separate final-evaluation workflows passed the
+available local gate and scoped review; real paired-container/application/browser acceptance
+remains pending. See [M5 boundaries and gates](M5_VALIDATION.md). M6 has not started.
+Live provider verification is separate from deterministic
 synthetic SDK-response fixtures. An absent or pending report means the relevant
 phase has not passed.

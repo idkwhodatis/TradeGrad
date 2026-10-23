@@ -162,6 +162,7 @@ test.beforeAll(async ({ request }) => {
   expect(providers.map((item) => item.id).sort()).toEqual([
     "akshare",
     "openbb",
+    ...(liveProviders ? [] : ["portable_fixture"]),
     "yfinance",
   ]);
   for (const provider of providers)

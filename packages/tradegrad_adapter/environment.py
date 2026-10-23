@@ -11,6 +11,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 INPUTS = (
+    ".dockerignore",
+    "workers/research/containment.py",
+    "backend/app/core/atomic_storage.py",
     "src/__init__.py",
     "src/loss.py",
     "src/evaluate.py",
@@ -31,6 +34,15 @@ INPUTS = (
     "packages/tradegrad_adapter/environment.py",
     "runtimes/evaluator/requirements.lock",
     "runtimes/research/requirements.lock",
+    "packages/tradegrad_adapter/final_config.py",
+    "packages/tradegrad_adapter/final_windows.py",
+    "packages/tradegrad_adapter/strategy_package.py",
+    "workers/research/environment_evidence.py",
+    "workers/research/final_staging.py",
+    "workers/research/final_evaluation.py",
+    "workers/research/lease.py",
+    "backend/app/final_evaluation_services.py",
+    "backend/app/experiment_services.py",
     "workers/research/optimization.py",
     "workers/research/executor.py",
     "backend/app/research_services.py",

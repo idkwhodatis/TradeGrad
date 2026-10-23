@@ -71,6 +71,14 @@ def owned_run(
     return run
 
 
+def owned_native_run(session: Session, run_id: UUID, owner_id: UUID) -> ResearchRun:
+    """Legacy/native DTOs must never coerce portable or final-job result semantics."""
+    run = owned_run(session, run_id, owner_id)
+    if run.config.get("schema_version") not in {None, "tradegrad.run.v1"}:
+        raise DomainError("not_found", "Run not found", 404)
+    return run
+
+
 def append_event(
     session: Session,
     run: ResearchRun,
@@ -143,7 +151,11 @@ def submit_run(
     if dataset is None or strategy is None:
         raise DomainError("not_found", "Dataset or strategy version not found", 404)
     market = body.task[:2].upper()
-    if dataset.market != market or strategy.task != body.task:
+    if (
+        dataset.market != market
+        or strategy.task != body.task
+        or strategy.mode != "native_akquant"
+    ):
         raise DomainError(
             "reference_mismatch",
             "Task, dataset market and strategy task must agree",
@@ -205,6 +217,9 @@ def submit_run(
     )
     session.add(run)
     session.flush()
+    from backend.app.experiment_services import record_legacy_run_exposure
+
+    record_legacy_run_exposure(session, run, dataset)
     session.add(OutboxEvent(run_id=run.id, generation=1))
     append_event(
         session,
@@ -336,10 +351,10 @@ def finish_attempt(
     artifacts: list[dict] | None = None,
 ) -> ResearchRun:
     run, attempt = fenced_attempt(session, attempt_id, generation, lease_token)
-    if run.config.get("schema_version") == "tradegrad.run.v1":
+    if run.config.get("schema_version") is not None:
         raise DomainError(
             "research_completion_required",
-            "Research attempts require checkpoint-aware completion",
+            "Configured attempts require their mode-specific verified completion",
         )
     if not sandbox_stopped:
         # Leave non-terminal and retain generation. Reconciliation must confirm stop.
@@ -455,6 +470,11 @@ def resume_run(
         from backend.app.research_services import resume_research_run
 
         return resume_research_run(session, run_id, owner_id, settings)
+    if run.config.get("schema_version") is not None:
+        raise DomainError(
+            "mode_specific_retry_required",
+            "Use the dedicated keyed final-evaluation retry endpoint; no seed fallback",
+        )
     if run.status not in {"failed", "cancelled", "interrupted"}:
         raise DomainError(
             "invalid_transition",

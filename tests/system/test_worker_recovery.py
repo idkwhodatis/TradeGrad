@@ -154,6 +154,9 @@ class ProcessHarness:
         ]
 
     def setup(self):
+        from backend.app.core.atomic_storage import provision_directory
+
+        provision_directory(self.root / "storage", durable_parent=self.root)
         require(
             self.runner.available(), "Required real Docker evaluator is unavailable"
         )

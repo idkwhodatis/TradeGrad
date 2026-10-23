@@ -334,6 +334,11 @@ def orchestration(tmp_path, monkeypatch):
     patch("research_config", lambda current: h.config)
     patch("mark_running", lambda *args: True)
     patch("fenced_attempt", lambda *args: (run, attempt))
+    from workers.research import environment_evidence
+
+    monkeypatch.setattr(
+        environment_evidence, "fenced_attempt", h.mocks["fenced_attempt"]
+    )
     patch("heartbeat", lambda *args: h.mode == "cancel")
     patch("pin_research_image", lambda *args: trace.append(("pin", args[-1])))
     patch(
@@ -424,6 +429,16 @@ def orchestration(tmp_path, monkeypatch):
     ):
         assert ("registered_commit", attempt_id) in trace
         assert ("pin", IMAGE) in trace
+        environment_artifacts = [
+            item[1]
+            for item in trace
+            if item[0] == "artifact" and item[1].name == "execution-environment.json"
+        ]
+        assert len(environment_artifacts) == 1
+        artifact = environment_artifacts[0]
+        evidence = json.loads((tmp_path / artifact.storage_key).read_bytes())
+        assert evidence["environment_digest"] == h.config.environment_digest
+        assert evidence["image_id"] == IMAGE
         assert expected_config_sha256 == h.config.sha256
         assert (input_dir / "strategy.py").read_text().rstrip() == CODE.rstrip()
         assert callable(cancelled) and callable(heartbeat)
@@ -607,3 +622,11 @@ def test_teardown_stop_exception_checks_all_children_and_ends_lease_thread(
     assert counts[str(h.attempt.id)] == 1
     assert threads and not any(thread.is_alive() for thread in threads)
     assert not any(kind == "run_finished" for kind, _ in h.events)
+
+
+def test_worker_never_reports_success_without_committed_attempt_finish(orchestration):
+    h = orchestration
+    h.mocks["finish_research_attempt"].side_effect = FenceLost()
+    outcome = h.execute()
+    assert h.sandbox.evaluate.call_count > 0
+    assert outcome == {"status": "fence_lost", "sandbox_stopped": True}

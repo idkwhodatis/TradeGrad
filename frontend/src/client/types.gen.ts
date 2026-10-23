@@ -545,6 +545,64 @@ export type CoveragePublic = {
 };
 
 /**
+ * DataUsageExposurePublic
+ */
+export type DataUsageExposurePublic = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string | null;
+    /**
+     * End Date
+     */
+    end_date: string;
+    /**
+     * Experiment Id
+     */
+    experiment_id: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Identities
+     */
+    identities: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Provenance
+     */
+    provenance: {
+        [key: string]: unknown;
+    };
+    /**
+     * Purpose
+     */
+    purpose: string;
+    /**
+     * Run Id
+     */
+    run_id: string | null;
+    /**
+     * Source Key
+     */
+    source_key: string;
+    /**
+     * Split Version Id
+     */
+    split_version_id: string | null;
+    /**
+     * Start Date
+     */
+    start_date: string;
+};
+
+/**
  * DatasetPublic
  */
 export type DatasetPublic = {
@@ -862,6 +920,654 @@ export type EventPublic = {
 };
 
 /**
+ * ExperimentCreate
+ */
+export type ExperimentCreate = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Parent Experiment Id
+     */
+    parent_experiment_id?: string | null;
+};
+
+/**
+ * ExperimentPublic
+ */
+export type ExperimentPublic = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Parent Experiment Id
+     */
+    parent_experiment_id: string | null;
+    /**
+     * Root Experiment Id
+     */
+    root_experiment_id: string | null;
+};
+
+/**
+ * ExposureSnapshot
+ */
+export type ExposureSnapshot = {
+    /**
+     * As Of
+     */
+    as_of: string;
+    /**
+     * Classification
+     */
+    classification: 'previously_exposed' | 'no_tracked_overlap' | 'unknown_identity';
+    /**
+     * Evidence Truncated
+     */
+    evidence_truncated?: boolean;
+    /**
+     * Identities
+     */
+    identities: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Independent Unseen Holdout Established
+     */
+    independent_unseen_holdout_established?: false;
+    /**
+     * Matching Count
+     */
+    matching_count: number;
+    /**
+     * Matching Exposure Ids
+     */
+    matching_exposure_ids: Array<string>;
+    /**
+     * Matching Purposes
+     */
+    matching_purposes: Array<string>;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.exposure.v1';
+    /**
+     * Tracking Coverage
+     */
+    tracking_coverage?: 'historical tracking incomplete/external use unknown';
+};
+
+/**
+ * FinalEvaluationConfig
+ */
+export type FinalEvaluationConfig = {
+    /**
+     * Environment Digest
+     */
+    environment_digest: string;
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'final_evaluation';
+    holdout: DateWindow;
+    /**
+     * Max Runtime Seconds
+     */
+    max_runtime_seconds: number;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.final-evaluation.v1';
+    selected_strategy: VersionRef;
+    /**
+     * Selection Id
+     */
+    selection_id: string;
+    source_config: RunConfig;
+    /**
+     * Source Config Sha256
+     */
+    source_config_sha256: string;
+    /**
+     * Split Sha256
+     */
+    split_sha256: string;
+    /**
+     * Split Version Id
+     */
+    split_version_id: string;
+};
+
+/**
+ * FinalEvaluationCreate
+ */
+export type FinalEvaluationCreate = {
+    /**
+     * Max Runtime Seconds
+     */
+    max_runtime_seconds?: number;
+    /**
+     * Selection Id
+     */
+    selection_id: string;
+};
+
+/**
+ * FinalEvaluationDetail
+ */
+export type FinalEvaluationDetail = {
+    /**
+     * Active Attempt Id
+     */
+    active_attempt_id: string | null;
+    /**
+     * Attempts
+     */
+    attempts: Array<AttemptPublic>;
+    config: FinalEvaluationConfig;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'final_evaluation';
+    /**
+     * Experiment Id
+     */
+    experiment_id: string;
+    /**
+     * Final Selection Id
+     */
+    final_selection_id: string;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Next Event Seq
+     */
+    next_event_seq: number;
+    /**
+     * Research Image Digest
+     */
+    research_image_digest: string;
+    result: FinalEvaluationResult | null;
+    /**
+     * Split Version Id
+     */
+    split_version_id: string;
+    /**
+     * Status
+     */
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * FinalEvaluationEvidence
+ */
+export type FinalEvaluationEvidence = {
+    /**
+     * Attempt Id
+     */
+    attempt_id: string;
+    /**
+     * Candidate Id
+     */
+    candidate_id: string | null;
+    /**
+     * Candidate Key
+     */
+    candidate_key: string;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Finished At
+     */
+    finished_at: string | null;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Image Digest
+     */
+    image_digest: string;
+    /**
+     * Payload
+     */
+    payload: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Payload Sha256
+     */
+    payload_sha256: string | null;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Sandbox Id
+     */
+    sandbox_id: string;
+    /**
+     * Sandbox Stopped
+     */
+    sandbox_stopped: boolean;
+    /**
+     * Split
+     */
+    split: 'holdout';
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Window
+     */
+    window: {
+        [key: string]: unknown;
+    };
+    /**
+     * Window Sha256
+     */
+    window_sha256: string;
+};
+
+/**
+ * FinalEvaluationPreflight
+ */
+export type FinalEvaluationPreflight = {
+    config: FinalEvaluationConfig;
+    /**
+     * Eligible
+     */
+    eligible: boolean;
+    exposure_snapshot: ExposureSnapshot;
+    /**
+     * Quota Remaining
+     */
+    quota_remaining: number;
+    /**
+     * Selection Id
+     */
+    selection_id: string;
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+};
+
+/**
+ * FinalEvaluationPublic
+ */
+export type FinalEvaluationPublic = {
+    /**
+     * Active Attempt Id
+     */
+    active_attempt_id: string | null;
+    config: FinalEvaluationConfig;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'final_evaluation';
+    /**
+     * Experiment Id
+     */
+    experiment_id: string;
+    /**
+     * Final Selection Id
+     */
+    final_selection_id: string;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Next Event Seq
+     */
+    next_event_seq: number;
+    /**
+     * Research Image Digest
+     */
+    research_image_digest: string;
+    result: FinalEvaluationResult | null;
+    /**
+     * Split Version Id
+     */
+    split_version_id: string;
+    /**
+     * Status
+     */
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * FinalEvaluationResult
+ */
+export type FinalEvaluationResult = {
+    /**
+     * Combined Score
+     */
+    combined_score?: number | null;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id?: string | null;
+    /**
+     * Evaluation Mode
+     */
+    evaluation_mode?: 'native_akquant';
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'final_evaluation';
+    exposure_snapshot: ExposureSnapshot;
+    /**
+     * Holdout Executed
+     */
+    holdout_executed: boolean;
+    /**
+     * Image Digest
+     */
+    image_digest: string | null;
+    /**
+     * Is Synthetic
+     */
+    is_synthetic: boolean;
+    /**
+     * Metrics
+     */
+    metrics?: {
+        [key: string]: number;
+    };
+    /**
+     * Result Trust
+     */
+    result_trust?: 'native_strategy_and_engine_share_process';
+    /**
+     * Selection Id
+     */
+    selection_id: string;
+};
+
+/**
+ * FinalResultQuery
+ */
+export type FinalResultQuery = {
+    /**
+     * Artifact Sha256
+     */
+    artifact_sha256: string;
+    benchmark: ResultBenchmark;
+    /**
+     * Candidate Key
+     */
+    candidate_key: string;
+    capabilities: ResultCapabilities;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    config: FinalEvaluationConfig;
+    /**
+     * Config Sha256
+     */
+    config_sha256: string;
+    /**
+     * Currency
+     */
+    currency: 'CNY' | 'USD';
+    /**
+     * End
+     */
+    end?: string | null;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    /**
+     * Exposure Snapshot
+     */
+    exposure_snapshot: {
+        [key: string]: unknown;
+    };
+    fees: ResultFees;
+    /**
+     * Is Synthetic
+     */
+    is_synthetic: boolean;
+    /**
+     * Listing Id
+     */
+    listing_id?: string | null;
+    /**
+     * Metrics
+     */
+    metrics: Array<ResultMetric>;
+    /**
+     * Price Definition
+     */
+    price_definition: {
+        [key: string]: JsonValue;
+    };
+    /**
+     * Result Trust
+     */
+    result_trust: 'native_strategy_and_engine_share_process';
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.final-result-query.v1';
+    /**
+     * Selection Feedback
+     */
+    selection_feedback?: false;
+    /**
+     * Selection Id
+     */
+    selection_id: string;
+    /**
+     * Split
+     */
+    split: 'holdout';
+    /**
+     * Start
+     */
+    start?: string | null;
+    /**
+     * Status
+     */
+    status?: 'succeeded';
+    /**
+     * Tables
+     */
+    tables: {
+        [key: string]: ResultTable;
+    };
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+    window: FinalResultWindow;
+};
+
+/**
+ * FinalResultWindow
+ */
+export type FinalResultWindow = {
+    /**
+     * End
+     */
+    end: string;
+    /**
+     * Split
+     */
+    split: 'holdout';
+    /**
+     * Start
+     */
+    start: string;
+};
+
+/**
+ * FinalSelectionCreate
+ */
+export type FinalSelectionCreate = {
+    /**
+     * Source Candidate Id
+     */
+    source_candidate_id: string;
+    /**
+     * Source Checkpoint Id
+     */
+    source_checkpoint_id: string;
+    /**
+     * Source Run Id
+     */
+    source_run_id: string;
+    /**
+     * Split Version Id
+     */
+    split_version_id: string;
+};
+
+/**
+ * FinalSelectionPublic
+ */
+export type FinalSelectionPublic = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Experiment Id
+     */
+    experiment_id: string;
+    exposure_snapshot: ExposureSnapshot;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Request Sha256
+     */
+    request_sha256: string;
+    /**
+     * Selection Evidence
+     */
+    selection_evidence: {
+        [key: string]: unknown;
+    };
+    /**
+     * Source Candidate Id
+     */
+    source_candidate_id: string;
+    /**
+     * Source Checkpoint Id
+     */
+    source_checkpoint_id: string;
+    /**
+     * Source Checkpoint Sha256
+     */
+    source_checkpoint_sha256: string;
+    /**
+     * Source Code Sha256
+     */
+    source_code_sha256: string;
+    /**
+     * Source Config Sha256
+     */
+    source_config_sha256: string;
+    /**
+     * Source Run Id
+     */
+    source_run_id: string;
+    /**
+     * Split Version Id
+     */
+    split_version_id: string;
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+};
+
+/**
  * HealthResponse
  */
 export type HealthResponse = {
@@ -914,7 +1620,7 @@ export type ImportCreate = {
     /**
      * Provider
      */
-    provider: 'akshare' | 'yfinance' | 'openbb';
+    provider: 'akshare' | 'yfinance' | 'openbb' | 'portable_fixture';
     /**
      * Start Date
      */
@@ -1580,6 +2286,20 @@ export type PageCheckpointPublic = {
 };
 
 /**
+ * Page[DataUsageExposurePublic]
+ */
+export type PageDataUsageExposurePublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<DataUsageExposurePublic>;
+};
+
+/**
  * Page[DatasetPublic]
  */
 export type PageDatasetPublic = {
@@ -1605,6 +2325,62 @@ export type PageEvaluationPublic = {
      * Data
      */
     data: Array<EvaluationPublic>;
+};
+
+/**
+ * Page[ExperimentPublic]
+ */
+export type PageExperimentPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<ExperimentPublic>;
+};
+
+/**
+ * Page[FinalEvaluationEvidence]
+ */
+export type PageFinalEvaluationEvidence = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<FinalEvaluationEvidence>;
+};
+
+/**
+ * Page[FinalEvaluationPublic]
+ */
+export type PageFinalEvaluationPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<FinalEvaluationPublic>;
+};
+
+/**
+ * Page[FinalSelectionPublic]
+ */
+export type PageFinalSelectionPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<FinalSelectionPublic>;
 };
 
 /**
@@ -1650,6 +2426,76 @@ export type PageModelCallPublic = {
 };
 
 /**
+ * Page[PortableEvaluationPublic]
+ */
+export type PagePortableEvaluationPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<PortableEvaluationPublic>;
+};
+
+/**
+ * Page[PortableFinalEvaluationEvidence]
+ */
+export type PagePortableFinalEvaluationEvidence = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<PortableFinalEvaluationEvidence>;
+};
+
+/**
+ * Page[PortableFinalEvaluationPublic]
+ */
+export type PagePortableFinalEvaluationPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<PortableFinalEvaluationPublic>;
+};
+
+/**
+ * Page[PortableRunPublic]
+ */
+export type PagePortableRunPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<PortableRunPublic>;
+};
+
+/**
+ * Page[PortableStrategyPublic]
+ */
+export type PagePortableStrategyPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<PortableStrategyPublic>;
+};
+
+/**
  * Page[ResearchRunPublic]
  */
 export type PageResearchRunPublic = {
@@ -1678,6 +2524,20 @@ export type PageRunPublic = {
 };
 
 /**
+ * Page[SplitVersionPublic]
+ */
+export type PageSplitVersionPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<SplitVersionPublic>;
+};
+
+/**
  * Page[StrategyPublic]
  */
 export type PageStrategyPublic = {
@@ -1703,6 +2563,1535 @@ export type PageUniversePublic = {
      * Data
      */
     data: Array<UniversePublic>;
+};
+
+/**
+ * PortableDefaultRequest
+ */
+export type PortableDefaultRequest = {
+    dataset: VersionRef;
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'optimization' | 'seed_evaluation';
+    seed_strategy: VersionRef;
+    universe: VersionRef;
+    windows: WindowSet;
+};
+
+/**
+ * PortableEngineProfile
+ */
+export type PortableEngineProfile = {
+    /**
+     * Application Settlement Enforcement
+     */
+    application_settlement_enforcement: 'trusted_controller_daily_next_open_inventory.v1';
+    /**
+     * Application T Plus One
+     */
+    application_t_plus_one: boolean;
+    /**
+     * Cash Budget
+     */
+    cash_budget: 'available_cash_without_anticipated_sale_proceeds';
+    /**
+     * Commission Rate
+     */
+    commission_rate: 0.0005;
+    /**
+     * Corporate Actions
+     */
+    corporate_actions: 'reject_window_with_actions';
+    /**
+     * Engine
+     */
+    engine: 'akquant';
+    /**
+     * Engine Settlement Mode
+     */
+    engine_settlement_mode: 'T+0';
+    /**
+     * Engine Version
+     */
+    engine_version: '0.3.27';
+    /**
+     * External Funding
+     */
+    external_funding: 'unsupported';
+    /**
+     * Fill Policy
+     */
+    fill_policy: 'NextOpen';
+    /**
+     * Final Liquidation
+     */
+    final_liquidation: false;
+    /**
+     * Initial Cash
+     */
+    initial_cash: number;
+    /**
+     * Initial Positions
+     */
+    initial_positions: 'flat';
+    /**
+     * Intraday Policy
+     */
+    intraday_policy: 'unsupported';
+    /**
+     * Limit Execution
+     */
+    limit_execution: 'reject_non_open_or_limit_breaching_native_fill';
+    /**
+     * Lot Size
+     */
+    lot_size: number;
+    /**
+     * Market
+     */
+    market: 'CN' | 'US';
+    /**
+     * Min Commission
+     */
+    min_commission: 0;
+    /**
+     * Pending Rebalance
+     */
+    pending_rebalance: 'skip_until_all_native_legs_terminal';
+    /**
+     * Policy Callback
+     */
+    policy_callback: 'complete_daily_cross_section_after_close';
+    /**
+     * Profile Version
+     */
+    profile_version: 'akquant.portable.cash-daily.controller-t1.v3';
+    risk_config: PortableRiskConfig;
+    /**
+     * Sell Budget
+     */
+    sell_budget: 'decision_close_holdings_less_pending_sells';
+    /**
+     * Sellability Observation
+     */
+    sellability_observation: 'next_open_unreserved_holdings';
+    /**
+     * Sizing Equity
+     */
+    sizing_equity: 'decision_close_native_equity';
+    /**
+     * Sizing Price
+     */
+    sizing_price: 'decision_close';
+    slippage: PortableSlippageConfig;
+    /**
+     * Stamp Tax Rate
+     */
+    stamp_tax_rate: number;
+    /**
+     * T Plus One
+     */
+    t_plus_one: false;
+    /**
+     * Time In Force
+     */
+    time_in_force: 'GTC';
+    /**
+     * Timezone
+     */
+    timezone: 'Asia/Shanghai' | 'America/New_York';
+    /**
+     * Transfer Fee Rate
+     */
+    transfer_fee_rate: 0;
+    /**
+     * Unsettled Next Open Sell
+     */
+    unsettled_next_open_sell: 'admit_after_close_with_controller_t1';
+    /**
+     * Volume Limit Pct
+     */
+    volume_limit_pct: 0.25;
+};
+
+/**
+ * PortableEvaluationDetail
+ */
+export type PortableEvaluationDetail = {
+    /**
+     * Attempt Id
+     */
+    attempt_id: string;
+    /**
+     * Candidate Id
+     */
+    candidate_id: string | null;
+    /**
+     * Candidate Key
+     */
+    candidate_key: string;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Finished At
+     */
+    finished_at: string | null;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Image Digest
+     */
+    image_digest: string;
+    /**
+     * Payload
+     */
+    payload: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Payload Sha256
+     */
+    payload_sha256: string | null;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Sandbox Id
+     */
+    sandbox_id: string;
+    /**
+     * Sandbox Stopped
+     */
+    sandbox_stopped: boolean;
+    /**
+     * Split
+     */
+    split: 'train' | 'validation';
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Window
+     */
+    window: {
+        [key: string]: unknown;
+    };
+    /**
+     * Window Sha256
+     */
+    window_sha256: string;
+};
+
+/**
+ * PortableEvaluationPublic
+ */
+export type PortableEvaluationPublic = {
+    /**
+     * Attempt Id
+     */
+    attempt_id: string;
+    /**
+     * Candidate Id
+     */
+    candidate_id: string | null;
+    /**
+     * Candidate Key
+     */
+    candidate_key: string;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Finished At
+     */
+    finished_at: string | null;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Image Digest
+     */
+    image_digest: string;
+    /**
+     * Payload Sha256
+     */
+    payload_sha256: string | null;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Sandbox Id
+     */
+    sandbox_id: string;
+    /**
+     * Sandbox Stopped
+     */
+    sandbox_stopped: boolean;
+    /**
+     * Split
+     */
+    split: 'train' | 'validation';
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Window
+     */
+    window: {
+        [key: string]: unknown;
+    };
+    /**
+     * Window Sha256
+     */
+    window_sha256: string;
+};
+
+/**
+ * PortableFinalEvaluationConfig
+ */
+export type PortableFinalEvaluationConfig = {
+    /**
+     * Environment Digest
+     */
+    environment_digest: string;
+    /**
+     * Evaluation Mode
+     */
+    evaluation_mode?: 'portable';
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'final_evaluation';
+    holdout: DateWindow;
+    /**
+     * Max Runtime Seconds
+     */
+    max_runtime_seconds: number;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.portable.final-evaluation.v1';
+    selected_manifest: VersionRef;
+    selected_parameters: VersionRef;
+    selected_strategy: VersionRef;
+    /**
+     * Selection Id
+     */
+    selection_id: string;
+    source_config: PortableRunConfig;
+    /**
+     * Source Config Sha256
+     */
+    source_config_sha256: string;
+    /**
+     * Split Sha256
+     */
+    split_sha256: string;
+    /**
+     * Split Version Id
+     */
+    split_version_id: string;
+};
+
+/**
+ * PortableFinalEvaluationCreate
+ */
+export type PortableFinalEvaluationCreate = {
+    /**
+     * Max Runtime Seconds
+     */
+    max_runtime_seconds?: number;
+    /**
+     * Selection Id
+     */
+    selection_id: string;
+};
+
+/**
+ * PortableFinalEvaluationDetail
+ */
+export type PortableFinalEvaluationDetail = {
+    /**
+     * Active Attempt Id
+     */
+    active_attempt_id: string | null;
+    /**
+     * Attempts
+     */
+    attempts: Array<AttemptPublic>;
+    config: PortableFinalEvaluationConfig;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'final_evaluation';
+    /**
+     * Experiment Id
+     */
+    experiment_id: string;
+    /**
+     * Final Selection Id
+     */
+    final_selection_id: string;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Next Event Seq
+     */
+    next_event_seq: number;
+    /**
+     * Portable Policy Image Digest
+     */
+    portable_policy_image_digest: string;
+    /**
+     * Research Image Digest
+     */
+    research_image_digest: string;
+    result: PortableFinalEvaluationResult | null;
+    /**
+     * Split Version Id
+     */
+    split_version_id: string;
+    /**
+     * Status
+     */
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * PortableFinalEvaluationEvidence
+ */
+export type PortableFinalEvaluationEvidence = {
+    /**
+     * Attempt Id
+     */
+    attempt_id: string;
+    /**
+     * Candidate Id
+     */
+    candidate_id: string | null;
+    /**
+     * Candidate Key
+     */
+    candidate_key: string;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Finished At
+     */
+    finished_at: string | null;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Image Digest
+     */
+    image_digest: string;
+    /**
+     * Payload
+     */
+    payload: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Payload Sha256
+     */
+    payload_sha256: string | null;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Sandbox Id
+     */
+    sandbox_id: string;
+    /**
+     * Sandbox Stopped
+     */
+    sandbox_stopped: boolean;
+    /**
+     * Split
+     */
+    split: 'holdout';
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Window
+     */
+    window: {
+        [key: string]: unknown;
+    };
+    /**
+     * Window Sha256
+     */
+    window_sha256: string;
+};
+
+/**
+ * PortableFinalEvaluationPreflight
+ */
+export type PortableFinalEvaluationPreflight = {
+    config: PortableFinalEvaluationConfig;
+    /**
+     * Eligible
+     */
+    eligible: boolean;
+    exposure_snapshot: ExposureSnapshot;
+    /**
+     * Quota Remaining
+     */
+    quota_remaining: number;
+    /**
+     * Selection Id
+     */
+    selection_id: string;
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+};
+
+/**
+ * PortableFinalEvaluationPublic
+ */
+export type PortableFinalEvaluationPublic = {
+    /**
+     * Active Attempt Id
+     */
+    active_attempt_id: string | null;
+    config: PortableFinalEvaluationConfig;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'final_evaluation';
+    /**
+     * Experiment Id
+     */
+    experiment_id: string;
+    /**
+     * Final Selection Id
+     */
+    final_selection_id: string;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Next Event Seq
+     */
+    next_event_seq: number;
+    /**
+     * Portable Policy Image Digest
+     */
+    portable_policy_image_digest: string;
+    /**
+     * Research Image Digest
+     */
+    research_image_digest: string;
+    result: PortableFinalEvaluationResult | null;
+    /**
+     * Split Version Id
+     */
+    split_version_id: string;
+    /**
+     * Status
+     */
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * PortableFinalEvaluationResult
+ */
+export type PortableFinalEvaluationResult = {
+    /**
+     * Combined Score
+     */
+    combined_score?: number | null;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id?: string | null;
+    /**
+     * Evaluation Mode
+     */
+    evaluation_mode?: 'portable';
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'final_evaluation';
+    exposure_snapshot: ExposureSnapshot;
+    /**
+     * External Framework Equivalence
+     */
+    external_framework_equivalence?: 'not_certified';
+    /**
+     * Holdout Executed
+     */
+    holdout_executed: boolean;
+    /**
+     * Image Digest
+     */
+    image_digest: string | null;
+    /**
+     * Is Synthetic
+     */
+    is_synthetic: boolean;
+    /**
+     * Ledger Origin
+     */
+    ledger_origin?: 'trusted_engine' | null;
+    /**
+     * Metrics
+     */
+    metrics?: {
+        [key: string]: number;
+    };
+    /**
+     * Objective Definition
+     */
+    objective_definition: 'portable_return_drawdown.v1';
+    /**
+     * Policy Image Digest
+     */
+    policy_image_digest: string | null;
+    /**
+     * Result Trust
+     */
+    result_trust?: 'isolated_policy_trusted_akquant_engine' | null;
+    /**
+     * Runtime Certified
+     */
+    runtime_certified?: false;
+    /**
+     * Selection Id
+     */
+    selection_id: string;
+};
+
+/**
+ * PortableFinalResultQuery
+ */
+export type PortableFinalResultQuery = {
+    /**
+     * Artifact Sha256
+     */
+    artifact_sha256: string;
+    /**
+     * Combined Score
+     */
+    combined_score: number;
+    config: PortableFinalEvaluationConfig;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Currency
+     */
+    currency: 'USD' | 'CNY';
+    /**
+     * Environment Digest
+     */
+    environment_digest: string;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    /**
+     * Evaluation Mode
+     */
+    evaluation_mode?: 'portable';
+    /**
+     * Exposure Snapshot
+     */
+    exposure_snapshot: {
+        [key: string]: unknown;
+    };
+    /**
+     * External Framework Equivalence
+     */
+    external_framework_equivalence?: 'not_certified';
+    /**
+     * Identity
+     */
+    identity: {
+        [key: string]: string;
+    };
+    /**
+     * Image Digest
+     */
+    image_digest: string;
+    /**
+     * Is Synthetic
+     */
+    is_synthetic: boolean;
+    /**
+     * Ledger Origin
+     */
+    ledger_origin: 'trusted_engine';
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Policy Image Digest
+     */
+    policy_image_digest: string;
+    /**
+     * Result Schema Version
+     */
+    result_schema_version?: 'tradegrad.portable-result.v1';
+    /**
+     * Result Trust
+     */
+    result_trust: 'isolated_policy_trusted_akquant_engine';
+    /**
+     * Rows
+     */
+    rows: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Runtime Certified
+     */
+    runtime_certified?: false;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.portable.final-result-query.v1';
+    /**
+     * Section
+     */
+    section: 'account_series' | 'positions' | 'orders' | 'fills' | 'closed_trades' | 'native_metrics' | 'decision_trace' | 'logical_orders';
+    /**
+     * Selection Feedback
+     */
+    selection_feedback?: false;
+    /**
+     * Selection Id
+     */
+    selection_id: string;
+    /**
+     * Summary
+     */
+    summary: {
+        [key: string]: unknown;
+    };
+    /**
+     * Window
+     */
+    window: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * PortableObjectiveConfig
+ */
+export type PortableObjectiveConfig = {
+    /**
+     * Definition Version
+     */
+    definition_version?: 'portable_return_drawdown.v1';
+    /**
+     * Metric Definition Version
+     */
+    metric_definition_version?: 'portable_native_summary.v1';
+    /**
+     * Reward Formula
+     */
+    reward_formula?: 'total_return_pct - max_drawdown_pct';
+    /**
+     * Windowing Definition
+     */
+    windowing_definition?: 'calendar_year_train_full_validation.v1';
+};
+
+/**
+ * PortablePreflightPublic
+ */
+export type PortablePreflightPublic = {
+    /**
+     * Config Sha256
+     */
+    config_sha256: string;
+    /**
+     * Evaluation Windows
+     */
+    evaluation_windows: Array<{
+        [key: string]: string;
+    }>;
+    /**
+     * Holdout Execution
+     */
+    holdout_execution?: false;
+    /**
+     * Is Synthetic
+     */
+    is_synthetic: boolean;
+    /**
+     * Runtime Certified
+     */
+    runtime_certified?: false;
+    /**
+     * Valid
+     */
+    valid?: true;
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+};
+
+/**
+ * PortableResultPublic
+ */
+export type PortableResultPublic = {
+    /**
+     * Best Candidate Id
+     */
+    best_candidate_id?: string | null;
+    /**
+     * Best Candidate Key
+     */
+    best_candidate_key?: string | null;
+    /**
+     * Combined Score
+     */
+    combined_score?: number | null;
+    /**
+     * Evaluation Mode
+     */
+    evaluation_mode?: 'portable';
+    /**
+     * Execution Mode
+     */
+    execution_mode: 'optimization' | 'seed_evaluation';
+    /**
+     * External Framework Equivalence
+     */
+    external_framework_equivalence?: 'not_certified';
+    /**
+     * Holdout Executed
+     */
+    holdout_executed?: false;
+    /**
+     * Image Digest
+     */
+    image_digest?: string | null;
+    /**
+     * Is Synthetic
+     */
+    is_synthetic: boolean;
+    /**
+     * Ledger Origin
+     */
+    ledger_origin?: 'trusted_engine' | null;
+    /**
+     * Metrics
+     */
+    metrics?: {
+        [key: string]: number;
+    };
+    /**
+     * Objective Definition
+     */
+    objective_definition: 'portable_return_drawdown.v1';
+    /**
+     * Policy Image Digest
+     */
+    policy_image_digest?: string | null;
+    /**
+     * Result Trust
+     */
+    result_trust?: 'isolated_policy_trusted_akquant_engine' | null;
+    /**
+     * Runtime Certified
+     */
+    runtime_certified?: false;
+    /**
+     * Stop Reason
+     */
+    stop_reason: string;
+};
+
+/**
+ * PortableResultQuery
+ */
+export type PortableResultQuery = {
+    /**
+     * Artifact Sha256
+     */
+    artifact_sha256: string;
+    /**
+     * Combined Score
+     */
+    combined_score: number;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Currency
+     */
+    currency: 'USD' | 'CNY';
+    /**
+     * Environment Digest
+     */
+    environment_digest: string;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    /**
+     * Evaluation Mode
+     */
+    evaluation_mode?: 'portable';
+    /**
+     * External Framework Equivalence
+     */
+    external_framework_equivalence?: 'not_certified';
+    /**
+     * Identity
+     */
+    identity: {
+        [key: string]: string;
+    };
+    /**
+     * Image Digest
+     */
+    image_digest: string;
+    /**
+     * Is Synthetic
+     */
+    is_synthetic: boolean;
+    /**
+     * Ledger Origin
+     */
+    ledger_origin: 'trusted_engine';
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Policy Image Digest
+     */
+    policy_image_digest: string;
+    /**
+     * Result Trust
+     */
+    result_trust: 'isolated_policy_trusted_akquant_engine';
+    /**
+     * Rows
+     */
+    rows: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Runtime Certified
+     */
+    runtime_certified?: false;
+    /**
+     * Schema Version
+     */
+    schema_version: 'tradegrad.portable-result.v1';
+    /**
+     * Section
+     */
+    section: 'account_series' | 'positions' | 'orders' | 'fills' | 'closed_trades' | 'native_metrics' | 'decision_trace' | 'logical_orders';
+    /**
+     * Summary
+     */
+    summary: {
+        [key: string]: unknown;
+    };
+    /**
+     * Window
+     */
+    window: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * PortableRiskConfig
+ */
+export type PortableRiskConfig = {
+    /**
+     * Account Mode
+     */
+    account_mode?: 'cash';
+    /**
+     * Enable Short Sell
+     */
+    enable_short_sell?: false;
+};
+
+/**
+ * PortableRunConfig
+ */
+export type PortableRunConfig = {
+    /**
+     * Benchmark
+     */
+    benchmark?: null;
+    budgets?: BudgetConfig;
+    /**
+     * Conformance
+     */
+    conformance?: 'interface_only';
+    dataset: VersionRef;
+    engine_profile?: PortableEngineProfile | null;
+    /**
+     * Environment Digest
+     */
+    environment_digest: string;
+    /**
+     * Evaluation Mode
+     */
+    evaluation_mode?: 'portable';
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'seed_evaluation' | 'optimization';
+    /**
+     * External Framework Equivalence
+     */
+    external_framework_equivalence?: 'not_certified';
+    /**
+     * Initial Cash
+     */
+    initial_cash?: number;
+    initial_state: StateSnapshot;
+    model?: ModelConfig;
+    objective?: PortableObjectiveConfig;
+    optimizer?: OptimizerConfig;
+    /**
+     * Profile
+     */
+    profile?: 'corrected_explicit_config';
+    /**
+     * Prompt Version
+     */
+    prompt_version?: 'portable_business_rules.v1';
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.portable.run.v1';
+    seed_manifest: VersionRef;
+    seed_parameters: VersionRef;
+    seed_strategy: VersionRef;
+    /**
+     * Strategy Kind
+     */
+    strategy_kind: 'portfolio' | 'event';
+    /**
+     * Task
+     */
+    task: 'cn_time' | 'us_time' | 'cn_cross' | 'us_cross';
+    universe: VersionRef;
+    warmup: WarmupConfig;
+    windows: WindowSet;
+};
+
+/**
+ * PortableRunCreate
+ */
+export type PortableRunCreate = {
+    /**
+     * Benchmark
+     */
+    benchmark?: null;
+    budgets?: BudgetConfig;
+    /**
+     * Conformance
+     */
+    conformance?: 'interface_only';
+    dataset: VersionRef;
+    engine_profile?: PortableEngineProfile | null;
+    /**
+     * Environment Digest
+     */
+    environment_digest: string;
+    /**
+     * Evaluation Mode
+     */
+    evaluation_mode?: 'portable';
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'seed_evaluation' | 'optimization';
+    /**
+     * External Framework Equivalence
+     */
+    external_framework_equivalence?: 'not_certified';
+    /**
+     * Initial Cash
+     */
+    initial_cash?: number;
+    initial_state: StateSnapshot;
+    model?: ModelConfig;
+    objective?: PortableObjectiveConfig;
+    optimizer?: OptimizerConfig;
+    /**
+     * Profile
+     */
+    profile?: 'corrected_explicit_config';
+    /**
+     * Prompt Version
+     */
+    prompt_version?: 'portable_business_rules.v1';
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.portable.run.v1';
+    seed_manifest: VersionRef;
+    seed_parameters: VersionRef;
+    seed_strategy: VersionRef;
+    /**
+     * Strategy Kind
+     */
+    strategy_kind: 'portfolio' | 'event';
+    /**
+     * Task
+     */
+    task: 'cn_time' | 'us_time' | 'cn_cross' | 'us_cross';
+    universe: VersionRef;
+    warmup: WarmupConfig;
+    windows: WindowSet;
+};
+
+/**
+ * PortableRunDetail
+ */
+export type PortableRunDetail = {
+    /**
+     * Active Attempt Id
+     */
+    active_attempt_id: string | null;
+    /**
+     * Attempts
+     */
+    attempts: Array<AttemptPublic>;
+    config: PortableRunConfig;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Execution Mode
+     */
+    execution_mode: 'seed_evaluation' | 'optimization';
+    /**
+     * Experiment Id
+     */
+    experiment_id?: string | null;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Latest Checkpoint Id
+     */
+    latest_checkpoint_id?: string | null;
+    /**
+     * Next Event Seq
+     */
+    next_event_seq: number;
+    /**
+     * Portable Policy Image Digest
+     */
+    portable_policy_image_digest?: string | null;
+    /**
+     * Research Image Digest
+     */
+    research_image_digest?: string | null;
+    result: PortableResultPublic | null;
+    /**
+     * Resume Checkpoint Id
+     */
+    resume_checkpoint_id?: string | null;
+    /**
+     * Split Version Id
+     */
+    split_version_id?: string | null;
+    /**
+     * Status
+     */
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * PortableRunPublic
+ */
+export type PortableRunPublic = {
+    /**
+     * Active Attempt Id
+     */
+    active_attempt_id: string | null;
+    config: PortableRunConfig;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Execution Mode
+     */
+    execution_mode: 'seed_evaluation' | 'optimization';
+    /**
+     * Experiment Id
+     */
+    experiment_id?: string | null;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Latest Checkpoint Id
+     */
+    latest_checkpoint_id?: string | null;
+    /**
+     * Next Event Seq
+     */
+    next_event_seq: number;
+    /**
+     * Portable Policy Image Digest
+     */
+    portable_policy_image_digest?: string | null;
+    /**
+     * Research Image Digest
+     */
+    research_image_digest?: string | null;
+    result: PortableResultPublic | null;
+    /**
+     * Resume Checkpoint Id
+     */
+    resume_checkpoint_id?: string | null;
+    /**
+     * Split Version Id
+     */
+    split_version_id?: string | null;
+    /**
+     * Status
+     */
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * PortableSlippageConfig
+ */
+export type PortableSlippageConfig = {
+    /**
+     * Type
+     */
+    type?: 'percent';
+    /**
+     * Value
+     */
+    value?: 0.0005;
+};
+
+/**
+ * PortableStrategyCreate
+ */
+export type PortableStrategyCreate = {
+    dataset: VersionRef;
+    /**
+     * Initial Cash
+     */
+    initial_cash?: number;
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Strategy Kind
+     */
+    strategy_kind: 'portfolio' | 'event';
+    universe: VersionRef;
+};
+
+/**
+ * PortableStrategyDetail
+ */
+export type PortableStrategyDetail = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Content Sha256
+     */
+    content_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Manifest
+     */
+    manifest: {
+        [key: string]: unknown;
+    };
+    /**
+     * Mode
+     */
+    mode: 'portable';
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Parameters
+     */
+    parameters: {
+        [key: string]: unknown;
+    };
+    /**
+     * Task
+     */
+    task: 'cn_time' | 'us_time' | 'cn_cross' | 'us_cross';
+};
+
+/**
+ * PortableStrategyPublic
+ */
+export type PortableStrategyPublic = {
+    /**
+     * Content Sha256
+     */
+    content_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Manifest
+     */
+    manifest: {
+        [key: string]: unknown;
+    };
+    /**
+     * Mode
+     */
+    mode: 'portable';
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Parameters
+     */
+    parameters: {
+        [key: string]: unknown;
+    };
+    /**
+     * Task
+     */
+    task: 'cn_time' | 'us_time' | 'cn_cross' | 'us_cross';
+};
+
+/**
+ * PortableTemplatePublic
+ */
+export type PortableTemplatePublic = {
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Conformance
+     */
+    conformance?: 'interface_only';
+    /**
+     * Editable Region
+     */
+    editable_region?: 'business_rules_only';
+    /**
+     * External Framework Equivalence
+     */
+    external_framework_equivalence?: 'not_certified';
+    /**
+     * Runtime Certified
+     */
+    runtime_certified?: false;
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Strategy Kind
+     */
+    strategy_kind: 'portfolio' | 'event';
+    /**
+     * Template Version
+     */
+    template_version: 'portable_business_rules.v1';
 };
 
 /**
@@ -1858,7 +4247,7 @@ export type ProviderPublic = {
     /**
      * Id
      */
-    id: 'akshare' | 'yfinance' | 'openbb';
+    id: 'akshare' | 'yfinance' | 'openbb' | 'portable_fixture';
     /**
      * Markets
      */
@@ -2103,6 +4492,10 @@ export type ResearchRunDetail = {
      */
     execution_mode?: 'seed_evaluation' | 'optimization';
     /**
+     * Experiment Id
+     */
+    experiment_id?: string | null;
+    /**
      * Generation
      */
     generation: number;
@@ -2130,6 +4523,10 @@ export type ResearchRunDetail = {
      * Resume Checkpoint Id
      */
     resume_checkpoint_id?: string | null;
+    /**
+     * Split Version Id
+     */
+    split_version_id?: string | null;
     /**
      * Status
      */
@@ -2175,6 +4572,10 @@ export type ResearchRunPublic = {
      */
     execution_mode?: 'seed_evaluation' | 'optimization';
     /**
+     * Experiment Id
+     */
+    experiment_id?: string | null;
+    /**
      * Generation
      */
     generation: number;
@@ -2202,6 +4603,10 @@ export type ResearchRunPublic = {
      * Resume Checkpoint Id
      */
     resume_checkpoint_id?: string | null;
+    /**
+     * Split Version Id
+     */
+    split_version_id?: string | null;
     /**
      * Status
      */
@@ -2281,7 +4686,7 @@ export type ResolveCreate = {
     /**
      * Provider
      */
-    provider: 'akshare' | 'yfinance' | 'openbb';
+    provider: 'akshare' | 'yfinance' | 'openbb' | 'portable_fixture';
     /**
      * Symbols
      */
@@ -2967,6 +5372,91 @@ export type SlippageConfig = {
 };
 
 /**
+ * SplitDefinition
+ */
+export type SplitDefinition = {
+    dataset: VersionRef;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.split.v1';
+    universe: VersionRef;
+    windows: WindowSet;
+};
+
+/**
+ * SplitVersionCreate
+ */
+export type SplitVersionCreate = {
+    definition: SplitDefinition;
+    /**
+     * Experiment Id
+     */
+    experiment_id: string;
+};
+
+/**
+ * SplitVersionPublic
+ */
+export type SplitVersionPublic = {
+    /**
+     * Content Sha256
+     */
+    content_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    definition: SplitDefinition;
+    /**
+     * Experiment Id
+     */
+    experiment_id: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Universe Version Id
+     */
+    universe_version_id: string;
+};
+
+/**
+ * StateSnapshot
+ */
+export type StateSnapshot = {
+    /**
+     * Codec Version
+     */
+    codec_version?: 'state-json.v1';
+    /**
+     * Payload Json
+     */
+    payload_json: string;
+    /**
+     * Payload Sha256
+     */
+    payload_sha256: string;
+    /**
+     * Schema Name
+     */
+    schema_name: string;
+    /**
+     * Schema Sha256
+     */
+    schema_sha256: string;
+    /**
+     * Schema Version
+     */
+    schema_version: number;
+};
+
+/**
  * StrategyCreate
  */
 export type StrategyCreate = {
@@ -3026,6 +5516,70 @@ export type StrategyDetail = {
      * Task
      */
     task: 'cn_time' | 'us_time' | 'cn_cross' | 'us_cross';
+};
+
+/**
+ * StrategyPackageCreate
+ */
+export type StrategyPackageCreate = {
+    /**
+     * Profile
+     */
+    profile?: 'reference_only.v1';
+    /**
+     * Reference Evaluation Id
+     */
+    reference_evaluation_id: string;
+};
+
+/**
+ * StrategyPackagePublic
+ */
+export type StrategyPackagePublic = {
+    /**
+     * Archive Sha256
+     */
+    archive_sha256: string;
+    /**
+     * Content Sha256
+     */
+    content_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Exposure As Of
+     */
+    exposure_as_of: string;
+    /**
+     * Exposure Snapshot
+     */
+    exposure_snapshot: {
+        [key: string]: unknown;
+    };
+    /**
+     * Final Selection Id
+     */
+    final_selection_id: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Manifest
+     */
+    manifest: {
+        [key: string]: unknown;
+    };
+    /**
+     * Request Sha256
+     */
+    request_sha256: string;
+    /**
+     * Size Bytes
+     */
+    size_bytes: number;
 };
 
 /**
@@ -3405,6 +5959,52 @@ export type ReadResearchCandidateResponses = {
 };
 
 export type ReadResearchCandidateResponse = ReadResearchCandidateResponses[keyof ReadResearchCandidateResponses];
+
+export type ListDataUsageExposuresData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/data-usage-exposures';
+};
+
+export type ListDataUsageExposuresErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListDataUsageExposuresError = ListDataUsageExposuresErrors[keyof ListDataUsageExposuresErrors];
+
+export type ListDataUsageExposuresResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageDataUsageExposurePublic;
+};
+
+export type ListDataUsageExposuresResponse = ListDataUsageExposuresResponses[keyof ListDataUsageExposuresResponses];
 
 export type ListDataImportsData = {
     body?: never;
@@ -4250,6 +6850,772 @@ export type ReadResearchEvaluationResponses = {
 
 export type ReadResearchEvaluationResponse = ReadResearchEvaluationResponses[keyof ReadResearchEvaluationResponses];
 
+export type ListExperimentsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/experiments';
+};
+
+export type ListExperimentsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListExperimentsError = ListExperimentsErrors[keyof ListExperimentsErrors];
+
+export type ListExperimentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageExperimentPublic;
+};
+
+export type ListExperimentsResponse = ListExperimentsResponses[keyof ListExperimentsResponses];
+
+export type CreateExperimentData = {
+    body: ExperimentCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/experiments';
+};
+
+export type CreateExperimentErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateExperimentError = CreateExperimentErrors[keyof CreateExperimentErrors];
+
+export type CreateExperimentResponses = {
+    /**
+     * Successful Response
+     */
+    201: ExperimentPublic;
+};
+
+export type CreateExperimentResponse = CreateExperimentResponses[keyof CreateExperimentResponses];
+
+export type ReadExperimentData = {
+    body?: never;
+    path: {
+        /**
+         * Experiment Id
+         */
+        experiment_id: string;
+    };
+    query?: never;
+    url: '/api/v1/experiments/{experiment_id}';
+};
+
+export type ReadExperimentErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadExperimentError = ReadExperimentErrors[keyof ReadExperimentErrors];
+
+export type ReadExperimentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ExperimentPublic;
+};
+
+export type ReadExperimentResponse = ReadExperimentResponses[keyof ReadExperimentResponses];
+
+export type ListFinalEvaluationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Selection Id
+         */
+        selection_id?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/final-evaluations';
+};
+
+export type ListFinalEvaluationsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListFinalEvaluationsError = ListFinalEvaluationsErrors[keyof ListFinalEvaluationsErrors];
+
+export type ListFinalEvaluationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageFinalEvaluationPublic;
+};
+
+export type ListFinalEvaluationsResponse = ListFinalEvaluationsResponses[keyof ListFinalEvaluationsResponses];
+
+export type CreateFinalEvaluationData = {
+    body: FinalEvaluationCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/final-evaluations';
+};
+
+export type CreateFinalEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateFinalEvaluationError = CreateFinalEvaluationErrors[keyof CreateFinalEvaluationErrors];
+
+export type CreateFinalEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    202: FinalEvaluationPublic;
+};
+
+export type CreateFinalEvaluationResponse = CreateFinalEvaluationResponses[keyof CreateFinalEvaluationResponses];
+
+export type QueryFinalResultData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: {
+        /**
+         * Sections
+         */
+        sections?: Array<'equity' | 'drawdown' | 'cash' | 'margin' | 'positions' | 'orders' | 'fills' | 'closed_trades'> | null;
+        /**
+         * Start
+         */
+        start?: string | null;
+        /**
+         * End
+         */
+        end?: string | null;
+        /**
+         * Listing Id
+         */
+        listing_id?: string | null;
+        /**
+         * Max Points
+         */
+        max_points?: number;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/final-evaluations/evaluations/{evaluation_id}/result';
+};
+
+export type QueryFinalResultErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type QueryFinalResultError = QueryFinalResultErrors[keyof QueryFinalResultErrors];
+
+export type QueryFinalResultResponses = {
+    /**
+     * Successful Response
+     */
+    200: FinalResultQuery;
+};
+
+export type QueryFinalResultResponse = QueryFinalResultResponses[keyof QueryFinalResultResponses];
+
+export type DownloadFinalResultData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/final-evaluations/evaluations/{evaluation_id}/result/download';
+};
+
+export type DownloadFinalResultErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type DownloadFinalResultError = DownloadFinalResultErrors[keyof DownloadFinalResultErrors];
+
+export type DownloadFinalResultResponses = {
+    /**
+     * Successful Response
+     */
+    200: Blob | File;
+};
+
+export type DownloadFinalResultResponse = DownloadFinalResultResponses[keyof DownloadFinalResultResponses];
+
+export type PreflightFinalEvaluationData = {
+    body: FinalEvaluationCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/final-evaluations/preflight';
+};
+
+export type PreflightFinalEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PreflightFinalEvaluationError = PreflightFinalEvaluationErrors[keyof PreflightFinalEvaluationErrors];
+
+export type PreflightFinalEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    200: FinalEvaluationPreflight;
+};
+
+export type PreflightFinalEvaluationResponse = PreflightFinalEvaluationResponses[keyof PreflightFinalEvaluationResponses];
+
+export type ReadFinalEvaluationData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/final-evaluations/{run_id}';
+};
+
+export type ReadFinalEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadFinalEvaluationError = ReadFinalEvaluationErrors[keyof ReadFinalEvaluationErrors];
+
+export type ReadFinalEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    200: FinalEvaluationDetail;
+};
+
+export type ReadFinalEvaluationResponse = ReadFinalEvaluationResponses[keyof ReadFinalEvaluationResponses];
+
+export type CancelFinalEvaluationData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/final-evaluations/{run_id}/cancel';
+};
+
+export type CancelFinalEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CancelFinalEvaluationError = CancelFinalEvaluationErrors[keyof CancelFinalEvaluationErrors];
+
+export type CancelFinalEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    202: FinalEvaluationPublic;
+};
+
+export type CancelFinalEvaluationResponse = CancelFinalEvaluationResponses[keyof CancelFinalEvaluationResponses];
+
+export type ListFinalEvaluationEvidenceData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/final-evaluations/{run_id}/evaluations';
+};
+
+export type ListFinalEvaluationEvidenceErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListFinalEvaluationEvidenceError = ListFinalEvaluationEvidenceErrors[keyof ListFinalEvaluationEvidenceErrors];
+
+export type ListFinalEvaluationEvidenceResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageFinalEvaluationEvidence;
+};
+
+export type ListFinalEvaluationEvidenceResponse = ListFinalEvaluationEvidenceResponses[keyof ListFinalEvaluationEvidenceResponses];
+
+export type PauseFinalEvaluationUnsupportedData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/final-evaluations/{run_id}/pause';
+};
+
+export type PauseFinalEvaluationUnsupportedErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PauseFinalEvaluationUnsupportedError = PauseFinalEvaluationUnsupportedErrors[keyof PauseFinalEvaluationUnsupportedErrors];
+
+export type PauseFinalEvaluationUnsupportedResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type RetryFinalEvaluationData = {
+    body?: never;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/final-evaluations/{run_id}/retry';
+};
+
+export type RetryFinalEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type RetryFinalEvaluationError = RetryFinalEvaluationErrors[keyof RetryFinalEvaluationErrors];
+
+export type RetryFinalEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    202: FinalEvaluationPublic;
+};
+
+export type RetryFinalEvaluationResponse = RetryFinalEvaluationResponses[keyof RetryFinalEvaluationResponses];
+
+export type ListFinalSelectionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Split Version Id
+         */
+        split_version_id?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/final-selections';
+};
+
+export type ListFinalSelectionsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListFinalSelectionsError = ListFinalSelectionsErrors[keyof ListFinalSelectionsErrors];
+
+export type ListFinalSelectionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageFinalSelectionPublic;
+};
+
+export type ListFinalSelectionsResponse = ListFinalSelectionsResponses[keyof ListFinalSelectionsResponses];
+
+export type FreezeFinalSelectionData = {
+    body: FinalSelectionCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/final-selections';
+};
+
+export type FreezeFinalSelectionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type FreezeFinalSelectionError = FreezeFinalSelectionErrors[keyof FreezeFinalSelectionErrors];
+
+export type FreezeFinalSelectionResponses = {
+    /**
+     * Successful Response
+     */
+    201: FinalSelectionPublic;
+};
+
+export type FreezeFinalSelectionResponse = FreezeFinalSelectionResponses[keyof FreezeFinalSelectionResponses];
+
+export type ReadFinalSelectionData = {
+    body?: never;
+    path: {
+        /**
+         * Selection Id
+         */
+        selection_id: string;
+    };
+    query?: never;
+    url: '/api/v1/final-selections/{selection_id}';
+};
+
+export type ReadFinalSelectionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadFinalSelectionError = ReadFinalSelectionErrors[keyof ReadFinalSelectionErrors];
+
+export type ReadFinalSelectionResponses = {
+    /**
+     * Successful Response
+     */
+    200: FinalSelectionPublic;
+};
+
+export type ReadFinalSelectionResponse = ReadFinalSelectionResponses[keyof ReadFinalSelectionResponses];
+
+export type CreateStrategyPackageData = {
+    body: StrategyPackageCreate;
+    path: {
+        /**
+         * Selection Id
+         */
+        selection_id: string;
+    };
+    query?: never;
+    url: '/api/v1/final-selections/{selection_id}/packages';
+};
+
+export type CreateStrategyPackageErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateStrategyPackageError = CreateStrategyPackageErrors[keyof CreateStrategyPackageErrors];
+
+export type CreateStrategyPackageResponses = {
+    /**
+     * OK
+     */
+    200: StrategyPackagePublic;
+    /**
+     * Successful Response
+     */
+    201: StrategyPackagePublic;
+};
+
+export type CreateStrategyPackageResponse = CreateStrategyPackageResponses[keyof CreateStrategyPackageResponses];
+
 export type HealthLiveData = {
     body?: never;
     path?: never;
@@ -4406,6 +7772,1471 @@ export type ReadResearchModelCallResponses = {
 };
 
 export type ReadResearchModelCallResponse = ReadResearchModelCallResponses[keyof ReadResearchModelCallResponses];
+
+export type ReadPortableCandidateData = {
+    body?: never;
+    path: {
+        /**
+         * Candidate Id
+         */
+        candidate_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-candidates/{candidate_id}';
+};
+
+export type ReadPortableCandidateErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadPortableCandidateError = ReadPortableCandidateErrors[keyof ReadPortableCandidateErrors];
+
+export type ReadPortableCandidateResponses = {
+    /**
+     * Successful Response
+     */
+    200: CandidateDetail;
+};
+
+export type ReadPortableCandidateResponse = ReadPortableCandidateResponses[keyof ReadPortableCandidateResponses];
+
+export type ReadPortableCheckpointData = {
+    body?: never;
+    path: {
+        /**
+         * Checkpoint Id
+         */
+        checkpoint_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-checkpoints/{checkpoint_id}';
+};
+
+export type ReadPortableCheckpointErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadPortableCheckpointError = ReadPortableCheckpointErrors[keyof ReadPortableCheckpointErrors];
+
+export type ReadPortableCheckpointResponses = {
+    /**
+     * Successful Response
+     */
+    200: CheckpointDetail;
+};
+
+export type ReadPortableCheckpointResponse = ReadPortableCheckpointResponses[keyof ReadPortableCheckpointResponses];
+
+export type ReadPortableEvaluationData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-evaluations/{evaluation_id}';
+};
+
+export type ReadPortableEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadPortableEvaluationError = ReadPortableEvaluationErrors[keyof ReadPortableEvaluationErrors];
+
+export type ReadPortableEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    200: PortableEvaluationDetail;
+};
+
+export type ReadPortableEvaluationResponse = ReadPortableEvaluationResponses[keyof ReadPortableEvaluationResponses];
+
+export type ReadPortableResultsData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: {
+        /**
+         * Section
+         */
+        section?: 'account_series' | 'positions' | 'orders' | 'fills' | 'closed_trades' | 'native_metrics' | 'decision_trace' | 'logical_orders';
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/portable-evaluations/{evaluation_id}/results';
+};
+
+export type ReadPortableResultsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadPortableResultsError = ReadPortableResultsErrors[keyof ReadPortableResultsErrors];
+
+export type ReadPortableResultsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PortableResultQuery;
+};
+
+export type ReadPortableResultsResponse = ReadPortableResultsResponses[keyof ReadPortableResultsResponses];
+
+export type DownloadPortableResultsData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-evaluations/{evaluation_id}/results/download';
+};
+
+export type DownloadPortableResultsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type DownloadPortableResultsError = DownloadPortableResultsErrors[keyof DownloadPortableResultsErrors];
+
+export type DownloadPortableResultsResponses = {
+    /**
+     * Successful Response
+     */
+    200: Blob | File;
+};
+
+export type DownloadPortableResultsResponse = DownloadPortableResultsResponses[keyof DownloadPortableResultsResponses];
+
+export type PortableListFinalEvaluationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Selection Id
+         */
+        selection_id?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/portable-final-evaluations';
+};
+
+export type PortableListFinalEvaluationsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PortableListFinalEvaluationsError = PortableListFinalEvaluationsErrors[keyof PortableListFinalEvaluationsErrors];
+
+export type PortableListFinalEvaluationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PagePortableFinalEvaluationPublic;
+};
+
+export type PortableListFinalEvaluationsResponse = PortableListFinalEvaluationsResponses[keyof PortableListFinalEvaluationsResponses];
+
+export type PortableCreateFinalEvaluationData = {
+    body: PortableFinalEvaluationCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/portable-final-evaluations';
+};
+
+export type PortableCreateFinalEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PortableCreateFinalEvaluationError = PortableCreateFinalEvaluationErrors[keyof PortableCreateFinalEvaluationErrors];
+
+export type PortableCreateFinalEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    202: PortableFinalEvaluationPublic;
+};
+
+export type PortableCreateFinalEvaluationResponse = PortableCreateFinalEvaluationResponses[keyof PortableCreateFinalEvaluationResponses];
+
+export type PortableQueryFinalResultData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: {
+        /**
+         * Section
+         */
+        section?: string;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/portable-final-evaluations/evaluations/{evaluation_id}/result';
+};
+
+export type PortableQueryFinalResultErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PortableQueryFinalResultError = PortableQueryFinalResultErrors[keyof PortableQueryFinalResultErrors];
+
+export type PortableQueryFinalResultResponses = {
+    /**
+     * Successful Response
+     */
+    200: PortableFinalResultQuery;
+};
+
+export type PortableQueryFinalResultResponse = PortableQueryFinalResultResponses[keyof PortableQueryFinalResultResponses];
+
+export type PortableDownloadFinalResultData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-final-evaluations/evaluations/{evaluation_id}/result/download';
+};
+
+export type PortableDownloadFinalResultErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PortableDownloadFinalResultError = PortableDownloadFinalResultErrors[keyof PortableDownloadFinalResultErrors];
+
+export type PortableDownloadFinalResultResponses = {
+    /**
+     * Successful Response
+     */
+    200: Blob | File;
+};
+
+export type PortableDownloadFinalResultResponse = PortableDownloadFinalResultResponses[keyof PortableDownloadFinalResultResponses];
+
+export type PortablePreflightFinalEvaluationData = {
+    body: PortableFinalEvaluationCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/portable-final-evaluations/preflight';
+};
+
+export type PortablePreflightFinalEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PortablePreflightFinalEvaluationError = PortablePreflightFinalEvaluationErrors[keyof PortablePreflightFinalEvaluationErrors];
+
+export type PortablePreflightFinalEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    200: PortableFinalEvaluationPreflight;
+};
+
+export type PortablePreflightFinalEvaluationResponse = PortablePreflightFinalEvaluationResponses[keyof PortablePreflightFinalEvaluationResponses];
+
+export type PortableReadFinalEvaluationData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-final-evaluations/{run_id}';
+};
+
+export type PortableReadFinalEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PortableReadFinalEvaluationError = PortableReadFinalEvaluationErrors[keyof PortableReadFinalEvaluationErrors];
+
+export type PortableReadFinalEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    200: PortableFinalEvaluationDetail;
+};
+
+export type PortableReadFinalEvaluationResponse = PortableReadFinalEvaluationResponses[keyof PortableReadFinalEvaluationResponses];
+
+export type PortableCancelFinalEvaluationData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-final-evaluations/{run_id}/cancel';
+};
+
+export type PortableCancelFinalEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PortableCancelFinalEvaluationError = PortableCancelFinalEvaluationErrors[keyof PortableCancelFinalEvaluationErrors];
+
+export type PortableCancelFinalEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    202: PortableFinalEvaluationPublic;
+};
+
+export type PortableCancelFinalEvaluationResponse = PortableCancelFinalEvaluationResponses[keyof PortableCancelFinalEvaluationResponses];
+
+export type PortableListFinalEvaluationEvidenceData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/portable-final-evaluations/{run_id}/evaluations';
+};
+
+export type PortableListFinalEvaluationEvidenceErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PortableListFinalEvaluationEvidenceError = PortableListFinalEvaluationEvidenceErrors[keyof PortableListFinalEvaluationEvidenceErrors];
+
+export type PortableListFinalEvaluationEvidenceResponses = {
+    /**
+     * Successful Response
+     */
+    200: PagePortableFinalEvaluationEvidence;
+};
+
+export type PortableListFinalEvaluationEvidenceResponse = PortableListFinalEvaluationEvidenceResponses[keyof PortableListFinalEvaluationEvidenceResponses];
+
+export type PortablePauseFinalEvaluationUnsupportedData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-final-evaluations/{run_id}/pause';
+};
+
+export type PortablePauseFinalEvaluationUnsupportedErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PortablePauseFinalEvaluationUnsupportedError = PortablePauseFinalEvaluationUnsupportedErrors[keyof PortablePauseFinalEvaluationUnsupportedErrors];
+
+export type PortablePauseFinalEvaluationUnsupportedResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type PortableRetryFinalEvaluationData = {
+    body?: never;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-final-evaluations/{run_id}/retry';
+};
+
+export type PortableRetryFinalEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PortableRetryFinalEvaluationError = PortableRetryFinalEvaluationErrors[keyof PortableRetryFinalEvaluationErrors];
+
+export type PortableRetryFinalEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    202: PortableFinalEvaluationPublic;
+};
+
+export type PortableRetryFinalEvaluationResponse = PortableRetryFinalEvaluationResponses[keyof PortableRetryFinalEvaluationResponses];
+
+export type ReadPortableModelCallData = {
+    body?: never;
+    path: {
+        /**
+         * Model Call Id
+         */
+        model_call_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-model-calls/{model_call_id}';
+};
+
+export type ReadPortableModelCallErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadPortableModelCallError = ReadPortableModelCallErrors[keyof ReadPortableModelCallErrors];
+
+export type ReadPortableModelCallResponses = {
+    /**
+     * Successful Response
+     */
+    200: ModelCallDetail;
+};
+
+export type ReadPortableModelCallResponse = ReadPortableModelCallResponses[keyof ReadPortableModelCallResponses];
+
+export type ListPortableRunsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/portable-runs';
+};
+
+export type ListPortableRunsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListPortableRunsError = ListPortableRunsErrors[keyof ListPortableRunsErrors];
+
+export type ListPortableRunsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PagePortableRunPublic;
+};
+
+export type ListPortableRunsResponse = ListPortableRunsResponses[keyof ListPortableRunsResponses];
+
+export type CreatePortableRunData = {
+    body: PortableRunCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Experiment Id
+         */
+        experiment_id?: string | null;
+        /**
+         * Split Version Id
+         */
+        split_version_id?: string | null;
+    };
+    url: '/api/v1/portable-runs';
+};
+
+export type CreatePortableRunErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreatePortableRunError = CreatePortableRunErrors[keyof CreatePortableRunErrors];
+
+export type CreatePortableRunResponses = {
+    /**
+     * Successful Response
+     */
+    202: PortableRunPublic;
+};
+
+export type CreatePortableRunResponse = CreatePortableRunResponses[keyof CreatePortableRunResponses];
+
+export type DefaultPortableConfigData = {
+    body: PortableDefaultRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/portable-runs/default-config';
+};
+
+export type DefaultPortableConfigErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type DefaultPortableConfigError = DefaultPortableConfigErrors[keyof DefaultPortableConfigErrors];
+
+export type DefaultPortableConfigResponses = {
+    /**
+     * Successful Response
+     */
+    200: PortableRunCreate;
+};
+
+export type DefaultPortableConfigResponse = DefaultPortableConfigResponses[keyof DefaultPortableConfigResponses];
+
+export type PreflightPortableRunData = {
+    body: PortableRunCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/portable-runs/preflight';
+};
+
+export type PreflightPortableRunErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PreflightPortableRunError = PreflightPortableRunErrors[keyof PreflightPortableRunErrors];
+
+export type PreflightPortableRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: PortablePreflightPublic;
+};
+
+export type PreflightPortableRunResponse = PreflightPortableRunResponses[keyof PreflightPortableRunResponses];
+
+export type ReadPortableRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-runs/{run_id}';
+};
+
+export type ReadPortableRunErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadPortableRunError = ReadPortableRunErrors[keyof ReadPortableRunErrors];
+
+export type ReadPortableRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: PortableRunDetail;
+};
+
+export type ReadPortableRunResponse = ReadPortableRunResponses[keyof ReadPortableRunResponses];
+
+export type CancelPortableRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-runs/{run_id}/cancel';
+};
+
+export type CancelPortableRunErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CancelPortableRunError = CancelPortableRunErrors[keyof CancelPortableRunErrors];
+
+export type CancelPortableRunResponses = {
+    /**
+     * Successful Response
+     */
+    202: PortableRunPublic;
+};
+
+export type CancelPortableRunResponse = CancelPortableRunResponses[keyof CancelPortableRunResponses];
+
+export type ListPortableCandidatesData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/portable-runs/{run_id}/candidates';
+};
+
+export type ListPortableCandidatesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListPortableCandidatesError = ListPortableCandidatesErrors[keyof ListPortableCandidatesErrors];
+
+export type ListPortableCandidatesResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageCandidatePublic;
+};
+
+export type ListPortableCandidatesResponse = ListPortableCandidatesResponses[keyof ListPortableCandidatesResponses];
+
+export type ListPortableCheckpointsData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/portable-runs/{run_id}/checkpoints';
+};
+
+export type ListPortableCheckpointsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListPortableCheckpointsError = ListPortableCheckpointsErrors[keyof ListPortableCheckpointsErrors];
+
+export type ListPortableCheckpointsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageCheckpointPublic;
+};
+
+export type ListPortableCheckpointsResponse = ListPortableCheckpointsResponses[keyof ListPortableCheckpointsResponses];
+
+export type ListPortableEvaluationsData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/portable-runs/{run_id}/evaluations';
+};
+
+export type ListPortableEvaluationsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListPortableEvaluationsError = ListPortableEvaluationsErrors[keyof ListPortableEvaluationsErrors];
+
+export type ListPortableEvaluationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PagePortableEvaluationPublic;
+};
+
+export type ListPortableEvaluationsResponse = ListPortableEvaluationsResponses[keyof ListPortableEvaluationsResponses];
+
+export type ListPortableModelCallsData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/portable-runs/{run_id}/model-calls';
+};
+
+export type ListPortableModelCallsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListPortableModelCallsError = ListPortableModelCallsErrors[keyof ListPortableModelCallsErrors];
+
+export type ListPortableModelCallsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageModelCallPublic;
+};
+
+export type ListPortableModelCallsResponse = ListPortableModelCallsResponses[keyof ListPortableModelCallsResponses];
+
+export type PausePortableRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-runs/{run_id}/pause';
+};
+
+export type PausePortableRunErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PausePortableRunError = PausePortableRunErrors[keyof PausePortableRunErrors];
+
+export type PausePortableRunResponses = {
+    /**
+     * Successful Response
+     */
+    202: PortableRunPublic;
+};
+
+export type PausePortableRunResponse = PausePortableRunResponses[keyof PausePortableRunResponses];
+
+export type ResumePortableRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-runs/{run_id}/resume';
+};
+
+export type ResumePortableRunErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ResumePortableRunError = ResumePortableRunErrors[keyof ResumePortableRunErrors];
+
+export type ResumePortableRunResponses = {
+    /**
+     * Successful Response
+     */
+    202: PortableRunPublic;
+};
+
+export type ResumePortableRunResponse = ResumePortableRunResponses[keyof ResumePortableRunResponses];
+
+export type ReadPortableUsageData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-runs/{run_id}/usage';
+};
+
+export type ReadPortableUsageErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadPortableUsageError = ReadPortableUsageErrors[keyof ReadPortableUsageErrors];
+
+export type ReadPortableUsageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResearchUsagePublic;
+};
+
+export type ReadPortableUsageResponse = ReadPortableUsageResponses[keyof ReadPortableUsageResponses];
+
+export type ListPortableStrategiesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/portable-strategies';
+};
+
+export type ListPortableStrategiesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListPortableStrategiesError = ListPortableStrategiesErrors[keyof ListPortableStrategiesErrors];
+
+export type ListPortableStrategiesResponses = {
+    /**
+     * Successful Response
+     */
+    200: PagePortableStrategyPublic;
+};
+
+export type ListPortableStrategiesResponse = ListPortableStrategiesResponses[keyof ListPortableStrategiesResponses];
+
+export type CreatePortableStrategyData = {
+    body: PortableStrategyCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/portable-strategies';
+};
+
+export type CreatePortableStrategyErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreatePortableStrategyError = CreatePortableStrategyErrors[keyof CreatePortableStrategyErrors];
+
+export type CreatePortableStrategyResponses = {
+    /**
+     * Successful Response
+     */
+    201: PortableStrategyDetail;
+};
+
+export type CreatePortableStrategyResponse = CreatePortableStrategyResponses[keyof CreatePortableStrategyResponses];
+
+export type ReadPortableStrategyData = {
+    body?: never;
+    path: {
+        /**
+         * Strategy Id
+         */
+        strategy_id: string;
+    };
+    query?: never;
+    url: '/api/v1/portable-strategies/{strategy_id}';
+};
+
+export type ReadPortableStrategyErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadPortableStrategyError = ReadPortableStrategyErrors[keyof ReadPortableStrategyErrors];
+
+export type ReadPortableStrategyResponses = {
+    /**
+     * Successful Response
+     */
+    200: PortableStrategyDetail;
+};
+
+export type ReadPortableStrategyResponse = ReadPortableStrategyResponses[keyof ReadPortableStrategyResponses];
+
+export type ListPortableTemplatesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/portable-templates';
+};
+
+export type ListPortableTemplatesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListPortableTemplatesError = ListPortableTemplatesErrors[keyof ListPortableTemplatesErrors];
+
+export type ListPortableTemplatesResponses = {
+    /**
+     * Response List Portable Templates
+     *
+     * Successful Response
+     */
+    200: Array<PortableTemplatePublic>;
+};
+
+export type ListPortableTemplatesResponse = ListPortableTemplatesResponses[keyof ListPortableTemplatesResponses];
 
 export type ResearchCapabilitiesData = {
     body?: never;
@@ -4733,7 +9564,16 @@ export type CreateResearchRunData = {
         'Idempotency-Key': string;
     };
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Experiment Id
+         */
+        experiment_id?: string | null;
+        /**
+         * Split Version Id
+         */
+        split_version_id?: string | null;
+    };
     url: '/api/v1/research-runs';
 };
 
@@ -5583,6 +10423,177 @@ export type ResumeRunResponses = {
 
 export type ResumeRunResponse = ResumeRunResponses[keyof ResumeRunResponses];
 
+export type ListSplitVersionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Experiment Id
+         */
+        experiment_id?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/split-versions';
+};
+
+export type ListSplitVersionsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListSplitVersionsError = ListSplitVersionsErrors[keyof ListSplitVersionsErrors];
+
+export type ListSplitVersionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageSplitVersionPublic;
+};
+
+export type ListSplitVersionsResponse = ListSplitVersionsResponses[keyof ListSplitVersionsResponses];
+
+export type CreateSplitVersionData = {
+    body: SplitVersionCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/split-versions';
+};
+
+export type CreateSplitVersionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateSplitVersionError = CreateSplitVersionErrors[keyof CreateSplitVersionErrors];
+
+export type CreateSplitVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: SplitVersionPublic;
+};
+
+export type CreateSplitVersionResponse = CreateSplitVersionResponses[keyof CreateSplitVersionResponses];
+
+export type ReadSplitVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Split Version Id
+         */
+        split_version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/split-versions/{split_version_id}';
+};
+
+export type ReadSplitVersionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadSplitVersionError = ReadSplitVersionErrors[keyof ReadSplitVersionErrors];
+
+export type ReadSplitVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: SplitVersionPublic;
+};
+
+export type ReadSplitVersionResponse = ReadSplitVersionResponses[keyof ReadSplitVersionResponses];
+
+export type ReadSplitExposureData = {
+    body?: never;
+    path: {
+        /**
+         * Split Version Id
+         */
+        split_version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/split-versions/{split_version_id}/exposure';
+};
+
+export type ReadSplitExposureErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadSplitExposureError = ReadSplitExposureErrors[keyof ReadSplitExposureErrors];
+
+export type ReadSplitExposureResponses = {
+    /**
+     * Successful Response
+     */
+    200: ExposureSnapshot;
+};
+
+export type ReadSplitExposureResponse = ReadSplitExposureResponses[keyof ReadSplitExposureResponses];
+
 export type ReadStatusData = {
     body?: never;
     path?: never;
@@ -5619,6 +10630,88 @@ export type ReadStatusResponses = {
 };
 
 export type ReadStatusResponse = ReadStatusResponses[keyof ReadStatusResponses];
+
+export type GetStrategyPackageData = {
+    body?: never;
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+    };
+    query?: never;
+    url: '/api/v1/strategy-packages/{package_id}';
+};
+
+export type GetStrategyPackageErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type GetStrategyPackageError = GetStrategyPackageErrors[keyof GetStrategyPackageErrors];
+
+export type GetStrategyPackageResponses = {
+    /**
+     * Successful Response
+     */
+    200: StrategyPackagePublic;
+};
+
+export type GetStrategyPackageResponse = GetStrategyPackageResponses[keyof GetStrategyPackageResponses];
+
+export type DownloadStrategyPackageData = {
+    body?: never;
+    path: {
+        /**
+         * Package Id
+         */
+        package_id: string;
+    };
+    query?: never;
+    url: '/api/v1/strategy-packages/{package_id}/download';
+};
+
+export type DownloadStrategyPackageErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type DownloadStrategyPackageError = DownloadStrategyPackageErrors[keyof DownloadStrategyPackageErrors];
+
+export type DownloadStrategyPackageResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type ListStrategiesData = {
     body?: never;

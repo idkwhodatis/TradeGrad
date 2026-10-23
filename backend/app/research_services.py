@@ -124,6 +124,25 @@ def research_config(run):
         ) from None
 
 
+def execution_config(run):
+    """Strict family dispatch for shared checkpoint persistence, not native APIs."""
+    if run.config.get("schema_version") == "tradegrad.portable.run.v1":
+        from backend.app.portable_services import portable_config
+
+        return portable_config(run)
+    return research_config(run)
+
+
+def execution_windows(config):
+    if config.schema_version == "tradegrad.portable.run.v1":
+        from packages.tradegrad_adapter.portable_config import (
+            portable_evaluation_windows,
+        )
+
+        return portable_evaluation_windows(config)
+    return evaluation_windows(config)
+
+
 def owned_research_run(session, run_id, owner_id, lock=False):
     run = owned_run(session, run_id, owner_id, lock)
     research_config(run)
@@ -267,6 +286,9 @@ def submit_research_run(
     body: RunConfig,
     idempotency_key: str,
     settings: Settings,
+    *,
+    experiment_id: UUID | None = None,
+    split_version_id: UUID | None = None,
 ):
     if (
         not idempotency_key
@@ -285,8 +307,16 @@ def submit_research_run(
             ResearchRun.idempotency_key == idempotency_key,
         )
     )
+    binding = {
+        "experiment_id": str(experiment_id) if experiment_id else None,
+        "split_version_id": str(split_version_id) if split_version_id else None,
+    }
     if previous:
-        if previous.request_sha256 != body.sha256:
+        saved_binding = previous.submission_binding or {
+            "experiment_id": None,
+            "split_version_id": None,
+        }
+        if previous.request_sha256 != body.sha256 or saved_binding != binding:
             raise DomainError(
                 "idempotency_conflict",
                 "This Idempotency-Key was already used with a different request",
@@ -302,12 +332,29 @@ def submit_research_run(
     )
     if active >= settings.max_active_runs_per_user:
         raise DomainError("run_quota", "Active run limit reached", 429)
+    from backend.app.experiment_services import (
+        bind_research_submission,
+        record_research_exposure,
+    )
+
+    experiment, split = bind_research_submission(
+        session,
+        owner_id,
+        body,
+        dataset,
+        _universe,
+        experiment_id=experiment_id,
+        split_version_id=split_version_id,
+    )
     run = ResearchRun(
         id=uuid4(),
         owner_id=owner_id,
         idempotency_key=idempotency_key,
         request_sha256=body.sha256,
         config=body.model_dump(mode="json"),
+        experiment_id=experiment.id,
+        split_version_id=split.id,
+        submission_binding=binding,
         dataset_version_id=dataset.id,
         strategy_version_id=strategy.id,
         status="queued",
@@ -316,6 +363,7 @@ def submit_research_run(
     )
     session.add(run)
     session.flush()
+    record_research_exposure(session, run, dataset, _universe, body)
     session.add(OutboxEvent(run_id=run.id, generation=1))
     append_event(
         session,
@@ -624,7 +672,7 @@ def _candidate(session, run, attempt, row):
 
 
 def _model_call(session, run, attempt, row, checkpoint_key, manifest):
-    config = research_config(run)
+    config = execution_config(run)
     if (
         row.get("provider") != config.model.provider
         or row.get("model") != config.model.model
@@ -786,7 +834,7 @@ def _load_checkpoint(reference, config, settings, *, run_id, attempt_id):
             raise ValueError("Checkpoint config differs from immutable RunConfig")
         if state["inputs"]["initial_code_sha256"] != config.seed_strategy.sha256:
             raise ValueError("Checkpoint seed differs from immutable RunConfig")
-        windows = list(evaluation_windows(config))
+        windows = list(execution_windows(config))
         if state["inputs"]["windows"] != windows:
             raise ValueError("Checkpoint windows differ or expose final holdout")
         manifest = json.loads(
@@ -805,7 +853,7 @@ def publish_checkpoint(
     session, attempt_id, generation, lease_token, reference, settings
 ):
     run, attempt = fenced_attempt(session, attempt_id, generation, lease_token)
-    config = research_config(run)
+    config = execution_config(run)
     ref, key, state, manifest = _load_checkpoint(
         reference, config, settings, run_id=run.id, attempt_id=attempt.id
     )
@@ -826,7 +874,7 @@ def publish_checkpoint(
             "invalid_checkpoint", "Checkpoint record budget exceeded", 422
         )
     summary = {"stop_reason": state.get("stop_reason"), "candidates": {}}
-    planned_windows = list(evaluation_windows(config))
+    planned_windows = list(execution_windows(config))
     for row in state["candidates"]:
         item = _candidate(session, run, attempt, row)
         evaluation = row.get("evaluation") or {}
@@ -1010,7 +1058,7 @@ def latest_checkpoint_for_resume(session, run, settings):
     ref = checkpoint_reference(checkpoint, settings)
     _load_checkpoint(
         ref,
-        research_config(run),
+        execution_config(run),
         settings,
         run_id=run.id,
         attempt_id=checkpoint.attempt_id,
@@ -1097,7 +1145,7 @@ def finish_research_attempt(
     artifacts=None,
 ):
     run, attempt = fenced_attempt(session, attempt_id, generation, lease_token)
-    research_config(run)
+    config = execution_config(run)
     bounded_json(outcome)
     if not isinstance(outcome, dict):
         raise DomainError(
@@ -1229,6 +1277,20 @@ def finish_research_attempt(
         "image_digest": run.research_image_digest,
         "holdout_executed": False,
     }
+    if config.schema_version == "tradegrad.portable.run.v1":
+        run.result = {
+            **run.result,
+            "execution_mode": config.execution_mode,
+            "evaluation_mode": "portable",
+            "result_trust": "isolated_policy_trusted_akquant_engine"
+            if status == "succeeded"
+            else None,
+            "ledger_origin": "trusted_engine" if status == "succeeded" else None,
+            "runtime_certified": False,
+            "external_framework_equivalence": "not_certified",
+            "policy_image_digest": run.portable_policy_image_digest,
+            "objective_definition": config.objective.definition_version,
+        }
     append_event(
         session,
         run,

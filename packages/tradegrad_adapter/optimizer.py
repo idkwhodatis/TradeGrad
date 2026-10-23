@@ -101,7 +101,9 @@ class _StrategyRecord:
     parent_id: str | None = None
 
 
-def _source_optimizer(llm: RecordedModel, settings: Mapping[str, Any]):
+def _source_optimizer(
+    llm: RecordedModel, settings: Mapping[str, Any], *, portable=False
+):
     from src.optimizer import TradeTGD
     from src.prompt import (
         MEMORY_GLOBAL_SUMMARY_SYSTEM_PROMPT,
@@ -122,6 +124,11 @@ def _source_optimizer(llm: RecordedModel, settings: Mapping[str, Any]):
                 ),
                 MEMORY_GLOBAL_SUMMARY_SYSTEM_PROMPT,
             ).strip()
+
+    if portable:
+        from .portable_prompts import portable_step_method
+
+        SequentialTradeTGD.step = portable_step_method(TradeTGD.step)
 
     return SequentialTradeTGD(
         llm,
@@ -365,7 +372,15 @@ def run_optimization(
     control = control or (lambda: None)
     fault = fault or (lambda _: None)
     config = dict(config)
-    if config.get("execution_mode", "optimization") != "optimization":
+    portable_seed = (
+        config.get("schema_version") == "tradegrad.portable.run.v1"
+        and config.get("execution_mode") == "seed_evaluation"
+        and config.get("optimizer", {}).get("max_iterations") == 0
+    )
+    if (
+        config.get("execution_mode", "optimization") != "optimization"
+        and not portable_seed
+    ):
         raise ValueError(
             "optimizer requires execution_mode optimization; use max_iterations=0 for seed-only research"
         )
@@ -470,7 +485,18 @@ def run_optimization(
             default=0.0,
         ),
     )
-    optimizer = _source_optimizer(recorded, settings)
+    query_model = recorded
+    if config.get("schema_version") == "tradegrad.portable.run.v1":
+        from .portable_prompts import PROMPT_VERSION, PortablePromptBoundary
+
+        if config.get("prompt_version") != PROMPT_VERSION:
+            raise ValueError("Unsupported portable prompt version")
+        query_model = PortablePromptBoundary(recorded)
+    optimizer = _source_optimizer(
+        query_model,
+        settings,
+        portable=config.get("schema_version") == "tradegrad.portable.run.v1",
+    )
     _optimizer_restore(optimizer, state, root)
 
     def commit() -> None:
@@ -631,7 +657,10 @@ def run_optimization(
                     candidate["repair_stop_reason"] = "max_repairs"
                 commit()
             elif stage == "repair":
-                from src.util import parse_code
+                if config.get("schema_version") == "tradegrad.portable.run.v1":
+                    from .portable_prompts import parse_portable_code as parse_code
+                else:
+                    from src.util import parse_code
 
                 recorded.set_context(f"repair:{candidate['candidate_id']}")
                 prompt = f"""Debug the code based on the error, and output a corrected version of full code within ```python ... ``` code block.
@@ -647,7 +676,7 @@ def run_optimization(
 - You can only modify the code within `### EDIT START` and `### EDIT END` markers. Do not change anything outside these markers.
 - Prioritize vectorized operations and efficient data handling when making improvements."""
                 try:
-                    code = parse_code(recorded.query(prompt))
+                    code = parse_code(query_model.query(prompt))
                 except ValueError as error:
                     candidate["repair_error"] = (
                         f"{type(error).__name__}: {sanitize(str(error), recorded.secrets)}"

@@ -202,7 +202,25 @@ def submit_import(
         owned_dataset(session, parent_version_id, owner_id)
     provider = request.get("provider", "upload")
     if kind != "upload":
-        if (provider == "akshare") != (request["market"] == "CN"):
+        if provider == "portable_fixture":
+            if settings.data_provider_mode != "fixture":
+                raise DomainError(
+                    "fixture_provider_disabled",
+                    "Synthetic portable data is available only in fixture mode",
+                    422,
+                )
+            if kind == "import" and not (
+                "2024-01-02"
+                <= request["start_date"]
+                < request["end_date"]
+                <= "2025-01-01"
+            ):
+                raise DomainError(
+                    "fixture_window_unavailable",
+                    "Portable synthetic fixture supports only [2024-01-02, 2025-01-01)",
+                    422,
+                )
+        elif (provider == "akshare") != (request["market"] == "CN"):
             raise DomainError(
                 "unsupported_market",
                 "Provider does not support the selected market",
@@ -221,8 +239,12 @@ def submit_import(
             "akshare": {"provider_native", "raw", "qfq", "hfq"},
             "yfinance": {"provider_native"},
             "openbb": {"provider_native"},
+            "portable_fixture": {"raw"},
         }
-        if request.get("price_mode", "provider_native") not in modes[provider]:
+        if (
+            kind != "resolve"
+            and request.get("price_mode", "provider_native") not in modes[provider]
+        ):
             raise DomainError(
                 "unsupported_price_mode",
                 "Provider does not support this price mode",
@@ -274,6 +296,7 @@ def submit_import(
         raise DomainError("import_quota", "Active import limit reached", 429)
     from packages.marketdata.contracts import (
         FIXTURE_VERSION,
+        PORTABLE_FIXTURE_VERSION,
         SCHEMA_VERSION,
         TRANSFORM_VERSION,
     )
@@ -284,7 +307,11 @@ def submit_import(
         "schema_version": SCHEMA_VERSION,
         "transform_version": TRANSFORM_VERSION,
         "worker_contract": "data-import.v1",
-        "fixture_version": FIXTURE_VERSION
+        "fixture_version": (
+            PORTABLE_FIXTURE_VERSION
+            if provider == "portable_fixture"
+            else FIXTURE_VERSION
+        )
         if settings.data_provider_mode == "fixture"
         else None,
     }
@@ -443,6 +470,7 @@ def create_universe(session, owner_id, body):
         members=value["members"],
         evidence=value["evidence"],
         content_sha256=fingerprint,
+        definition=value,
     )
     session.add(item)
     session.flush()

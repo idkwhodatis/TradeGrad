@@ -140,6 +140,14 @@ function SourceForm({
     initialProvider?.id || "akshare",
   );
   const provider = providers.find((item) => item.id === providerId);
+  const [market, setMarket] = useState<ResolveCreate["market"]>(
+    (draft.market === "CN" || draft.market === "US") &&
+      initialProvider?.markets.includes(draft.market)
+      ? draft.market
+      : initialProvider?.markets.includes("CN")
+        ? "CN"
+        : "US",
+  );
   const [symbols, setSymbols] = useState(
     typeof draft.symbols === "string" ? draft.symbols : "",
   );
@@ -175,6 +183,7 @@ function SourceForm({
       storageKey,
       JSON.stringify({
         providerId,
+        market,
         symbols,
         jobId,
         selected,
@@ -188,6 +197,7 @@ function SourceForm({
   }, [
     storageKey,
     providerId,
+    market,
     symbols,
     jobId,
     selected,
@@ -225,7 +235,7 @@ function SourceForm({
     const body: ResolveCreate = {
       provider: providerId,
       symbols: requested,
-      market: provider?.markets.includes("CN") ? "CN" : "US",
+      market,
     };
     const result = (
       await sdk.resolveDataInstruments({
@@ -248,7 +258,7 @@ function SourceForm({
     const body: ImportCreate = {
       provider: providerId,
       name,
-      market: provider?.markets.includes("CN") ? "CN" : "US",
+      market,
       listing_ids: selected,
       start_date: start,
       end_date: end,
@@ -286,6 +296,14 @@ function SourceForm({
               value={providerId}
               onChange={(event) => {
                 setProviderId(event.target.value as ResolveCreate["provider"]);
+                setMarket(
+                  providers
+                    .find((item) => item.id === event.target.value)
+                    ?.markets.includes("CN")
+                    ? "CN"
+                    : "US",
+                );
+                setUniverse("");
                 setJobId("");
                 setSelected([]);
                 setPriceMode(
@@ -303,6 +321,31 @@ function SourceForm({
               ))}
             </select>
           </Field>
+          {provider && provider.markets.length > 1 && (
+            <Field
+              label="Market"
+              id="market"
+              help="Synthetic reference data covers separate CN and US fixtures, not live prices."
+            >
+              <select
+                id="market"
+                value={market}
+                disabled={resolve.pending || create.pending}
+                onChange={(event) => {
+                  setMarket(event.target.value as ResolveCreate["market"]);
+                  setJobId("");
+                  setSelected([]);
+                  setUniverse("");
+                }}
+              >
+                {provider.markets.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
           <Field
             label="Vendor symbols"
             id="symbols"
@@ -312,9 +355,7 @@ function SourceForm({
               id="symbols"
               value={symbols}
               onChange={(event) => setSymbols(event.target.value)}
-              placeholder={
-                providerId === "akshare" ? "600000, 000001" : "AAPL, MSFT"
-              }
+              placeholder={market === "CN" ? "600000, 000001" : "AAPL, MSFT"}
               disabled={resolve.pending || create.pending}
             />
           </Field>

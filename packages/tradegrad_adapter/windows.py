@@ -493,6 +493,27 @@ def stage_dataset_window(
                 "Optimizer evaluation must use an exact registered calendar-year train or whole validation window; holdout is excluded",
             )
         window = proposed
+    return _stage_resolved_dataset_window(
+        config, split, window, manifest, read_file, limits=limits
+    )
+
+
+def _stage_resolved_dataset_window(
+    config: RunConfig,
+    split: Split,
+    window: DateWindow,
+    manifest: Mapping,
+    read_file: Callable[[str], bytes],
+    *,
+    limits: CsvLimits,
+) -> StagedDataset:
+    """Shared mechanics after the distinct research/final admission checks.
+
+    This private function does not grant permission to evaluate a window. The
+    research entry point above still rejects holdout, including model_copy and
+    manually supplied windows. The final entry point requires a frozen selection
+    binding and is reached only by a separately registered final-evaluation job.
+    """
     if hashlib.sha256(canonical_bytes(manifest)).hexdigest() != config.dataset.sha256:
         raise PreflightError(
             "manifest_hash_mismatch", "Immutable dataset manifest changed"

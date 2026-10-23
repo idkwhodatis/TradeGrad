@@ -1,0 +1,131 @@
+{
+  "schema_version": "tradegrad.portable.run.v1",
+  "evaluation_mode": "portable",
+  "execution_mode": "optimization",
+  "task": "cn_cross",
+  "profile": "corrected_explicit_config",
+  "strategy_kind": "portfolio",
+  "dataset": {
+    "id": "a1111111-1111-4111-8111-111111111111",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "seed_strategy": {
+    "id": "c3333333-3333-4333-8333-333333333333",
+    "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "seed_manifest": {
+    "id": "c3333333-3333-4333-8333-333333333333/manifest",
+    "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "seed_parameters": {
+    "id": "c3333333-3333-4333-8333-333333333333/parameters",
+    "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  },
+  "universe": {
+    "id": "b2222222-2222-4222-8222-222222222222",
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "windows": {
+    "train": {
+      "start": "2024-01-08",
+      "end": "2024-03-01"
+    },
+    "validation": {
+      "start": "2024-03-01",
+      "end": "2024-04-01"
+    },
+    "holdout": {
+      "start": "2024-04-01",
+      "end": "2024-05-01"
+    }
+  },
+  "warmup": {
+    "sessions": 2,
+    "history_policy": "require",
+    "lookback_contract": "declared_seed_minimum"
+  },
+  "initial_cash": 1000000.0,
+  "initial_state": {
+    "codec_version": "state-json.v1",
+    "schema_name": "momentum",
+    "schema_version": 1,
+    "schema_sha256": "6ab0d7a3f7617903ca1122ca1aa4393a43656cd3ba4dcef8d38499696bfba65c",
+    "payload_json": "{\"decisions\":0,\"last_session\":\"\"}",
+    "payload_sha256": "c7a213dbb10ab3359a7b9d635f85e68bb42b26b4efcc59147ad2a52798e11952"
+  },
+  "engine_profile": {
+    "profile_version": "akquant.portable.cash-daily.controller-t1.v3",
+    "engine": "akquant",
+    "engine_version": "0.3.27",
+    "market": "CN",
+    "initial_cash": 1000000.0,
+    "commission_rate": 0.0005,
+    "stamp_tax_rate": 0.001,
+    "transfer_fee_rate": 0.0,
+    "min_commission": 0.0,
+    "slippage": {
+      "type": "percent",
+      "value": 0.0005
+    },
+    "volume_limit_pct": 0.25,
+    "t_plus_one": false,
+    "engine_settlement_mode": "T+0",
+    "application_settlement_enforcement": "trusted_controller_daily_next_open_inventory.v1",
+    "application_t_plus_one": true,
+    "initial_positions": "flat",
+    "policy_callback": "complete_daily_cross_section_after_close",
+    "intraday_policy": "unsupported",
+    "external_funding": "unsupported",
+    "corporate_actions": "reject_window_with_actions",
+    "limit_execution": "reject_non_open_or_limit_breaching_native_fill",
+    "lot_size": 100,
+    "timezone": "Asia/Shanghai",
+    "risk_config": {
+      "account_mode": "cash",
+      "enable_short_sell": false
+    },
+    "fill_policy": "NextOpen",
+    "time_in_force": "GTC",
+    "sizing_price": "decision_close",
+    "sizing_equity": "decision_close_native_equity",
+    "cash_budget": "available_cash_without_anticipated_sale_proceeds",
+    "sell_budget": "decision_close_holdings_less_pending_sells",
+    "sellability_observation": "next_open_unreserved_holdings",
+    "unsettled_next_open_sell": "admit_after_close_with_controller_t1",
+    "pending_rebalance": "skip_until_all_native_legs_terminal",
+    "final_liquidation": false
+  },
+  "objective": {
+    "windowing_definition": "calendar_year_train_full_validation.v1",
+    "definition_version": "portable_return_drawdown.v1",
+    "metric_definition_version": "portable_native_summary.v1",
+    "reward_formula": "total_return_pct - max_drawdown_pct"
+  },
+  "optimizer": {
+    "algorithm": "trade_tgd",
+    "max_iterations": 0,
+    "sample_size": 3,
+    "sample_method": "power_law",
+    "large_revision_prob": 0.7,
+    "memory_window": 5,
+    "seed": 0,
+    "worst_ratio": 0.3
+  },
+  "budgets": {
+    "max_model_calls": 10,
+    "max_tokens": 100000,
+    "max_runtime_seconds": 300,
+    "max_repairs": 2
+  },
+  "model": {
+    "provider": "fixture",
+    "model": "deterministic-fixture-v1",
+    "credential_ref": null,
+    "temperature": 0.0
+  },
+  "prompt_version": "portable_business_rules.v1",
+  "environment_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "benchmark": null,
+  "conformance": "interface_only",
+  "external_framework_equivalence": "not_certified"
+}

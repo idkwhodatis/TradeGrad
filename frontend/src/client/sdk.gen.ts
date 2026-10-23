@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type ServerSentEventsResult, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { CancelDataImportData, CancelDataImportErrors, CancelDataImportResponses, CancelResearchRunData, CancelResearchRunErrors, CancelResearchRunResponses, CancelRunData, CancelRunErrors, CancelRunResponses, CompareResearchResultsData, CompareResearchResultsErrors, CompareResearchResultsResponses, CreateDataImportData, CreateDataImportErrors, CreateDataImportResponses, CreateDataUniverseData, CreateDataUniverseErrors, CreateDataUniverseResponses, CreateResearchRunData, CreateResearchRunErrors, CreateResearchRunResponses, CreateRunData, CreateRunErrors, CreateRunResponses, CreateStrategyVersionData, CreateStrategyVersionErrors, CreateStrategyVersionResponses, DownloadArtifactData, DownloadArtifactErrors, DownloadArtifactResponses, DownloadResearchReportData, DownloadResearchReportErrors, DownloadResearchReportResponses, DownloadResearchResultsData, DownloadResearchResultsErrors, DownloadResearchResultsResponses, HealthLiveData, HealthLiveErrors, HealthLiveResponses, HealthReadyData, HealthReadyErrors, HealthReadyResponses, ListDataImportsData, ListDataImportsErrors, ListDataImportsResponses, ListDataListingsData, ListDataListingsErrors, ListDataListingsResponses, ListDataProvidersData, ListDataProvidersErrors, ListDataProvidersResponses, ListDatasetsData, ListDatasetsErrors, ListDatasetsResponses, ListDataUniversesData, ListDataUniversesErrors, ListDataUniversesResponses, ListResearchCandidatesData, ListResearchCandidatesErrors, ListResearchCandidatesResponses, ListResearchCheckpointsData, ListResearchCheckpointsErrors, ListResearchCheckpointsResponses, ListResearchEvaluationsData, ListResearchEvaluationsErrors, ListResearchEvaluationsResponses, ListResearchModelCallsData, ListResearchModelCallsErrors, ListResearchModelCallsResponses, ListResearchRunsData, ListResearchRunsErrors, ListResearchRunsResponses, ListRunArtifactsData, ListRunArtifactsErrors, ListRunArtifactsResponses, ListRunEventsData, ListRunEventsErrors, ListRunEventsResponse, ListRunEventsResponses, ListRunsData, ListRunsErrors, ListRunsResponses, ListStrategiesData, ListStrategiesErrors, ListStrategiesResponses, LoginAccessTokenData, LoginAccessTokenErrors, LoginAccessTokenResponses, PauseResearchRunData, PauseResearchRunErrors, PauseResearchRunResponses, PauseRunData, PauseRunErrors, PauseRunResponses, PreflightResearchRunData, PreflightResearchRunErrors, PreflightResearchRunResponses, PreviewDataSnapshotData, PreviewDataSnapshotErrors, PreviewDataSnapshotResponses, ReadDataCoverageData, ReadDataCoverageErrors, ReadDataCoverageResponses, ReadDataImportData, ReadDataImportErrors, ReadDataImportResponses, ReadDatasetData, ReadDatasetErrors, ReadDatasetResponses, ReadDataUniverseData, ReadDataUniverseErrors, ReadDataUniverseResponses, ReadMeData, ReadMeErrors, ReadMeResponses, ReadResearchCandidateData, ReadResearchCandidateErrors, ReadResearchCandidateResponses, ReadResearchCheckpointData, ReadResearchCheckpointErrors, ReadResearchCheckpointResponses, ReadResearchEvaluationData, ReadResearchEvaluationErrors, ReadResearchEvaluationResponses, ReadResearchModelCallData, ReadResearchModelCallErrors, ReadResearchModelCallResponses, ReadResearchResultsData, ReadResearchResultsErrors, ReadResearchResultsResponses, ReadResearchRunData, ReadResearchRunErrors, ReadResearchRunResponses, ReadResearchUsageData, ReadResearchUsageErrors, ReadResearchUsageResponses, ReadRunData, ReadRunErrors, ReadRunResponses, ReadStatusData, ReadStatusErrors, ReadStatusResponses, ReadStrategyData, ReadStrategyErrors, ReadStrategyResponses, RefreshDataSnapshotData, RefreshDataSnapshotErrors, RefreshDataSnapshotResponses, ResearchCapabilitiesData, ResearchCapabilitiesErrors, ResearchCapabilitiesResponses, ResolveDataInstrumentsData, ResolveDataInstrumentsErrors, ResolveDataInstrumentsResponses, ResumeResearchRunData, ResumeResearchRunErrors, ResumeResearchRunResponses, ResumeRunData, ResumeRunErrors, ResumeRunResponses, RetryDataImportData, RetryDataImportErrors, RetryDataImportResponses, UploadDataFileData, UploadDataFileErrors, UploadDataFileResponses, ValidateUploadMappingData, ValidateUploadMappingErrors, ValidateUploadMappingResponses } from './types.gen';
+import type { CancelDataImportData, CancelDataImportErrors, CancelDataImportResponses, CancelFinalEvaluationData, CancelFinalEvaluationErrors, CancelFinalEvaluationResponses, CancelPortableRunData, CancelPortableRunErrors, CancelPortableRunResponses, CancelResearchRunData, CancelResearchRunErrors, CancelResearchRunResponses, CancelRunData, CancelRunErrors, CancelRunResponses, CompareResearchResultsData, CompareResearchResultsErrors, CompareResearchResultsResponses, CreateDataImportData, CreateDataImportErrors, CreateDataImportResponses, CreateDataUniverseData, CreateDataUniverseErrors, CreateDataUniverseResponses, CreateExperimentData, CreateExperimentErrors, CreateExperimentResponses, CreateFinalEvaluationData, CreateFinalEvaluationErrors, CreateFinalEvaluationResponses, CreatePortableRunData, CreatePortableRunErrors, CreatePortableRunResponses, CreatePortableStrategyData, CreatePortableStrategyErrors, CreatePortableStrategyResponses, CreateResearchRunData, CreateResearchRunErrors, CreateResearchRunResponses, CreateRunData, CreateRunErrors, CreateRunResponses, CreateSplitVersionData, CreateSplitVersionErrors, CreateSplitVersionResponses, CreateStrategyPackageData, CreateStrategyPackageErrors, CreateStrategyPackageResponses, CreateStrategyVersionData, CreateStrategyVersionErrors, CreateStrategyVersionResponses, DefaultPortableConfigData, DefaultPortableConfigErrors, DefaultPortableConfigResponses, DownloadArtifactData, DownloadArtifactErrors, DownloadArtifactResponses, DownloadFinalResultData, DownloadFinalResultErrors, DownloadFinalResultResponses, DownloadPortableResultsData, DownloadPortableResultsErrors, DownloadPortableResultsResponses, DownloadResearchReportData, DownloadResearchReportErrors, DownloadResearchReportResponses, DownloadResearchResultsData, DownloadResearchResultsErrors, DownloadResearchResultsResponses, DownloadStrategyPackageData, DownloadStrategyPackageErrors, DownloadStrategyPackageResponses, FreezeFinalSelectionData, FreezeFinalSelectionErrors, FreezeFinalSelectionResponses, GetStrategyPackageData, GetStrategyPackageErrors, GetStrategyPackageResponses, HealthLiveData, HealthLiveErrors, HealthLiveResponses, HealthReadyData, HealthReadyErrors, HealthReadyResponses, ListDataImportsData, ListDataImportsErrors, ListDataImportsResponses, ListDataListingsData, ListDataListingsErrors, ListDataListingsResponses, ListDataProvidersData, ListDataProvidersErrors, ListDataProvidersResponses, ListDatasetsData, ListDatasetsErrors, ListDatasetsResponses, ListDataUniversesData, ListDataUniversesErrors, ListDataUniversesResponses, ListDataUsageExposuresData, ListDataUsageExposuresErrors, ListDataUsageExposuresResponses, ListExperimentsData, ListExperimentsErrors, ListExperimentsResponses, ListFinalEvaluationEvidenceData, ListFinalEvaluationEvidenceErrors, ListFinalEvaluationEvidenceResponses, ListFinalEvaluationsData, ListFinalEvaluationsErrors, ListFinalEvaluationsResponses, ListFinalSelectionsData, ListFinalSelectionsErrors, ListFinalSelectionsResponses, ListPortableCandidatesData, ListPortableCandidatesErrors, ListPortableCandidatesResponses, ListPortableCheckpointsData, ListPortableCheckpointsErrors, ListPortableCheckpointsResponses, ListPortableEvaluationsData, ListPortableEvaluationsErrors, ListPortableEvaluationsResponses, ListPortableModelCallsData, ListPortableModelCallsErrors, ListPortableModelCallsResponses, ListPortableRunsData, ListPortableRunsErrors, ListPortableRunsResponses, ListPortableStrategiesData, ListPortableStrategiesErrors, ListPortableStrategiesResponses, ListPortableTemplatesData, ListPortableTemplatesErrors, ListPortableTemplatesResponses, ListResearchCandidatesData, ListResearchCandidatesErrors, ListResearchCandidatesResponses, ListResearchCheckpointsData, ListResearchCheckpointsErrors, ListResearchCheckpointsResponses, ListResearchEvaluationsData, ListResearchEvaluationsErrors, ListResearchEvaluationsResponses, ListResearchModelCallsData, ListResearchModelCallsErrors, ListResearchModelCallsResponses, ListResearchRunsData, ListResearchRunsErrors, ListResearchRunsResponses, ListRunArtifactsData, ListRunArtifactsErrors, ListRunArtifactsResponses, ListRunEventsData, ListRunEventsErrors, ListRunEventsResponse, ListRunEventsResponses, ListRunsData, ListRunsErrors, ListRunsResponses, ListSplitVersionsData, ListSplitVersionsErrors, ListSplitVersionsResponses, ListStrategiesData, ListStrategiesErrors, ListStrategiesResponses, LoginAccessTokenData, LoginAccessTokenErrors, LoginAccessTokenResponses, PauseFinalEvaluationUnsupportedData, PauseFinalEvaluationUnsupportedErrors, PauseFinalEvaluationUnsupportedResponses, PausePortableRunData, PausePortableRunErrors, PausePortableRunResponses, PauseResearchRunData, PauseResearchRunErrors, PauseResearchRunResponses, PauseRunData, PauseRunErrors, PauseRunResponses, PortableCancelFinalEvaluationData, PortableCancelFinalEvaluationErrors, PortableCancelFinalEvaluationResponses, PortableCreateFinalEvaluationData, PortableCreateFinalEvaluationErrors, PortableCreateFinalEvaluationResponses, PortableDownloadFinalResultData, PortableDownloadFinalResultErrors, PortableDownloadFinalResultResponses, PortableListFinalEvaluationEvidenceData, PortableListFinalEvaluationEvidenceErrors, PortableListFinalEvaluationEvidenceResponses, PortableListFinalEvaluationsData, PortableListFinalEvaluationsErrors, PortableListFinalEvaluationsResponses, PortablePauseFinalEvaluationUnsupportedData, PortablePauseFinalEvaluationUnsupportedErrors, PortablePauseFinalEvaluationUnsupportedResponses, PortablePreflightFinalEvaluationData, PortablePreflightFinalEvaluationErrors, PortablePreflightFinalEvaluationResponses, PortableQueryFinalResultData, PortableQueryFinalResultErrors, PortableQueryFinalResultResponses, PortableReadFinalEvaluationData, PortableReadFinalEvaluationErrors, PortableReadFinalEvaluationResponses, PortableRetryFinalEvaluationData, PortableRetryFinalEvaluationErrors, PortableRetryFinalEvaluationResponses, PreflightFinalEvaluationData, PreflightFinalEvaluationErrors, PreflightFinalEvaluationResponses, PreflightPortableRunData, PreflightPortableRunErrors, PreflightPortableRunResponses, PreflightResearchRunData, PreflightResearchRunErrors, PreflightResearchRunResponses, PreviewDataSnapshotData, PreviewDataSnapshotErrors, PreviewDataSnapshotResponses, QueryFinalResultData, QueryFinalResultErrors, QueryFinalResultResponses, ReadDataCoverageData, ReadDataCoverageErrors, ReadDataCoverageResponses, ReadDataImportData, ReadDataImportErrors, ReadDataImportResponses, ReadDatasetData, ReadDatasetErrors, ReadDatasetResponses, ReadDataUniverseData, ReadDataUniverseErrors, ReadDataUniverseResponses, ReadExperimentData, ReadExperimentErrors, ReadExperimentResponses, ReadFinalEvaluationData, ReadFinalEvaluationErrors, ReadFinalEvaluationResponses, ReadFinalSelectionData, ReadFinalSelectionErrors, ReadFinalSelectionResponses, ReadMeData, ReadMeErrors, ReadMeResponses, ReadPortableCandidateData, ReadPortableCandidateErrors, ReadPortableCandidateResponses, ReadPortableCheckpointData, ReadPortableCheckpointErrors, ReadPortableCheckpointResponses, ReadPortableEvaluationData, ReadPortableEvaluationErrors, ReadPortableEvaluationResponses, ReadPortableModelCallData, ReadPortableModelCallErrors, ReadPortableModelCallResponses, ReadPortableResultsData, ReadPortableResultsErrors, ReadPortableResultsResponses, ReadPortableRunData, ReadPortableRunErrors, ReadPortableRunResponses, ReadPortableStrategyData, ReadPortableStrategyErrors, ReadPortableStrategyResponses, ReadPortableUsageData, ReadPortableUsageErrors, ReadPortableUsageResponses, ReadResearchCandidateData, ReadResearchCandidateErrors, ReadResearchCandidateResponses, ReadResearchCheckpointData, ReadResearchCheckpointErrors, ReadResearchCheckpointResponses, ReadResearchEvaluationData, ReadResearchEvaluationErrors, ReadResearchEvaluationResponses, ReadResearchModelCallData, ReadResearchModelCallErrors, ReadResearchModelCallResponses, ReadResearchResultsData, ReadResearchResultsErrors, ReadResearchResultsResponses, ReadResearchRunData, ReadResearchRunErrors, ReadResearchRunResponses, ReadResearchUsageData, ReadResearchUsageErrors, ReadResearchUsageResponses, ReadRunData, ReadRunErrors, ReadRunResponses, ReadSplitExposureData, ReadSplitExposureErrors, ReadSplitExposureResponses, ReadSplitVersionData, ReadSplitVersionErrors, ReadSplitVersionResponses, ReadStatusData, ReadStatusErrors, ReadStatusResponses, ReadStrategyData, ReadStrategyErrors, ReadStrategyResponses, RefreshDataSnapshotData, RefreshDataSnapshotErrors, RefreshDataSnapshotResponses, ResearchCapabilitiesData, ResearchCapabilitiesErrors, ResearchCapabilitiesResponses, ResolveDataInstrumentsData, ResolveDataInstrumentsErrors, ResolveDataInstrumentsResponses, ResumePortableRunData, ResumePortableRunErrors, ResumePortableRunResponses, ResumeResearchRunData, ResumeResearchRunErrors, ResumeResearchRunResponses, ResumeRunData, ResumeRunErrors, ResumeRunResponses, RetryDataImportData, RetryDataImportErrors, RetryDataImportResponses, RetryFinalEvaluationData, RetryFinalEvaluationErrors, RetryFinalEvaluationResponses, UploadDataFileData, UploadDataFileErrors, UploadDataFileResponses, ValidateUploadMappingData, ValidateUploadMappingErrors, ValidateUploadMappingResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -33,6 +33,15 @@ export const downloadArtifact = <ThrowOnError extends boolean = true>(options: O
 export const readResearchCandidate = <ThrowOnError extends boolean = true>(options: Options<ReadResearchCandidateData, ThrowOnError>): RequestResult<ReadResearchCandidateResponses, ReadResearchCandidateErrors, ThrowOnError> => (options.client ?? client).get<ReadResearchCandidateResponses, ReadResearchCandidateErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/candidates/{candidate_id}',
+    ...options
+});
+
+/**
+ * Exposures
+ */
+export const listDataUsageExposures = <ThrowOnError extends boolean = true>(options?: Options<ListDataUsageExposuresData, ThrowOnError>): RequestResult<ListDataUsageExposuresResponses, ListDataUsageExposuresErrors, ThrowOnError> => (options?.client ?? client).get<ListDataUsageExposuresResponses, ListDataUsageExposuresErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/data-usage-exposures',
     ...options
 });
 
@@ -229,6 +238,179 @@ export const readResearchEvaluation = <ThrowOnError extends boolean = true>(opti
 });
 
 /**
+ * Experiments
+ */
+export const listExperiments = <ThrowOnError extends boolean = true>(options?: Options<ListExperimentsData, ThrowOnError>): RequestResult<ListExperimentsResponses, ListExperimentsErrors, ThrowOnError> => (options?.client ?? client).get<ListExperimentsResponses, ListExperimentsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/experiments',
+    ...options
+});
+
+/**
+ * Create
+ */
+export const createExperiment = <ThrowOnError extends boolean = true>(options: Options<CreateExperimentData, ThrowOnError>): RequestResult<CreateExperimentResponses, CreateExperimentErrors, ThrowOnError> => (options.client ?? client).post<CreateExperimentResponses, CreateExperimentErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/experiments',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Experiment
+ */
+export const readExperiment = <ThrowOnError extends boolean = true>(options: Options<ReadExperimentData, ThrowOnError>): RequestResult<ReadExperimentResponses, ReadExperimentErrors, ThrowOnError> => (options.client ?? client).get<ReadExperimentResponses, ReadExperimentErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/experiments/{experiment_id}',
+    ...options
+});
+
+/**
+ * Listing
+ */
+export const listFinalEvaluations = <ThrowOnError extends boolean = true>(options?: Options<ListFinalEvaluationsData, ThrowOnError>): RequestResult<ListFinalEvaluationsResponses, ListFinalEvaluationsErrors, ThrowOnError> => (options?.client ?? client).get<ListFinalEvaluationsResponses, ListFinalEvaluationsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-evaluations',
+    ...options
+});
+
+/**
+ * Create
+ */
+export const createFinalEvaluation = <ThrowOnError extends boolean = true>(options: Options<CreateFinalEvaluationData, ThrowOnError>): RequestResult<CreateFinalEvaluationResponses, CreateFinalEvaluationErrors, ThrowOnError> => (options.client ?? client).post<CreateFinalEvaluationResponses, CreateFinalEvaluationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-evaluations',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Query Final Result
+ */
+export const queryFinalResult = <ThrowOnError extends boolean = true>(options: Options<QueryFinalResultData, ThrowOnError>): RequestResult<QueryFinalResultResponses, QueryFinalResultErrors, ThrowOnError> => (options.client ?? client).get<QueryFinalResultResponses, QueryFinalResultErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-evaluations/evaluations/{evaluation_id}/result',
+    ...options
+});
+
+/**
+ * Download Final Result
+ */
+export const downloadFinalResult = <ThrowOnError extends boolean = true>(options: Options<DownloadFinalResultData, ThrowOnError>): RequestResult<DownloadFinalResultResponses, DownloadFinalResultErrors, ThrowOnError> => (options.client ?? client).get<DownloadFinalResultResponses, DownloadFinalResultErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-evaluations/evaluations/{evaluation_id}/result/download',
+    ...options
+});
+
+/**
+ * Preflight
+ */
+export const preflightFinalEvaluation = <ThrowOnError extends boolean = true>(options: Options<PreflightFinalEvaluationData, ThrowOnError>): RequestResult<PreflightFinalEvaluationResponses, PreflightFinalEvaluationErrors, ThrowOnError> => (options.client ?? client).post<PreflightFinalEvaluationResponses, PreflightFinalEvaluationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-evaluations/preflight',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Detail
+ */
+export const readFinalEvaluation = <ThrowOnError extends boolean = true>(options: Options<ReadFinalEvaluationData, ThrowOnError>): RequestResult<ReadFinalEvaluationResponses, ReadFinalEvaluationErrors, ThrowOnError> => (options.client ?? client).get<ReadFinalEvaluationResponses, ReadFinalEvaluationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-evaluations/{run_id}',
+    ...options
+});
+
+/**
+ * Cancel
+ */
+export const cancelFinalEvaluation = <ThrowOnError extends boolean = true>(options: Options<CancelFinalEvaluationData, ThrowOnError>): RequestResult<CancelFinalEvaluationResponses, CancelFinalEvaluationErrors, ThrowOnError> => (options.client ?? client).post<CancelFinalEvaluationResponses, CancelFinalEvaluationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-evaluations/{run_id}/cancel',
+    ...options
+});
+
+/**
+ * Evidence
+ */
+export const listFinalEvaluationEvidence = <ThrowOnError extends boolean = true>(options: Options<ListFinalEvaluationEvidenceData, ThrowOnError>): RequestResult<ListFinalEvaluationEvidenceResponses, ListFinalEvaluationEvidenceErrors, ThrowOnError> => (options.client ?? client).get<ListFinalEvaluationEvidenceResponses, ListFinalEvaluationEvidenceErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-evaluations/{run_id}/evaluations',
+    ...options
+});
+
+/**
+ * Pause
+ */
+export const pauseFinalEvaluationUnsupported = <ThrowOnError extends boolean = true>(options: Options<PauseFinalEvaluationUnsupportedData, ThrowOnError>): RequestResult<PauseFinalEvaluationUnsupportedResponses, PauseFinalEvaluationUnsupportedErrors, ThrowOnError> => (options.client ?? client).post<PauseFinalEvaluationUnsupportedResponses, PauseFinalEvaluationUnsupportedErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-evaluations/{run_id}/pause',
+    ...options
+});
+
+/**
+ * Retry
+ */
+export const retryFinalEvaluation = <ThrowOnError extends boolean = true>(options: Options<RetryFinalEvaluationData, ThrowOnError>): RequestResult<RetryFinalEvaluationResponses, RetryFinalEvaluationErrors, ThrowOnError> => (options.client ?? client).post<RetryFinalEvaluationResponses, RetryFinalEvaluationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-evaluations/{run_id}/retry',
+    ...options
+});
+
+/**
+ * Selections
+ */
+export const listFinalSelections = <ThrowOnError extends boolean = true>(options?: Options<ListFinalSelectionsData, ThrowOnError>): RequestResult<ListFinalSelectionsResponses, ListFinalSelectionsErrors, ThrowOnError> => (options?.client ?? client).get<ListFinalSelectionsResponses, ListFinalSelectionsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-selections',
+    ...options
+});
+
+/**
+ * Freeze
+ */
+export const freezeFinalSelection = <ThrowOnError extends boolean = true>(options: Options<FreezeFinalSelectionData, ThrowOnError>): RequestResult<FreezeFinalSelectionResponses, FreezeFinalSelectionErrors, ThrowOnError> => (options.client ?? client).post<FreezeFinalSelectionResponses, FreezeFinalSelectionErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-selections',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Selection
+ */
+export const readFinalSelection = <ThrowOnError extends boolean = true>(options: Options<ReadFinalSelectionData, ThrowOnError>): RequestResult<ReadFinalSelectionResponses, ReadFinalSelectionErrors, ThrowOnError> => (options.client ?? client).get<ReadFinalSelectionResponses, ReadFinalSelectionErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-selections/{selection_id}',
+    ...options
+});
+
+/**
+ * Create Package
+ */
+export const createStrategyPackage = <ThrowOnError extends boolean = true>(options: Options<CreateStrategyPackageData, ThrowOnError>): RequestResult<CreateStrategyPackageResponses, CreateStrategyPackageErrors, ThrowOnError> => (options.client ?? client).post<CreateStrategyPackageResponses, CreateStrategyPackageErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/final-selections/{selection_id}/packages',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Health Live
  */
 export const healthLive = <ThrowOnError extends boolean = true>(options?: Options<HealthLiveData, ThrowOnError>): RequestResult<HealthLiveResponses, HealthLiveErrors, ThrowOnError> => (options?.client ?? client).get<HealthLiveResponses, HealthLiveErrors, ThrowOnError>({ url: '/api/v1/health/live', ...options });
@@ -257,6 +439,327 @@ export const loginAccessToken = <ThrowOnError extends boolean = true>(options: O
 export const readResearchModelCall = <ThrowOnError extends boolean = true>(options: Options<ReadResearchModelCallData, ThrowOnError>): RequestResult<ReadResearchModelCallResponses, ReadResearchModelCallErrors, ThrowOnError> => (options.client ?? client).get<ReadResearchModelCallResponses, ReadResearchModelCallErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/model-calls/{model_call_id}',
+    ...options
+});
+
+/**
+ * Candidate
+ */
+export const readPortableCandidate = <ThrowOnError extends boolean = true>(options: Options<ReadPortableCandidateData, ThrowOnError>): RequestResult<ReadPortableCandidateResponses, ReadPortableCandidateErrors, ThrowOnError> => (options.client ?? client).get<ReadPortableCandidateResponses, ReadPortableCandidateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-candidates/{candidate_id}',
+    ...options
+});
+
+/**
+ * Checkpoint
+ */
+export const readPortableCheckpoint = <ThrowOnError extends boolean = true>(options: Options<ReadPortableCheckpointData, ThrowOnError>): RequestResult<ReadPortableCheckpointResponses, ReadPortableCheckpointErrors, ThrowOnError> => (options.client ?? client).get<ReadPortableCheckpointResponses, ReadPortableCheckpointErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-checkpoints/{checkpoint_id}',
+    ...options
+});
+
+/**
+ * Evaluation
+ */
+export const readPortableEvaluation = <ThrowOnError extends boolean = true>(options: Options<ReadPortableEvaluationData, ThrowOnError>): RequestResult<ReadPortableEvaluationResponses, ReadPortableEvaluationErrors, ThrowOnError> => (options.client ?? client).get<ReadPortableEvaluationResponses, ReadPortableEvaluationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-evaluations/{evaluation_id}',
+    ...options
+});
+
+/**
+ * Results
+ */
+export const readPortableResults = <ThrowOnError extends boolean = true>(options: Options<ReadPortableResultsData, ThrowOnError>): RequestResult<ReadPortableResultsResponses, ReadPortableResultsErrors, ThrowOnError> => (options.client ?? client).get<ReadPortableResultsResponses, ReadPortableResultsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-evaluations/{evaluation_id}/results',
+    ...options
+});
+
+/**
+ * Download
+ */
+export const downloadPortableResults = <ThrowOnError extends boolean = true>(options: Options<DownloadPortableResultsData, ThrowOnError>): RequestResult<DownloadPortableResultsResponses, DownloadPortableResultsErrors, ThrowOnError> => (options.client ?? client).get<DownloadPortableResultsResponses, DownloadPortableResultsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-evaluations/{evaluation_id}/results/download',
+    ...options
+});
+
+/**
+ * Listing
+ */
+export const portableListFinalEvaluations = <ThrowOnError extends boolean = true>(options?: Options<PortableListFinalEvaluationsData, ThrowOnError>): RequestResult<PortableListFinalEvaluationsResponses, PortableListFinalEvaluationsErrors, ThrowOnError> => (options?.client ?? client).get<PortableListFinalEvaluationsResponses, PortableListFinalEvaluationsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-final-evaluations',
+    ...options
+});
+
+/**
+ * Create
+ */
+export const portableCreateFinalEvaluation = <ThrowOnError extends boolean = true>(options: Options<PortableCreateFinalEvaluationData, ThrowOnError>): RequestResult<PortableCreateFinalEvaluationResponses, PortableCreateFinalEvaluationErrors, ThrowOnError> => (options.client ?? client).post<PortableCreateFinalEvaluationResponses, PortableCreateFinalEvaluationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-final-evaluations',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Query Final Result
+ */
+export const portableQueryFinalResult = <ThrowOnError extends boolean = true>(options: Options<PortableQueryFinalResultData, ThrowOnError>): RequestResult<PortableQueryFinalResultResponses, PortableQueryFinalResultErrors, ThrowOnError> => (options.client ?? client).get<PortableQueryFinalResultResponses, PortableQueryFinalResultErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-final-evaluations/evaluations/{evaluation_id}/result',
+    ...options
+});
+
+/**
+ * Download Final Result
+ */
+export const portableDownloadFinalResult = <ThrowOnError extends boolean = true>(options: Options<PortableDownloadFinalResultData, ThrowOnError>): RequestResult<PortableDownloadFinalResultResponses, PortableDownloadFinalResultErrors, ThrowOnError> => (options.client ?? client).get<PortableDownloadFinalResultResponses, PortableDownloadFinalResultErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-final-evaluations/evaluations/{evaluation_id}/result/download',
+    ...options
+});
+
+/**
+ * Preflight
+ */
+export const portablePreflightFinalEvaluation = <ThrowOnError extends boolean = true>(options: Options<PortablePreflightFinalEvaluationData, ThrowOnError>): RequestResult<PortablePreflightFinalEvaluationResponses, PortablePreflightFinalEvaluationErrors, ThrowOnError> => (options.client ?? client).post<PortablePreflightFinalEvaluationResponses, PortablePreflightFinalEvaluationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-final-evaluations/preflight',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Detail
+ */
+export const portableReadFinalEvaluation = <ThrowOnError extends boolean = true>(options: Options<PortableReadFinalEvaluationData, ThrowOnError>): RequestResult<PortableReadFinalEvaluationResponses, PortableReadFinalEvaluationErrors, ThrowOnError> => (options.client ?? client).get<PortableReadFinalEvaluationResponses, PortableReadFinalEvaluationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-final-evaluations/{run_id}',
+    ...options
+});
+
+/**
+ * Cancel
+ */
+export const portableCancelFinalEvaluation = <ThrowOnError extends boolean = true>(options: Options<PortableCancelFinalEvaluationData, ThrowOnError>): RequestResult<PortableCancelFinalEvaluationResponses, PortableCancelFinalEvaluationErrors, ThrowOnError> => (options.client ?? client).post<PortableCancelFinalEvaluationResponses, PortableCancelFinalEvaluationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-final-evaluations/{run_id}/cancel',
+    ...options
+});
+
+/**
+ * Evidence
+ */
+export const portableListFinalEvaluationEvidence = <ThrowOnError extends boolean = true>(options: Options<PortableListFinalEvaluationEvidenceData, ThrowOnError>): RequestResult<PortableListFinalEvaluationEvidenceResponses, PortableListFinalEvaluationEvidenceErrors, ThrowOnError> => (options.client ?? client).get<PortableListFinalEvaluationEvidenceResponses, PortableListFinalEvaluationEvidenceErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-final-evaluations/{run_id}/evaluations',
+    ...options
+});
+
+/**
+ * Pause
+ */
+export const portablePauseFinalEvaluationUnsupported = <ThrowOnError extends boolean = true>(options: Options<PortablePauseFinalEvaluationUnsupportedData, ThrowOnError>): RequestResult<PortablePauseFinalEvaluationUnsupportedResponses, PortablePauseFinalEvaluationUnsupportedErrors, ThrowOnError> => (options.client ?? client).post<PortablePauseFinalEvaluationUnsupportedResponses, PortablePauseFinalEvaluationUnsupportedErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-final-evaluations/{run_id}/pause',
+    ...options
+});
+
+/**
+ * Retry
+ */
+export const portableRetryFinalEvaluation = <ThrowOnError extends boolean = true>(options: Options<PortableRetryFinalEvaluationData, ThrowOnError>): RequestResult<PortableRetryFinalEvaluationResponses, PortableRetryFinalEvaluationErrors, ThrowOnError> => (options.client ?? client).post<PortableRetryFinalEvaluationResponses, PortableRetryFinalEvaluationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-final-evaluations/{run_id}/retry',
+    ...options
+});
+
+/**
+ * Model Call
+ */
+export const readPortableModelCall = <ThrowOnError extends boolean = true>(options: Options<ReadPortableModelCallData, ThrowOnError>): RequestResult<ReadPortableModelCallResponses, ReadPortableModelCallErrors, ThrowOnError> => (options.client ?? client).get<ReadPortableModelCallResponses, ReadPortableModelCallErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-model-calls/{model_call_id}',
+    ...options
+});
+
+/**
+ * Runs
+ */
+export const listPortableRuns = <ThrowOnError extends boolean = true>(options?: Options<ListPortableRunsData, ThrowOnError>): RequestResult<ListPortableRunsResponses, ListPortableRunsErrors, ThrowOnError> => (options?.client ?? client).get<ListPortableRunsResponses, ListPortableRunsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-runs',
+    ...options
+});
+
+/**
+ * Create Run
+ */
+export const createPortableRun = <ThrowOnError extends boolean = true>(options: Options<CreatePortableRunData, ThrowOnError>): RequestResult<CreatePortableRunResponses, CreatePortableRunErrors, ThrowOnError> => (options.client ?? client).post<CreatePortableRunResponses, CreatePortableRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-runs',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Defaults
+ */
+export const defaultPortableConfig = <ThrowOnError extends boolean = true>(options: Options<DefaultPortableConfigData, ThrowOnError>): RequestResult<DefaultPortableConfigResponses, DefaultPortableConfigErrors, ThrowOnError> => (options.client ?? client).post<DefaultPortableConfigResponses, DefaultPortableConfigErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-runs/default-config',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Preflight
+ */
+export const preflightPortableRun = <ThrowOnError extends boolean = true>(options: Options<PreflightPortableRunData, ThrowOnError>): RequestResult<PreflightPortableRunResponses, PreflightPortableRunErrors, ThrowOnError> => (options.client ?? client).post<PreflightPortableRunResponses, PreflightPortableRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-runs/preflight',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Run
+ */
+export const readPortableRun = <ThrowOnError extends boolean = true>(options: Options<ReadPortableRunData, ThrowOnError>): RequestResult<ReadPortableRunResponses, ReadPortableRunErrors, ThrowOnError> => (options.client ?? client).get<ReadPortableRunResponses, ReadPortableRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-runs/{run_id}',
+    ...options
+});
+
+/**
+ * Cancel
+ */
+export const cancelPortableRun = <ThrowOnError extends boolean = true>(options: Options<CancelPortableRunData, ThrowOnError>): RequestResult<CancelPortableRunResponses, CancelPortableRunErrors, ThrowOnError> => (options.client ?? client).post<CancelPortableRunResponses, CancelPortableRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-runs/{run_id}/cancel',
+    ...options
+});
+
+/**
+ * Candidates
+ */
+export const listPortableCandidates = <ThrowOnError extends boolean = true>(options: Options<ListPortableCandidatesData, ThrowOnError>): RequestResult<ListPortableCandidatesResponses, ListPortableCandidatesErrors, ThrowOnError> => (options.client ?? client).get<ListPortableCandidatesResponses, ListPortableCandidatesErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-runs/{run_id}/candidates',
+    ...options
+});
+
+/**
+ * Checkpoints
+ */
+export const listPortableCheckpoints = <ThrowOnError extends boolean = true>(options: Options<ListPortableCheckpointsData, ThrowOnError>): RequestResult<ListPortableCheckpointsResponses, ListPortableCheckpointsErrors, ThrowOnError> => (options.client ?? client).get<ListPortableCheckpointsResponses, ListPortableCheckpointsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-runs/{run_id}/checkpoints',
+    ...options
+});
+
+/**
+ * Evaluations
+ */
+export const listPortableEvaluations = <ThrowOnError extends boolean = true>(options: Options<ListPortableEvaluationsData, ThrowOnError>): RequestResult<ListPortableEvaluationsResponses, ListPortableEvaluationsErrors, ThrowOnError> => (options.client ?? client).get<ListPortableEvaluationsResponses, ListPortableEvaluationsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-runs/{run_id}/evaluations',
+    ...options
+});
+
+/**
+ * Model Calls
+ */
+export const listPortableModelCalls = <ThrowOnError extends boolean = true>(options: Options<ListPortableModelCallsData, ThrowOnError>): RequestResult<ListPortableModelCallsResponses, ListPortableModelCallsErrors, ThrowOnError> => (options.client ?? client).get<ListPortableModelCallsResponses, ListPortableModelCallsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-runs/{run_id}/model-calls',
+    ...options
+});
+
+/**
+ * Pause
+ */
+export const pausePortableRun = <ThrowOnError extends boolean = true>(options: Options<PausePortableRunData, ThrowOnError>): RequestResult<PausePortableRunResponses, PausePortableRunErrors, ThrowOnError> => (options.client ?? client).post<PausePortableRunResponses, PausePortableRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-runs/{run_id}/pause',
+    ...options
+});
+
+/**
+ * Resume
+ */
+export const resumePortableRun = <ThrowOnError extends boolean = true>(options: Options<ResumePortableRunData, ThrowOnError>): RequestResult<ResumePortableRunResponses, ResumePortableRunErrors, ThrowOnError> => (options.client ?? client).post<ResumePortableRunResponses, ResumePortableRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-runs/{run_id}/resume',
+    ...options
+});
+
+/**
+ * Usage
+ */
+export const readPortableUsage = <ThrowOnError extends boolean = true>(options: Options<ReadPortableUsageData, ThrowOnError>): RequestResult<ReadPortableUsageResponses, ReadPortableUsageErrors, ThrowOnError> => (options.client ?? client).get<ReadPortableUsageResponses, ReadPortableUsageErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-runs/{run_id}/usage',
+    ...options
+});
+
+/**
+ * Strategies
+ */
+export const listPortableStrategies = <ThrowOnError extends boolean = true>(options?: Options<ListPortableStrategiesData, ThrowOnError>): RequestResult<ListPortableStrategiesResponses, ListPortableStrategiesErrors, ThrowOnError> => (options?.client ?? client).get<ListPortableStrategiesResponses, ListPortableStrategiesErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-strategies',
+    ...options
+});
+
+/**
+ * Create Strategy
+ */
+export const createPortableStrategy = <ThrowOnError extends boolean = true>(options: Options<CreatePortableStrategyData, ThrowOnError>): RequestResult<CreatePortableStrategyResponses, CreatePortableStrategyErrors, ThrowOnError> => (options.client ?? client).post<CreatePortableStrategyResponses, CreatePortableStrategyErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-strategies',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Strategy
+ */
+export const readPortableStrategy = <ThrowOnError extends boolean = true>(options: Options<ReadPortableStrategyData, ThrowOnError>): RequestResult<ReadPortableStrategyResponses, ReadPortableStrategyErrors, ThrowOnError> => (options.client ?? client).get<ReadPortableStrategyResponses, ReadPortableStrategyErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-strategies/{strategy_id}',
+    ...options
+});
+
+/**
+ * Templates
+ */
+export const listPortableTemplates = <ThrowOnError extends boolean = true>(options?: Options<ListPortableTemplatesData, ThrowOnError>): RequestResult<ListPortableTemplatesResponses, ListPortableTemplatesErrors, ThrowOnError> => (options?.client ?? client).get<ListPortableTemplatesResponses, ListPortableTemplatesErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/portable-templates',
     ...options
 });
 
@@ -511,11 +1014,69 @@ export const resumeRun = <ThrowOnError extends boolean = true>(options: Options<
 });
 
 /**
+ * Splits
+ */
+export const listSplitVersions = <ThrowOnError extends boolean = true>(options?: Options<ListSplitVersionsData, ThrowOnError>): RequestResult<ListSplitVersionsResponses, ListSplitVersionsErrors, ThrowOnError> => (options?.client ?? client).get<ListSplitVersionsResponses, ListSplitVersionsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/split-versions',
+    ...options
+});
+
+/**
+ * Create Split
+ */
+export const createSplitVersion = <ThrowOnError extends boolean = true>(options: Options<CreateSplitVersionData, ThrowOnError>): RequestResult<CreateSplitVersionResponses, CreateSplitVersionErrors, ThrowOnError> => (options.client ?? client).post<CreateSplitVersionResponses, CreateSplitVersionErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/split-versions',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Split
+ */
+export const readSplitVersion = <ThrowOnError extends boolean = true>(options: Options<ReadSplitVersionData, ThrowOnError>): RequestResult<ReadSplitVersionResponses, ReadSplitVersionErrors, ThrowOnError> => (options.client ?? client).get<ReadSplitVersionResponses, ReadSplitVersionErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/split-versions/{split_version_id}',
+    ...options
+});
+
+/**
+ * Split Exposure
+ */
+export const readSplitExposure = <ThrowOnError extends boolean = true>(options: Options<ReadSplitExposureData, ThrowOnError>): RequestResult<ReadSplitExposureResponses, ReadSplitExposureErrors, ThrowOnError> => (options.client ?? client).get<ReadSplitExposureResponses, ReadSplitExposureErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/split-versions/{split_version_id}/exposure',
+    ...options
+});
+
+/**
  * Status
  */
 export const readStatus = <ThrowOnError extends boolean = true>(options?: Options<ReadStatusData, ThrowOnError>): RequestResult<ReadStatusResponses, ReadStatusErrors, ThrowOnError> => (options?.client ?? client).get<ReadStatusResponses, ReadStatusErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/status',
+    ...options
+});
+
+/**
+ * Package Detail
+ */
+export const getStrategyPackage = <ThrowOnError extends boolean = true>(options: Options<GetStrategyPackageData, ThrowOnError>): RequestResult<GetStrategyPackageResponses, GetStrategyPackageErrors, ThrowOnError> => (options.client ?? client).get<GetStrategyPackageResponses, GetStrategyPackageErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/strategy-packages/{package_id}',
+    ...options
+});
+
+/**
+ * Package Download
+ */
+export const downloadStrategyPackage = <ThrowOnError extends boolean = true>(options: Options<DownloadStrategyPackageData, ThrowOnError>): RequestResult<DownloadStrategyPackageResponses, DownloadStrategyPackageErrors, ThrowOnError> => (options.client ?? client).get<DownloadStrategyPackageResponses, DownloadStrategyPackageErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/strategy-packages/{package_id}/download',
     ...options
 });
 

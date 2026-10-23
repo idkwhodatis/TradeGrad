@@ -89,3 +89,83 @@ def coverage_for(
         after_delisting_sessions=after,
         missing_reason="upstream_missing_or_suspension_unknown" if missing else None,
     )
+
+
+SESSION_SCHEDULE_VERSION = "marketdata.session-schedule.v1"
+
+
+def session_schedule(request: BarsRequest) -> dict:
+    """Materialize exchange clocks in the data runtime, never from price rows.
+
+    Unavailable calendars stay unavailable. Nasdaq and Shenzhen preserve their
+    true MIC with a prominently declared proxy, not an equivalence certificate.
+    """
+    from .venues import canonical_calendar
+
+    def utc_iso(stamp):
+        return stamp.isoformat().replace("+00:00", "Z")
+
+    schedules, bindings = {}, {}
+    for listing in request.listings:
+        canonical = canonical_calendar(
+            listing.mic,
+            listing.calendar,
+            currency=listing.currency,
+            timezone=listing.timezone,
+        )
+        proxy = listing.mic != canonical
+        bindings[listing.listing_id] = {
+            "mic": listing.mic,
+            "calendar": canonical,
+            "calendar_basis": "declared_proxy" if proxy else "exchange_calendar",
+            "note": (
+                f"{listing.mic} uses the declared {canonical} regular-equity calendar proxy; "
+                "venue equivalence is not certified."
+                if proxy
+                else f"{canonical} exchange-calendars regular-equity schedule."
+            ),
+        }
+        if canonical in schedules:
+            continue
+        try:
+            calendar, sessions = session_calendar(
+                listing.model_copy(update={"calendar": canonical}),
+                request.start,
+                request.end,
+            )
+            values = []
+            for day in sessions:
+                next_session = calendar.next_session(day)
+                values.append(
+                    {
+                        "session_date": day.date().isoformat(),
+                        "open_time": utc_iso(calendar.session_open(day)),
+                        "close_time": utc_iso(calendar.session_close(day)),
+                        "next_open_time": utc_iso(calendar.session_open(next_session)),
+                    }
+                )
+            schedules[canonical] = {"status": "complete", "sessions": values}
+        except CalendarUnavailable:
+            schedules[canonical] = {
+                "status": "unavailable",
+                "sessions": [],
+                "reason": "calendar_unavailable",
+            }
+        except (ValueError, IndexError, KeyError):
+            # At a publication boundary next-open can be outside known coverage.
+            schedules[canonical] = {
+                "status": "unavailable",
+                "sessions": [],
+                "reason": "next_open_unavailable",
+            }
+    return {
+        "schema_version": SESSION_SCHEDULE_VERSION,
+        "generator": {
+            "name": "exchange_calendars",
+            "version": version("exchange-calendars"),
+        },
+        "start": request.start.isoformat(),
+        "end": request.end.isoformat(),
+        "listing_calendars": bindings,
+        "calendars": schedules,
+    }

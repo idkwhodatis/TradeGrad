@@ -15,7 +15,7 @@ from packages.marketdata.contracts import (
     UniverseMember,
 )
 
-ProviderName = Literal["akshare", "yfinance", "openbb"]
+ProviderName = Literal["akshare", "yfinance", "openbb", "portable_fixture"]
 ImportStatus = Literal[
     "requested",
     "fetching",

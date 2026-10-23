@@ -9,11 +9,9 @@ from sqlalchemy.engine import make_url
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=None, extra="ignore", hide_input_in_errors=True
-    )
-    database_url: str = Field(repr=False)
-    secret_key: str = Field(min_length=32, repr=False)
+    model_config = SettingsConfigDict(env_file=None, extra="ignore")
+    database_url: str
+    secret_key: str = Field(min_length=32)
     storage_root: Path = Path("/var/lib/tradegrad")
     access_token_minutes: int = Field(default=30, ge=1, le=1440)
     lease_seconds: int = Field(default=60, ge=10, le=3600)

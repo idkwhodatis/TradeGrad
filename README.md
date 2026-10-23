@@ -4,11 +4,14 @@
 > synthetic, seed-only web application passed real PostgreSQL, Docker isolation and
 > all nine real-browser gates. A separate actual two-worker SIGKILL/recovery
 > acceptance check also passed. M2 data integration is prepared locally; its hosted
-> acceptance is pending. Seed-only evaluation still uses disclosed cold-start
-> semantics, not warm-up-aware research execution.
+> acceptance is pending. M3–M5 research, browser workflows, portable execution and
+> frozen final-evaluation code are prepared under the local-first allowance, with
+> their separate hosted gates still pending. The original M1 seed-only mode remains
+> cold-start; configured research has an explicit warm-up contract.
 > This is not complete V1 and has no live trading. See
 > [staged validation](docs/M1_VALIDATION.md), [M2 limitations](docs/M2_VALIDATION.md),
-> [development setup](docs/M1_OPERATIONS.md) and [remaining gates](docs/V1_IMPLEMENTATION.md).
+> [development setup](docs/M1_OPERATIONS.md), [M5 boundaries](docs/M5_VALIDATION.md)
+> and [remaining gates](docs/V1_IMPLEMENTATION.md).
 
 This is the implementation of our paper *Trading Strategy Optimization via Textual Gradient*.
 

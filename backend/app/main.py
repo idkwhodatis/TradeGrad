@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from jwt import InvalidTokenError
-from sqlalchemy import func, select, text
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.api.deps import CurrentUser, SessionDep
@@ -40,6 +40,11 @@ from backend.app.models import (
     WorkerHeartbeat,
     utcnow,
 )
+from backend.app.result_access import (
+    contains_result_data,
+    record_control_response_access,
+    record_result_access,
+)
 from backend.app.schemas import (
     ArtifactPublic,
     AttemptPublic,
@@ -59,12 +64,12 @@ from backend.app.schemas import (
 from backend.app.services import (
     TERMINAL,
     DomainError,
+    owned_native_run,
     owned_run,
     request_cancel,
     resume_run,
     submit_run,
 )
-from backend.app.storage import read_verified
 
 PREFIX = "/api/v1"
 
@@ -74,7 +79,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
     app = FastAPI(
         title="TradeGrad WebUI",
         version="0.1.0",
-        description="Authenticated research API with immutable inputs, fenced optimization and verified checkpoint resume. Synthetic fixtures are not market data; final holdout execution is not enabled.",
+        description="Authenticated research API with immutable inputs, fenced optimization and verified checkpoint resume. Synthetic fixtures are not market data. Final holdout evaluation is a separate job bound to an immutable selected candidate; historical or external exposure remains unknown.",
         responses={
             401: {"model": ErrorResponse},
             404: {"model": ErrorResponse},
@@ -112,15 +117,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
         response = await call_next(request)
         response.headers["X-Correlation-ID"] = request.state.correlation_id
         response.headers["X-Content-Type-Options"] = "nosniff"
-        # Retain route-level privacy, never route-level permission to cache.
-        cache_directives = {
-            directive.partition("=")[0].strip().lower()
-            for value in response.headers.getlist("Cache-Control")
-            for directive in value.split(",")
-        }
-        response.headers["Cache-Control"] = (
-            "private, no-store" if "private" in cache_directives else "no-store"
-        )
+        response.headers["Cache-Control"] = "no-store"
         return response
 
     @app.exception_handler(DomainError)
@@ -189,7 +186,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
         try:
             session.execute(
                 text(
-                    "SELECT version_num FROM alembic_version WHERE version_num = '003_m3'"
+                    "SELECT version_num FROM alembic_version WHERE version_num = '004_m5'"
                 )
             ).scalar_one()
         except SQLAlchemyError:
@@ -329,7 +326,21 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
         offset: int = Query(0, ge=0),
         limit: int = Query(50, ge=1, le=100),
     ):
-        return page(session, StrategyVersion, user.id, offset, limit)
+        clause = (StrategyVersion.owner_id == user.id) & (
+            StrategyVersion.mode == "native_akquant"
+        )
+        return {
+            "data": session.scalars(
+                select(StrategyVersion)
+                .where(clause)
+                .order_by(StrategyVersion.created_at.desc(), StrategyVersion.id)
+                .offset(offset)
+                .limit(limit)
+            ).all(),
+            "count": session.scalar(
+                select(func.count()).select_from(StrategyVersion).where(clause)
+            ),
+        }
 
     @app.get(
         PREFIX + "/strategy-versions/{strategy_id}",
@@ -339,7 +350,9 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
     def read_strategy(strategy_id: UUID, user: CurrentUser, session: SessionDep):
         item = session.scalar(
             select(StrategyVersion).where(
-                StrategyVersion.id == strategy_id, StrategyVersion.owner_id == user.id
+                StrategyVersion.id == strategy_id,
+                StrategyVersion.owner_id == user.id,
+                StrategyVersion.mode == "native_akquant",
             )
         )
         if not item:
@@ -361,6 +374,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
         ],
     ):
         run = submit_run(session, user.id, body, idempotency_key, settings)
+        record_control_response_access(session, run, user.id)
         session.commit()
         return run
 
@@ -371,18 +385,42 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
         offset: int = Query(0, ge=0),
         limit: int = Query(50, ge=1, le=100),
     ):
-        return page(session, ResearchRun, user.id, offset, limit)
+        version = ResearchRun.config["schema_version"].astext
+        clause = (ResearchRun.owner_id == user.id) & or_(
+            version.is_(None), version == "tradegrad.run.v1"
+        )
+        response = {
+            "data": session.scalars(
+                select(ResearchRun)
+                .where(clause)
+                .order_by(ResearchRun.created_at.desc(), ResearchRun.id)
+                .offset(offset)
+                .limit(limit)
+            ).all(),
+            "count": session.scalar(
+                select(func.count()).select_from(ResearchRun).where(clause)
+            ),
+        }
+
+        for run in response["data"]:
+            if contains_result_data(run.result):
+                record_result_access(session, run, user.id, source="run-summary")
+        session.commit()
+        return response
 
     @app.get(
         PREFIX + "/runs/{run_id}", response_model=RunDetail, operation_id="read_run"
     )
     def read_run(run_id: UUID, user: CurrentUser, session: SessionDep):
-        run = owned_run(session, run_id, user.id)
+        run = owned_native_run(session, run_id, user.id)
         attempts = session.scalars(
             select(ExecutionAttempt)
             .where(ExecutionAttempt.run_id == run_id)
             .order_by(ExecutionAttempt.generation)
         ).all()
+        if contains_result_data(run.result):
+            record_result_access(session, run, user.id, source="run-summary")
+        session.commit()
         return RunDetail(
             **RunPublic.model_validate(run).model_dump(),
             attempts=[AttemptPublic.model_validate(a) for a in attempts],
@@ -395,7 +433,9 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
         operation_id="cancel_run",
     )
     def cancel_run(run_id: UUID, user: CurrentUser, session: SessionDep):
+        owned_native_run(session, run_id, user.id)
         run = request_cancel(session, run_id, user.id)
+        record_control_response_access(session, run, user.id)
         session.commit()
         return run
 
@@ -406,7 +446,9 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
         operation_id="resume_run",
     )
     def resume(run_id: UUID, user: CurrentUser, session: SessionDep):
+        owned_native_run(session, run_id, user.id)
         run = resume_run(session, run_id, user.id, settings)
+        record_control_response_access(session, run, user.id)
         session.commit()
         return run
 
@@ -460,9 +502,13 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
                     .order_by(RunEvent.seq)
                     .limit(200)
                 ).all()
-                return [
-                    EventPublic.model_validate(e) for e in events
-                ], current.status in TERMINAL
+                response = [EventPublic.model_validate(e) for e in events]
+                if any(contains_result_data(e.payload) for e in events):
+                    record_result_access(
+                        stream_session, current, owner_id, source="event-results"
+                    )
+                    stream_session.commit()
+                return response, current.status in TERMINAL
 
         async def stream():
             cursor = after_seq
@@ -533,18 +579,18 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
         )
         if not artifact:
             raise DomainError("not_found", "Artifact not found", 404)
-        content = read_verified(
-            settings.storage_root,
-            artifact.storage_key,
-            artifact.sha256,
-            settings.max_artifact_bytes,
-        )
+        from backend.app.result_access import load_result_aware_artifact
+
+        content = load_result_aware_artifact(session, artifact, user.id, settings)
+        session.commit()
         filename = re.sub(r"[^a-zA-Z0-9._-]", "_", artifact.name)
         return Response(
             content,
             media_type="application/octet-stream",
             headers={
                 "Content-Disposition": f'attachment; filename="{filename}"',
+                "Cache-Control": "private, no-store",
+                "X-Content-Type-Options": "nosniff",
                 "Content-Security-Policy": "sandbox; default-src 'none'",
             },
         )
@@ -559,4 +605,17 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
     from backend.app.strategy_routes import router as strategy_router
 
     app.include_router(strategy_router, prefix=PREFIX)
+    from backend.app.experiment_routes import router as experiment_router
+    from backend.app.final_evaluation_routes import router as final_router
+    from backend.app.strategy_package_routes import router as package_router
+
+    app.include_router(experiment_router, prefix=PREFIX)
+    app.include_router(final_router, prefix=PREFIX)
+    app.include_router(package_router, prefix=PREFIX)
+    from backend.app.portable_routes import router as portable_router
+
+    app.include_router(portable_router, prefix=PREFIX)
+    from backend.app.portable_final_routes import router as portable_final_router
+
+    app.include_router(portable_final_router, prefix=PREFIX)
     return app

@@ -164,6 +164,41 @@ def validate_persisted_result(evaluation, run, dataset, artifact, content):
     """Pure/artifact test seam. This does not authorize access; loader owns that."""
     try:
         config = research_config(run)
+    except DomainError as error:
+        raise _invalid(error.message) from None
+    return _validate_native_persisted_result(
+        evaluation,
+        run,
+        dataset,
+        artifact,
+        content,
+        config=config,
+        config_sha256=config.sha256,
+        strategy_version_id=UUID(config.seed_strategy.id),
+        allowed_windows=evaluation_windows(config),
+    )
+
+
+def _validate_native_persisted_result(
+    evaluation,
+    run,
+    dataset,
+    artifact,
+    content,
+    *,
+    config,
+    config_sha256,
+    strategy_version_id,
+    allowed_windows,
+    selected_code_sha256=None,
+):
+    """Shared native bytes checks, after a schema-specific binding was validated.
+
+    Only trusted research/final loaders call this private helper. In particular a
+    caller cannot turn an optimizer result into a holdout by changing a label:
+    the public research validator above always derives its train/validation plan.
+    """
+    try:
         bounded_json(dataset.manifest, MAX_WIRE_BYTES)
         payload = evaluation.payload
         if (
@@ -180,14 +215,18 @@ def validate_persisted_result(evaluation, run, dataset, artifact, content):
             or payload.get("exit_code") != 0
             or evaluation.run_id != run.id
             or evaluation.split != evaluation.window.get("split")
-            or evaluation.window not in evaluation_windows(config)
+            or evaluation.window not in allowed_windows
             or evaluation.window_sha256 != payload_hash(evaluation.window)
-            or run.request_sha256 != config.sha256
+            or run.request_sha256 != config_sha256
             or evaluation.image_digest != run.research_image_digest
             or payload.get("image_digest") != evaluation.image_digest
             or dataset.id != run.dataset_version_id
             or dataset.id != UUID(config.dataset.id)
-            or run.strategy_version_id != UUID(config.seed_strategy.id)
+            or run.strategy_version_id != strategy_version_id
+            or (
+                selected_code_sha256 is not None
+                and evaluation.code_sha256 != selected_code_sha256
+            )
             or dataset.owner_id != run.owner_id
             or dataset.content_sha256 != config.dataset.sha256
             or hashlib.sha256(canonical_bytes(dataset.manifest)).hexdigest()
@@ -226,7 +265,7 @@ def validate_persisted_result(evaluation, run, dataset, artifact, content):
             },
             "warmup": warmup,
             "benchmark": None,
-            "run_config_sha256": config.sha256,
+            "run_config_sha256": config_sha256,
         }
         request = {
             "task": config.task,
@@ -239,7 +278,7 @@ def validate_persisted_result(evaluation, run, dataset, artifact, content):
         identity = bundle["identity"]
         expected_identity = {
             "strategy_sha256": evaluation.code_sha256,
-            "run_config_sha256": config.sha256,
+            "run_config_sha256": config_sha256,
             "evaluation_config_sha256": hashlib.sha256(
                 canonical_json_bytes(eval_config)
             ).hexdigest(),

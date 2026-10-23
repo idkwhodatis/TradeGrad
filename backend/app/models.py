@@ -81,6 +81,8 @@ class StrategyVersion(Base):
     content_sha256: Mapped[str] = mapped_column(String(64))
     code: Mapped[str] = mapped_column(Text)
     parent_id: Mapped[UUID | None] = mapped_column(ForeignKey("strategy_versions.id"))
+    manifest: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    parameters: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )
@@ -94,15 +96,24 @@ class ResearchRun(Base):
     owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
     idempotency_key: Mapped[str] = mapped_column(String(128))
     request_sha256: Mapped[str] = mapped_column(String(64))
+    submission_binding: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     config: Mapped[dict[str, Any]] = mapped_column(JSONB)
     dataset_version_id: Mapped[UUID] = mapped_column(ForeignKey("dataset_versions.id"))
     strategy_version_id: Mapped[UUID] = mapped_column(
         ForeignKey("strategy_versions.id")
     )
+    experiment_id: Mapped[UUID | None] = mapped_column(ForeignKey("experiments.id"))
+    split_version_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("split_versions.id")
+    )
+    final_selection_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("final_selections.id", use_alter=True, name="fk_run_final_selection")
+    )
     status: Mapped[str] = mapped_column(String(30), default="queued", index=True)
     generation: Mapped[int] = mapped_column(Integer, default=1)
     active_attempt_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
     research_image_digest: Mapped[str | None] = mapped_column(String(255))
+    portable_policy_image_digest: Mapped[str | None] = mapped_column(String(255))
     latest_checkpoint_id: Mapped[UUID | None] = mapped_column(
         ForeignKey(
             "research_checkpoints.id", use_alter=True, name="fk_run_latest_checkpoint"
@@ -306,6 +317,7 @@ class UniverseVersion(Base):
     as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     members: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
     evidence: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    definition: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     content_sha256: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
@@ -468,7 +480,7 @@ class Evaluation(Base):
     )
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
-        CheckConstraint("split IN ('train','validation')"),
+        CheckConstraint("split IN ('train','validation','holdout','backtest')"),
         CheckConstraint(
             "status IN ('registered','succeeded','failed','cancelled','interrupted')"
         ),
@@ -533,4 +545,134 @@ class ResearchCheckpoint(Base):
             "attempt_id", "manifest_sha256", name="uq_checkpoint_attempt_manifest"
         ),
         CheckConstraint("complete = true AND generation > 0 AND sequence > 0"),
+    )
+
+
+class Experiment(Base):
+    """Immutable family identity. A new family never resets owner exposure history."""
+
+    __tablename__ = "experiments"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    root_experiment_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("experiments.id")
+    )
+    parent_experiment_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("experiments.id")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class SplitVersion(Base):
+    __tablename__ = "split_versions"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    experiment_id: Mapped[UUID] = mapped_column(
+        ForeignKey("experiments.id"), index=True
+    )
+    dataset_version_id: Mapped[UUID] = mapped_column(ForeignKey("dataset_versions.id"))
+    universe_version_id: Mapped[UUID] = mapped_column(
+        ForeignKey("universe_versions.id")
+    )
+    content_sha256: Mapped[str] = mapped_column(String(64))
+    definition: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class FinalSelection(Base):
+    __tablename__ = "final_selections"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    experiment_id: Mapped[UUID] = mapped_column(ForeignKey("experiments.id"))
+    split_version_id: Mapped[UUID] = mapped_column(
+        ForeignKey("split_versions.id"), unique=True
+    )
+    source_run_id: Mapped[UUID] = mapped_column(ForeignKey("research_runs.id"))
+    source_candidate_id: Mapped[UUID] = mapped_column(
+        ForeignKey("research_candidates.id")
+    )
+    source_checkpoint_id: Mapped[UUID] = mapped_column(
+        ForeignKey("research_checkpoints.id")
+    )
+    strategy_version_id: Mapped[UUID] = mapped_column(
+        ForeignKey("strategy_versions.id")
+    )
+    request_sha256: Mapped[str] = mapped_column(String(64))
+    source_config_sha256: Mapped[str] = mapped_column(String(64))
+    source_code_sha256: Mapped[str] = mapped_column(String(64))
+    source_checkpoint_sha256: Mapped[str] = mapped_column(String(64))
+    selection_evidence: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    exposure_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class DataUsageExposure(Base):
+    """Append-only conservative access/admission evidence, never a cleanliness proof."""
+
+    __tablename__ = "data_usage_exposures"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    experiment_id: Mapped[UUID | None] = mapped_column(ForeignKey("experiments.id"))
+    split_version_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("split_versions.id")
+    )
+    run_id: Mapped[UUID | None] = mapped_column(ForeignKey("research_runs.id"))
+    dataset_version_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("dataset_versions.id")
+    )
+    source_key: Mapped[str] = mapped_column(String(255))
+    identities: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date] = mapped_column(Date)
+    purpose: Mapped[str] = mapped_column(String(80))
+    provenance: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    __table_args__ = (
+        UniqueConstraint("owner_id", "source_key", name="uq_exposure_owner_source"),
+        CheckConstraint("start_date < end_date"),
+        Index("ix_exposure_owner_window", "owner_id", "start_date", "end_date"),
+    )
+
+
+class StrategyPackage(Base):
+    """Standalone immutable export, not a fake worker Artifact/ExecutionAttempt."""
+
+    __tablename__ = "strategy_packages"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    final_selection_id: Mapped[UUID] = mapped_column(ForeignKey("final_selections.id"))
+    request_sha256: Mapped[str] = mapped_column(String(64))
+    request: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    content_sha256: Mapped[str] = mapped_column(String(64))
+    archive_sha256: Mapped[str] = mapped_column(String(64))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    storage_key: Mapped[str] = mapped_column(String(500))
+    manifest: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    exposure_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    exposure_as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    __table_args__ = (
+        UniqueConstraint("owner_id", "request_sha256", name="uq_package_owner_request"),
+        CheckConstraint("size_bytes > 0"),
     )

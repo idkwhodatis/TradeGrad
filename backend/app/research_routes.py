@@ -53,6 +53,12 @@ from backend.app.research_views import (
     research_usage,
     result_view,
 )
+from backend.app.result_access import (
+    contains_result_data,
+    record_control_response_access,
+    record_result_access,
+    record_verified_result_access,
+)
 from backend.app.schemas import AttemptPublic, Page
 from backend.app.services import DomainError, request_cancel
 
@@ -74,10 +80,19 @@ def create_research_run(
     session: SessionDep,
     request: Request,
     idempotency_key: IdempotencyKey,
+    experiment_id: UUID | None = None,
+    split_version_id: UUID | None = None,
 ):
     run = submit_research_run(
-        session, user.id, body, idempotency_key, request.app.state.settings
+        session,
+        user.id,
+        body,
+        idempotency_key,
+        request.app.state.settings,
+        experiment_id=experiment_id,
+        split_version_id=split_version_id,
     )
+    record_control_response_access(session, run, user.id)
     session.commit()
     return run
 
@@ -96,7 +111,7 @@ def list_research_runs(
     clause = (ResearchRun.owner_id == user.id) & (
         ResearchRun.config["schema_version"].astext == "tradegrad.run.v1"
     )
-    return {
+    response = {
         "data": session.scalars(
             select(ResearchRun)
             .where(clause)
@@ -108,6 +123,12 @@ def list_research_runs(
             select(func.count()).select_from(ResearchRun).where(clause)
         ),
     }
+
+    for item in response["data"]:
+        if contains_result_data(item.result):
+            record_result_access(session, item, user.id, source="run-summary")
+    session.commit()
+    return response
 
 
 @router.get(
@@ -122,6 +143,9 @@ def read_research_run(run_id: UUID, user: CurrentUser, session: SessionDep):
         .where(ExecutionAttempt.run_id == run.id)
         .order_by(ExecutionAttempt.generation)
     ).all()
+    if contains_result_data(run.result):
+        record_result_access(session, run, user.id, source="run-summary")
+    session.commit()
     return ResearchRunDetail(
         **ResearchRunPublic.model_validate(run).model_dump(),
         attempts=[AttemptPublic.model_validate(item) for item in attempts],
@@ -142,6 +166,7 @@ def read_research_run(run_id: UUID, user: CurrentUser, session: SessionDep):
 )
 def pause_research_run(run_id: UUID, user: CurrentUser, session: SessionDep):
     run = request_pause(session, run_id, user.id)
+    record_control_response_access(session, run, user.id)
     session.commit()
     return run
 
@@ -155,6 +180,7 @@ def pause_research_run(run_id: UUID, user: CurrentUser, session: SessionDep):
 def cancel_research_run(run_id: UUID, user: CurrentUser, session: SessionDep):
     owned_research_run(session, run_id, user.id)
     run = request_cancel(session, run_id, user.id)
+    record_control_response_access(session, run, user.id)
     session.commit()
     return run
 
@@ -169,6 +195,7 @@ def resume_research(
     run_id: UUID, user: CurrentUser, session: SessionDep, request: Request
 ):
     run = resume_research_run(session, run_id, user.id, request.app.state.settings)
+    record_control_response_access(session, run, user.id)
     session.commit()
     return run
 
@@ -199,6 +226,19 @@ def _owned(session, model, identifier, owner_id):
     )
     if item is None:
         raise DomainError("not_found", "Research resource not found", 404)
+    if (model is Evaluation and contains_result_data(item.payload)) or model in {
+        ResearchCheckpoint,
+        ModelCall,
+    }:
+        run = owned_research_run(session, item.run_id, owner_id)
+        record_result_access(
+            session,
+            run,
+            owner_id,
+            evaluation=item if model is Evaluation else None,
+            source=f"{model.__tablename__}:{item.id}",
+        )
+        session.commit()
     return item
 
 
@@ -339,7 +379,7 @@ def read_research_results(
     result = load_owned_result(
         session, evaluation_id, user.id, request.app.state.settings
     )
-    return result_view(
+    response = result_view(
         result,
         sections=sections,
         start=start,
@@ -349,6 +389,9 @@ def read_research_results(
         offset=offset,
         limit=limit,
     )
+    record_verified_result_access(session, result, user.id)
+    session.commit()
+    return response
 
 
 @router.post(
@@ -363,7 +406,11 @@ def compare_research_results(
         load_owned_result(session, identifier, user.id, request.app.state.settings)
         for identifier in body.evaluation_ids
     ]
-    return compare_results(results)
+    response = compare_results(results)
+    for result in results:
+        record_verified_result_access(session, result, user.id)
+    session.commit()
+    return response
 
 
 _DOWNLOAD_HEADERS = {
@@ -393,6 +440,8 @@ def download_research_results(
     result = load_owned_result(
         session, evaluation_id, user.id, request.app.state.settings
     )
+    record_verified_result_access(session, result, user.id, purpose="result_download")
+    session.commit()
     return Response(
         result.content,
         media_type="application/json",
@@ -419,8 +468,11 @@ def download_research_report(
     result = load_owned_result(
         session, evaluation_id, user.id, request.app.state.settings
     )
+    content = render_result_report(result)
+    record_verified_result_access(session, result, user.id, purpose="result_download")
+    session.commit()
     return Response(
-        render_result_report(result),
+        content,
         media_type="text/html",
         headers={
             **_DOWNLOAD_HEADERS,

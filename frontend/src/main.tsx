@@ -214,6 +214,70 @@ const researchRoute = createRoute({
     "ResearchDetailPage",
   ),
 });
+const finalSelectionRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/final-selections/$selectionId",
+  component: lazyRouteComponent(
+    () => import("@/features/final-tests/final-selection"),
+    "FinalSelectionPage",
+  ),
+});
+const finalTestRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/final-tests/$finalTestId",
+  component: lazyRouteComponent(
+    () => import("@/features/final-tests/final-test-detail"),
+    "FinalTestDetailPage",
+  ),
+});
+const strategyPackageRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/strategy-packages/$packageId",
+  component: lazyRouteComponent(
+    () => import("@/features/final-tests/strategy-package"),
+    "StrategyPackagePage",
+  ),
+});
+const portableExperimentRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/portable/new",
+  component: lazyRouteComponent(
+    () => import("@/features/portable/experiment"),
+    "PortableExperimentPage",
+  ),
+});
+const portableResearchRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/portable/runs/$runId",
+  component: lazyRouteComponent(
+    () => import("@/features/portable/research"),
+    "PortableResearchPage",
+  ),
+});
+const portableResultRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/portable/evaluations/$evaluationId",
+  component: lazyRouteComponent(
+    () => import("@/features/portable/result"),
+    "PortableResultPage",
+  ),
+});
+const portableFinalSelectionRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/portable/final-selections/$selectionId",
+  component: lazyRouteComponent(
+    () => import("@/features/portable/final-selection"),
+    "PortableFinalSelectionPage",
+  ),
+});
+const portableFinalTestRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/portable/final-tests/$finalTestId",
+  component: lazyRouteComponent(
+    () => import("@/features/portable/final-detail"),
+    "PortableFinalDetailPage",
+  ),
+});
 const backtestRoute = createRoute({
   getParentRoute: () => privateRoute,
   path: "/backtests/$evaluationId",
@@ -258,6 +322,14 @@ const routeTree = rootRoute.addChildren([
     runRoute,
     experimentRoute,
     researchRoute,
+    finalSelectionRoute,
+    finalTestRoute,
+    strategyPackageRoute,
+    portableExperimentRoute,
+    portableResearchRoute,
+    portableResultRoute,
+    portableFinalSelectionRoute,
+    portableFinalTestRoute,
     backtestRoute,
     compareRoute,
     settingsRoute,

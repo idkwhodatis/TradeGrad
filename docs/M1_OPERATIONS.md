@@ -49,6 +49,8 @@ docker compose -f infra/compose.yml up -d database
 export STORAGE_ROOT="$PWD/var/storage"
 export TRADEGRAD_RUNNER_STATE_DIR="$PWD/var/runner"
 export EVALUATOR_IMAGE=tradegrad-evaluator:v1
+# PWD must already be a durable directory on the chosen persistent filesystem.
+.venv-api/bin/python -m script.provision_storage --root "$STORAGE_ROOT" --durable-parent "$PWD"
 .venv-api/bin/alembic -c backend/alembic.ini upgrade head
 
 # Set E2E_EMAIL/E2E_PASSWORD to an explicitly local development account.
@@ -71,6 +73,19 @@ tokens. Tokens are never placed in SSE URLs. This local development setup is not
 an internet-facing deployment; TLS, account lifecycle/rate limiting and production
 operations belong to later hardening. The frontend session is browser-local and
 must be cleared on logout or token expiry.
+
+## Durable storage prerequisite
+
+Before bootstrap/imports, explicitly provision `STORAGE_ROOT` below an existing
+operator-chosen durable directory using `script.provision_storage` as above.
+The tool flushes each new or concurrently-created directory entry below that
+boundary, rejects symlink/escape paths and is idempotent. It does not infer a
+filesystem root or certify the operator's mount, parent durability, disk cache,
+network filesystem or power-loss guarantees. These assumptions must be checked
+for the deployment. API/workers fail closed if the required root is missing.
+Snapshot ancestry, immutable bytes and final directory entries are flushed
+before a referring database commit. A complete orphan may survive a failed DB
+commit; retry must verify content instead of overwriting it.
 
 ## Execution and recovery
 

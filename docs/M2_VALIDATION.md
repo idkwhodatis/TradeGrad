@@ -2,14 +2,15 @@
 
 ## Status
 
-**Local provisional gate passed; hosted/live acceptance remains incomplete.** The new M2 PostgreSQL, real-process,
-Docker, Chromium and live-provider gates have not run against this code revision.
-The user explicitly allowed local progression with unavailable Playwright
-provisionally deferred on 2026-10-22. This does not waive PostgreSQL transactions,
-actual evaluator isolation or real upstream evidence. M3 may be developed and
-checked locally while those acceptance items remain open.
-Earlier M0/M1 hosted results remain evidence for their recorded exact commit,
-not for this M2 revision. See [M1 evidence](M1_VALIDATION.md).
+**Deterministic hosted gate passed; live-provider acceptance remains unverified.**
+Exact head `0f6e83599ce3251dcdda1a97345d314271c53f3c` passed
+[run 39868584582](https://github.com/idkwhodatis/TradeGrad/actions/runs/39868584582),
+including real PostgreSQL, Docker/kernel isolation, process SIGKILL/recovery and
+the complete Chromium suite. Each of the three real adapter/application paths
+uses explicitly frozen SDK responses; this is not evidence of current upstream
+network availability or current provider data semantics. The original local-first
+permission no longer substitutes for those now-executed M2 infrastructure gates.
+Earlier M0/M1 evidence remains recorded separately in [M1 evidence](M1_VALIDATION.md).
 
 No paid model requests, live trading, production deployment or merge is part of
 this stage. This is not a completed V1 research product.
@@ -22,8 +23,8 @@ package versions respectively. OpenAPI/client regeneration produced identical
 bytes; formatting, types, production build, Ruff and whitespace checks passed.
 Collection found 187 real-PostgreSQL tests plus two actual-process recovery tests,
 and Playwright discovered 20 Chromium scenarios, three of them live-provider
-eligible. Collection/discovery is not execution. The Docker suite is likewise
-pending on the M2 revision.
+eligible. Collection/discovery was not execution. These historical local counts are
+retained for traceability; the subsequent exact-head hosted result is above.
 
 ## Additional local adapter-to-engine bridge
 

@@ -26,6 +26,7 @@ const navigation = [
   { to: "/datasets", label: "Datasets", icon: Database },
   { to: "/strategies", label: "Strategy library", icon: Braces },
   { to: "/runs", label: "Experiments", icon: FlaskConical },
+  { to: "/portable/new", label: "Portable research", icon: FlaskConical },
   { to: "/settings", label: "Settings & status", icon: Settings2 },
 ] as const;
 
@@ -36,7 +37,11 @@ export function AppLayout() {
   const user = useQuery(currentUserOptions);
   const activeTitle =
     navigation.find((item) =>
-      item.to === "/" ? pathname === "/" : pathname.startsWith(item.to),
+      item.to === "/"
+        ? pathname === "/"
+        : pathname.startsWith(
+            item.to === "/portable/new" ? "/portable/" : item.to,
+          ),
     )?.label ?? "Experiment";
   function signOut() {
     clearSession();
@@ -70,7 +75,7 @@ export function AppLayout() {
               <Link
                 key={to}
                 to={to}
-                className={`nav-link ${(to === "/" ? pathname === "/" : pathname.startsWith(to)) ? "active" : ""}`}
+                className={`nav-link ${(to === "/" ? pathname === "/" : pathname.startsWith(to === "/portable/new" ? "/portable/" : to)) ? "active" : ""}`}
               >
                 <Icon />
                 {label}

@@ -11,7 +11,12 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import select
 
-from backend.app.core.atomic_storage import fsync_directory, publish_bytes, sync_tree
+from backend.app.core.atomic_storage import (
+    fsync_directory,
+    provision_directory,
+    publish_bytes,
+    sync_tree,
+)
 from backend.app.core.config import get_settings
 from backend.app.core.db import create_db_engine, session_factory
 from backend.app.data_services import (
@@ -50,7 +55,7 @@ def _save_checkpoint(settings, owner_id, import_id, result):
     sha = hashlib.sha256(content).hexdigest()
     key = f"data-checkpoints/{owner_id}/{import_id}/{sha}.json"
     path = safe_path(settings.storage_root, key)
-    publish_bytes(path, content, sha256=sha)
+    publish_bytes(path, content, sha256=sha, durable_root=settings.storage_root)
     return key, sha
 
 
@@ -425,6 +430,7 @@ def _publish(factory, item_id, generation, token, settings, listings, results):
     dataset_id = uuid4()
     storage_key = f"datasets/{owner_id}/{dataset_id}"
     target = safe_path(settings.storage_root, storage_key)
+    provision_directory(target.parent, durable_parent=settings.storage_root)
     staging = target.with_name(target.name + ".staging")
     staging.mkdir(parents=True, mode=0o700)
     try:
@@ -450,7 +456,10 @@ def _publish(factory, item_id, generation, token, settings, listings, results):
             )
             source_name = f"source.{upload['format']}"
             publish_bytes(
-                staging / source_name, source_content, sha256=upload["sha256"]
+                staging / source_name,
+                source_content,
+                sha256=upload["sha256"],
+                durable_root=settings.storage_root,
             )
             manifest["artifact_files"][source_name] = upload["sha256"]
             manifest["upload_source"] = {
@@ -608,7 +617,7 @@ def execute(import_id, generation, settings=None, factory=None):
 
         execution_policy = config.get("_execution", {})
         if not execution_policy_compatible(
-            execution_policy, settings.data_provider_mode
+            execution_policy, settings.data_provider_mode, provider_name=provider_name
         ):
             _set_status(
                 factory,

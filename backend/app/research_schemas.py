@@ -15,6 +15,8 @@ class ResearchRunCreate(RunConfig):
 
 
 class ResearchRunPublic(RunPublic):
+    experiment_id: UUID | None = None
+    split_version_id: UUID | None = None
     research_image_digest: str | None = None
     latest_checkpoint_id: UUID | None = None
     resume_checkpoint_id: UUID | None = None

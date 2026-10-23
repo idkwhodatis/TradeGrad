@@ -9,3 +9,16 @@
 !packages/
 !packages/tradegrad_adapter/
 !packages/tradegrad_adapter/results.py
+!packages/tradegrad_adapter/portable_results.py
+!packages/strategy_sdk/
+!packages/strategy_sdk/*.py
+!packages/strategy_sdk/templates/
+!packages/strategy_sdk/templates/*.py
+!runtimes/portable_engine/
+!runtimes/portable_engine/*.py
+!runtimes/portable_engine/Dockerfile
+!runtimes/portable_engine/*.lock
+!runtimes/portable_policy/
+!runtimes/portable_policy/*.py
+!runtimes/portable_policy/Dockerfile
+!runtimes/portable_policy/requirements.lock

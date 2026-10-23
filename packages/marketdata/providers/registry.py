@@ -2,6 +2,10 @@
 
 
 def get_provider(name: str, *, mode: str = "live"):
+    if name == "portable_fixture":
+        from ..portable_fixture import PortableFixtureProvider
+
+        return PortableFixtureProvider(mode=mode)
     if name == "akshare":
         from .akshare import AKShareProvider
 

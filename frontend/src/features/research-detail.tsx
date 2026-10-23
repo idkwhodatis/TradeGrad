@@ -1,3 +1,4 @@
+import { FreezeCandidatePanel } from "@/features/final-tests/freeze-selection";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
@@ -625,6 +626,7 @@ function ResearchContent({ run }: { run: ResearchRunDetail }) {
           </Panel>
         </div>
       </div>
+      <FreezeCandidatePanel run={run} />
       <div className="stack mt-6">
         <PagedResearch
           title="Candidate lineage and immutable repairs"

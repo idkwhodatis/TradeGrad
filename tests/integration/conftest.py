@@ -103,8 +103,10 @@ def migrated_engine(postgres_engine: Engine) -> Engine:
 
 @pytest.fixture
 def settings(migrated_engine: Engine, tmp_path: Path):
+    from backend.app.core.atomic_storage import provision_directory
     from backend.app.core.config import Settings
 
+    provision_directory(tmp_path / "storage", durable_parent=tmp_path)
     return Settings(
         database_url=migrated_engine.url.render_as_string(hide_password=False),
         secret_key=secrets.token_urlsafe(48),

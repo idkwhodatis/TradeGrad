@@ -2,7 +2,7 @@
 
 import hashlib
 import json
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Annotated
 from uuid import UUID
@@ -89,6 +89,7 @@ def providers(user: CurrentUser, request: Request):
             else None,
         }
         for p in catalog
+        if p["id"] != "portable_fixture" or mode == "fixture"
     ]
 
 
@@ -337,7 +338,7 @@ async def upload(
     )
     # Validate ownership, quota and idempotency before writing durable bytes.
     # The outbox cannot become visible until the complete object exists.
-    publish_bytes(target, content, sha256=sha)
+    publish_bytes(target, content, sha256=sha, durable_root=settings.storage_root)
     session.commit()
     return item
 
@@ -440,8 +441,27 @@ def preview(
             ):
                 rows.append(row)
     rows.sort(key=lambda r: r["session_date"])
+    page = rows[offset : offset + limit]
+    if page:
+        from backend.app.experiment_services import record_dataset_access
+        from packages.tradegrad_adapter.config import DateWindow
+
+        visible = DateWindow(
+            start=date.fromisoformat(page[0]["session_date"]),
+            end=date.fromisoformat(page[-1]["session_date"]) + timedelta(days=1),
+        )
+        key = f"dataset-preview:{item.id}:{listing_id}:{visible.start}:{visible.end}"
+        record_dataset_access(
+            session,
+            user.id,
+            item,
+            purpose="dataset_preview",
+            source_key=key,
+            window=visible,
+        )
+        session.commit()
     return {
-        "data": rows[offset : offset + limit],
+        "data": page,
         "count": len(rows),
         "offset": offset,
         "limit": limit,

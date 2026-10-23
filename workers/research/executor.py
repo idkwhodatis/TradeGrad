@@ -182,11 +182,22 @@ def execute(run_id: str, generation: int, settings: Settings | None = None):
     factory = session_factory(create_db_engine(settings))
     with factory() as session:
         current = session.get(ResearchRun, UUID(run_id))
-        configured = (
-            current is not None
-            and current.config.get("schema_version") == "tradegrad.run.v1"
-        )
-    if configured:
+        schema = current.config.get("schema_version") if current is not None else None
+    if schema == "tradegrad.portable.final-evaluation.v1":
+        from workers.research.portable_final_evaluation import execute_portable_final
+
+        return execute_portable_final(run_id, generation, settings, factory)
+    if schema == "tradegrad.portable.run.v1":
+        from workers.research.portable_optimization import execute_portable_configured
+
+        return execute_portable_configured(run_id, generation, settings, factory)
+    if schema == "tradegrad.final-evaluation.v1":
+        from workers.research.final_evaluation import execute_final
+
+        return execute_final(run_id, generation, settings, factory)
+    if schema not in (None, "tradegrad.run.v1"):
+        raise ValueError("Unsupported immutable run schema; no legacy fallback")
+    if schema == "tradegrad.run.v1":
         from workers.research.optimization import execute_configured
 
         return execute_configured(run_id, generation, settings, factory)

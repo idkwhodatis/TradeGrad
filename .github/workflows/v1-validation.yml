@@ -70,10 +70,10 @@ jobs:
           retention-days: 14
 
   application:
-    name: M1–M3 real application (${{ (inputs.provider_mode == 'live' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]'))) && 'live' || 'fixture' }})
+    name: M1–M5 real application (${{ (inputs.provider_mode == 'live' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]'))) && 'live' || 'fixture' }})
     needs: baseline
     runs-on: ubuntu-22.04
-    timeout-minutes: 45
+    timeout-minutes: 75
     env:
       # Credentials are generated and masked on this disposable runner only.
       POSTGRES_USER: tradegrad_ci
@@ -81,6 +81,8 @@ jobs:
       STORAGE_ROOT: ${{ github.workspace }}/var/storage
       TRADEGRAD_RUNNER_STATE_DIR: ${{ github.workspace }}/var/runner
       EVALUATOR_IMAGE: tradegrad-evaluator:v1
+      PORTABLE_ENGINE_IMAGE: tradegrad-portable-engine:v1
+      PORTABLE_POLICY_IMAGE: tradegrad-portable-policy:v1
       TRADEGRAD_REQUIRE_DOCKER: "1"
       E2E_EMAIL: first@example.com
       E2E_OTHER_EMAIL: second@example.com
@@ -161,6 +163,10 @@ jobs:
           TRADEGRAD_MARKETDATA_LIVE: "1"
           TRADEGRAD_OPENBB_LIVE: "1"
         run: .venv-data/bin/python -m pytest tests/marketdata/test_live_providers.py tests/marketdata/test_openbb.py -q -k "test_live_resolve_fetch_and_snapshot or optional_live" --junitxml=m2-live-provider-junit.xml
+      - name: Validate portable SDK, actual TradeTGD adapter and frozen final contracts
+        run: .venv-research/bin/python -m pytest tests/portable --ignore=tests/portable/test_isolation.py -q --junitxml=m5-portable-contracts-junit.xml
+      - name: Validate portable calendar semantics with installed pinned calendar library
+        run: .venv-data/bin/python -m pytest tests/portable/test_engine.py -q --junitxml=m5-portable-calendar-junit.xml
       - name: Validate supervisor contracts
         run: python -m pytest backend/tests tests/runner --ignore=tests/runner/test_research_result_protocol.py -q --junitxml=m1-supervisor-junit.xml
       - name: Validate real PostgreSQL transactions and Procrastinate schema
@@ -169,6 +175,16 @@ jobs:
         run: |
           digest=$(python -m packages.tradegrad_adapter.environment)
           docker build --build-arg "TRADEGRAD_ENVIRONMENT_DIGEST=$digest" -t "$EVALUATOR_IMAGE" -f runtimes/evaluator/Dockerfile .
+      - name: Build separate trusted-engine and untrusted-policy images (never published)
+        run: |
+          digest=$(.venv-research/bin/python -m packages.tradegrad_adapter.portable_environment)
+          echo "PORTABLE_ENVIRONMENT_DIGEST=$digest" >> "$GITHUB_ENV"
+          docker build --build-arg "TRADEGRAD_ENVIRONMENT_DIGEST=$digest" -t "$PORTABLE_ENGINE_IMAGE" -f runtimes/portable_engine/Dockerfile .
+          docker build --build-arg "TRADEGRAD_ENVIRONMENT_DIGEST=$digest" -t "$PORTABLE_POLICY_IMAGE" -f runtimes/portable_policy/Dockerfile .
+      - name: Require real paired-container portable isolation and causal execution
+        env:
+          TRADEGRAD_REQUIRE_PORTABLE_DOCKER: "1"
+        run: python -m pytest tests/portable/test_isolation.py -q --junitxml=m5-portable-isolation-junit.xml
       - name: Require real kernel isolation and unchanged four-task engine results
         run: python -m pytest tests/isolation -q --junitxml=m1-isolation-junit.xml
       - name: Install frontend and verify generated contracts
@@ -186,6 +202,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Migrate and explicitly provision disposable synthetic accounts
         run: |
+          python -m script.provision_storage --root "$STORAGE_ROOT" --durable-parent "$GITHUB_WORKSPACE"
           alembic -c backend/alembic.ini upgrade head
           python -m backend.app.bootstrap --email "$E2E_EMAIL" --password-env E2E_PASSWORD --with-synthetic-fixtures --with-e2e-fixtures
           python -m backend.app.bootstrap --email "$E2E_OTHER_EMAIL" --password-env E2E_OTHER_PASSWORD --with-synthetic-fixtures
@@ -203,6 +220,30 @@ jobs:
         run: |
           export API_PYTHON=$(command -v python)
           .venv-research/bin/python -m pytest tests/system/test_research_optimization.py -q --junitxml=m3-configured-application-junit.xml
+      - name: Verify frozen native final holdout without optimizer feedback
+        env:
+          TRADEGRAD_REQUIRE_FINAL_INTEGRATION: "1"
+          DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
+          RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
+        run: |
+          export API_PYTHON=$(command -v python)
+          .venv-research/bin/python -m pytest tests/system/test_final_pipeline.py -q --junitxml=m5-native-final-application-junit.xml
+      - name: Verify both portable research modes, actual dual runtimes and initial-checkpoint resume
+        env:
+          TRADEGRAD_REQUIRE_PORTABLE_RESEARCH_INTEGRATION: "1"
+          DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
+          RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
+        run: |
+          export API_PYTHON=$(command -v python)
+          .venv-research/bin/python -m pytest tests/system/test_portable_research_pipeline.py -q --junitxml=m5-portable-application-junit.xml
+      - name: Verify separate portable final holdout, cancellation, retries and reference export
+        env:
+          TRADEGRAD_REQUIRE_PORTABLE_FINAL_INTEGRATION: "1"
+          DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
+          RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
+        run: |
+          export API_PYTHON=$(command -v python)
+          .venv-research/bin/python -m pytest tests/system/test_portable_final_pipeline.py -q --junitxml=m5-portable-final-application-junit.xml
       - name: Exercise the real HTTP, queue, engine and browser boundary
         shell: bash
         run: |
@@ -217,6 +258,7 @@ jobs:
           cleanup() {
             kill "$api" "$dispatcher" "$worker" "$reconciler" "$data_dispatcher" "$data_worker" 2>/dev/null || true
             docker ps -aq --filter label=io.tradegrad.managed=evaluator-v1 | xargs -r docker rm -f >/dev/null
+            docker ps -aq --filter label=io.tradegrad.managed=portable-evaluator-v1 | xargs -r docker rm -f >/dev/null
           }
           trap cleanup EXIT
           python - <<'PY'
@@ -241,11 +283,11 @@ jobs:
         run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
       - name: Export outcome-only evidence without diagnostic payloads
         if: always()
-        run: python script/summarize_ci_junit.py m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml m3-research-contracts-junit.xml m3-window-engine-junit.xml m3-configured-application-junit.xml frontend/test-results/junit.xml
+        run: python script/summarize_ci_junit.py m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml m3-research-contracts-junit.xml m3-window-engine-junit.xml m3-configured-application-junit.xml m5-portable-contracts-junit.xml m5-portable-calendar-junit.xml m5-portable-isolation-junit.xml m5-native-final-application-junit.xml m5-portable-application-junit.xml m5-portable-final-application-junit.xml frontend/test-results/junit.xml
       - name: Preserve bounded test evidence (no traces, credentials or source data)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: m1-m3-${{ env.DATA_PROVIDER_MODE }}-validation-${{ github.sha }}
+          name: m1-m5-${{ env.DATA_PROVIDER_MODE }}-validation-${{ github.sha }}
           path: var/ci-evidence/*.xml
           retention-days: 14

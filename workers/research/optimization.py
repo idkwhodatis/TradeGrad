@@ -180,6 +180,7 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
     last_pulse, control_state, evaluation_deadline = [0.0], [None], [0.0]
     evaluation_ids = set()
     image_id = None
+    finish_receipt_committed = False
 
     def pulse(force=False):
         with lock:
@@ -309,6 +310,19 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
             settings.storage_root, f"runs/{run_id}/attempts/{attempt_id}"
         )
         attempt_root.mkdir(parents=True, mode=0o700)
+        from workers.research.environment_evidence import publish_native_environment
+
+        publish_native_environment(
+            factory=factory,
+            storage_root=settings.storage_root,
+            attempt_root=attempt_root,
+            run_id=run_id,
+            attempt_id=attempt_id,
+            generation=generation,
+            token=token,
+            expected_environment_digest=config.environment_digest,
+            image_id=image_id,
+        )
         evaluation_deadline[0] = time.monotonic() + float(
             config.budgets.max_runtime_seconds
         )
@@ -516,12 +530,17 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
                         sandbox_stopped=stopped,
                     )
                     outcome["status"] = final_run.status
+                finish_receipt_committed = True
         except FenceLost:
             pass
         finally:
             done.set()
             thread.join(timeout=5)
     return {
-        "status": outcome["status"] if stopped else "recovery_blocked",
+        "status": outcome["status"]
+        if stopped and finish_receipt_committed
+        else "fence_lost"
+        if stopped
+        else "recovery_blocked",
         "sandbox_stopped": stopped,
     }

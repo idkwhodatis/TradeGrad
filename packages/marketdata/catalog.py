@@ -11,6 +11,10 @@ LOCKED_VERSIONS = {
 
 
 def documented_capabilities(connector: str) -> list[Capability]:
+    if connector == "portable_fixture":
+        from .portable_fixture import PortableFixtureProvider
+
+        return PortableFixtureProvider(mode="fixture").capabilities()
     definitions = {
         "akshare": (
             "eastmoney",
@@ -69,7 +73,9 @@ def provider_catalog() -> list[dict]:
     return [
         {
             "id": name,
-            "name": name,
+            "name": "Portable synthetic fixture (not market data)"
+            if name == "portable_fixture"
+            else name,
             "provider": upstream,
             "markets": markets,
             "intervals": ["1d"],
@@ -82,5 +88,6 @@ def provider_catalog() -> list[dict]:
             ("akshare", "eastmoney", ["CN"], ["raw", "qfq", "hfq"]),
             ("yfinance", "yahoo", ["US"], ["provider_native"]),
             ("openbb", "nasdaq", ["US"], ["provider_native"]),
+            ("portable_fixture", "synthetic", ["CN", "US"], ["raw"]),
         ]
     ]

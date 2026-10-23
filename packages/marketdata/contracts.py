@@ -347,16 +347,26 @@ class UploadMapping(Contract):
 # Generated fixture prices are versioned independently of live transformations.
 # A retry must not combine checkpointed bars from different fixture algorithms.
 FIXTURE_VERSION = "synthetic-daily.v2"
+PORTABLE_FIXTURE_VERSION = "portable.synthetic.daily.v1"
 
 
-def execution_policy_compatible(policy: dict, provider_mode: str) -> bool:
+def execution_policy_compatible(
+    policy: dict, provider_mode: str, *, provider_name: str | None = None
+) -> bool:
+    if provider_name == "portable_fixture" and provider_mode != "fixture":
+        return False
+    fixture = (
+        PORTABLE_FIXTURE_VERSION
+        if provider_name == "portable_fixture"
+        else FIXTURE_VERSION
+    )
     return (
         policy.get("schema_version") == SCHEMA_VERSION
         and policy.get("transform_version") == TRANSFORM_VERSION
         and policy.get("worker_contract") == "data-import.v1"
         and policy.get("provider_mode") == provider_mode
         and policy.get("fixture_version")
-        == (FIXTURE_VERSION if provider_mode == "fixture" else None)
+        == (fixture if provider_mode == "fixture" else None)
         and type(policy.get("block_days")) is int
         and 1 <= policy["block_days"] <= 366
     )
