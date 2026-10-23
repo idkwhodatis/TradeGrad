@@ -250,3 +250,18 @@ Plan: broad L320/L324, with narrow gate qualification L362/L397.
 The audit found concrete implementation/test coverage for immutable snapshots and original raw SDK retention; no-silent-fallback/price-basis disclosure; manual universe validity and refusal to invent PIT; source-compatible/corrected profiles; real TradeTGD parity; durable candidate/repair lineage; complete checkpoint recovery; no-result/invalid-result failure; authenticated ordered SSE; owner fences; separated final selection/exposure; deterministic owner-scoped package references; and private cold backup/empty-target restore tooling. Their pending exact-head gates must be completed, but they should not be rewritten merely because this audit identifies adjacent missing product features.
 
 No V2 framework, live trading, broker account, all-market/minute data, sophisticated multitenancy, online backup/PITR, or arbitrary advanced order support has been added to the V1 backlog.
+
+## B7 bounded-operations preparation update (2026-10-23)
+
+The operations slice adds owner/admin observations and command-produced historical
+backup receipts described in [V1_OPERATIONAL_OBSERVATIONS.md](V1_OPERATIONAL_OBSERVATIONS.md).
+V20/V24 measurements and the V33 backup-display portion are now implemented, with
+pure checks and prepared exact-stack tests; hosted PostgreSQL/system/Chromium
+acceptance is not claimed by this local preparation. Receipt creation/verification
+does not prove restoration; stale/version-mismatched observations remain explicit.
+
+V22/B7 cleanup remains incomplete: [V1_RETENTION.md](V1_RETENTION.md) provides a
+strict preview, fail-closed apply refusal and exact cooperative-writer-barrier plan.
+The finite follow-on must implement actual safe cleanup and prove retry/resume/restore
+afterward. No scope waiver is inferred. The representative workload/hardware/capacity
+portion of B7 also remains open; bounded samples and 76-row smoke are not a substitute.

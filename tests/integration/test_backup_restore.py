@@ -555,6 +555,44 @@ def test_real_m3_backup_restore_then_current_upgrade_preserves_history(
             limits=limits,
         )
         assert restored_manifest == manifest
+        # Operator receipt evidence is emitted only after the actual operation
+        # completed. Exact private manifest bytes are bound; paths are absent.
+        from backend.app.operations_receipts import write_success_receipt
+
+        created_receipt = write_success_receipt(
+            operation="create",
+            manifest=manifest,
+            backup_root=backup,
+            destination=tmp_path / "created-receipt.json",
+        )
+        restored_receipt = write_success_receipt(
+            operation="restore",
+            manifest=restored_manifest,
+            backup_root=backup,
+            destination=tmp_path / "restored-receipt.json",
+        )
+        assert (
+            created_receipt.operation == "create"
+            and restored_receipt.operation == "restore"
+        )
+        assert created_receipt.manifest_sha256 == _sha(
+            (backup / "manifest.json").read_bytes()
+        )
+        assert created_receipt.manifest_sha256 == restored_receipt.manifest_sha256
+        assert str(backup) not in (tmp_path / "restored-receipt.json").read_text()
+        verified_manifest = verify_backup(
+            backup, application_ref=APPLICATION_REF, limits=limits
+        )
+        verified_receipt = write_success_receipt(
+            operation="verify",
+            manifest=verified_manifest,
+            backup_root=backup,
+            destination=tmp_path / "verified-receipt.json",
+        )
+        assert (
+            verified_receipt.operation == "verify"
+            and verified_receipt.manifest_sha256 == created_receipt.manifest_sha256
+        )
         with restored.connect() as connection:
             assert (
                 connection.execute(
@@ -722,6 +760,22 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             verify_backup(backup_root, application_ref=APPLICATION_REF, limits=limits)
             == manifest
         )
+        from backend.app.operations_receipts import write_success_receipt
+
+        for operation in ("create", "verify", "restore"):
+            receipt = write_success_receipt(
+                operation=operation,
+                manifest=manifest,
+                backup_root=backup_root,
+                destination=tmp_path / f"settings-{operation}-receipt.json",
+            )
+            assert (
+                receipt.schema_revision == "005_settings"
+                and receipt.operation == operation
+            )
+            assert receipt.manifest_sha256 == _sha(
+                (backup_root / "manifest.json").read_bytes()
+            )
     finally:
         source.dispose()
         restored.dispose()

@@ -89,6 +89,64 @@ export type AttemptPublic = {
 };
 
 /**
+ * BackupEvidence
+ */
+export type BackupEvidence = {
+  /**
+   * Age Seconds
+   */
+  age_seconds?: number | null;
+  /**
+   * Backup Age Seconds
+   */
+  backup_age_seconds?: number | null;
+  receipt: BackupReceipt;
+  /**
+   * State
+   */
+  state:
+    | "observed"
+    | "stale"
+    | "version_mismatch"
+    | "invalid_time"
+    | "identity_unavailable";
+};
+
+/**
+ * BackupReceipt
+ */
+export type BackupReceipt = {
+  /**
+   * Application Ref
+   */
+  application_ref: string;
+  /**
+   * Backup Created At
+   */
+  backup_created_at: string;
+  /**
+   * Format
+   */
+  format?: "tradegrad.backup-receipt.v1";
+  /**
+   * Manifest Sha256
+   */
+  manifest_sha256: string;
+  /**
+   * Observed At
+   */
+  observed_at: string;
+  /**
+   * Operation
+   */
+  operation: "create" | "verify" | "restore";
+  /**
+   * Schema Revision
+   */
+  schema_revision: "003_m3" | "004_m5" | "005_settings";
+};
+
+/**
  * BenchmarkConfig
  */
 export type BenchmarkConfig = {
@@ -732,6 +790,54 @@ export type DifferenceValue = {
    */
   evaluation_id: string;
   value: JsonValue;
+};
+
+/**
+ * DiskObservation
+ */
+export type DiskObservation = {
+  /**
+   * Available Bytes
+   */
+  available_bytes?: number | null;
+  /**
+   * Capacity Bytes
+   */
+  capacity_bytes?: number | null;
+  /**
+   * Free Bytes
+   */
+  free_bytes?: number | null;
+  /**
+   * State
+   */
+  state: "observed" | "restricted" | "unavailable";
+};
+
+/**
+ * DurationObservation
+ */
+export type DurationObservation = {
+  /**
+   * Count
+   */
+  count?: number;
+  /**
+   * Max Seconds
+   */
+  max_seconds?: number | null;
+  /**
+   * Mean Seconds
+   */
+  mean_seconds?: number | null;
+  /**
+   * P95 Seconds
+   */
+  p95_seconds?: number | null;
+  /**
+   * Unavailable Count
+   */
+  unavailable_count?: number;
 };
 
 /**
@@ -1846,6 +1952,44 @@ export type ImportDetail = {
 };
 
 /**
+ * ImportObservation
+ */
+export type ImportObservation = {
+  /**
+   * Cancelled
+   */
+  cancelled: number;
+  /**
+   * Failed
+   */
+  failed: number;
+  /**
+   * Failure Fraction
+   */
+  failure_fraction: number | null;
+  /**
+   * Partial
+   */
+  partial: number;
+  /**
+   * Ready
+   */
+  ready: number;
+  /**
+   * Sampled Completed
+   */
+  sampled_completed: number;
+  /**
+   * Truncated
+   */
+  truncated: boolean;
+  /**
+   * Unsuccessful Fraction
+   */
+  unsuccessful_fraction: number | null;
+};
+
+/**
  * ImportPublic
  */
 export type ImportPublic = {
@@ -2434,6 +2578,67 @@ export type ObjectiveConfig = {
    * Windowing Definition
    */
   windowing_definition?: "calendar_year_train_full_validation.v1";
+};
+
+/**
+ * OperationsPublic
+ */
+export type OperationsPublic = {
+  /**
+   * Active Imports
+   */
+  active_imports: number;
+  /**
+   * Active Runs
+   */
+  active_runs: number;
+  attempt_runtime: DurationObservation;
+  /**
+   * Attempts Truncated
+   */
+  attempts_truncated: boolean;
+  cancellation_latency: DurationObservation;
+  current_queue_age: DurationObservation;
+  disk: DiskObservation;
+  imports: ImportObservation;
+  model_usage: UsageObservation;
+  /**
+   * Notes
+   */
+  notes: Array<string>;
+  /**
+   * Observation Ttl Seconds
+   */
+  observation_ttl_seconds?: number;
+  /**
+   * Observed At
+   */
+  observed_at: string;
+  /**
+   * Queue Counts Truncated
+   */
+  queue_counts_truncated: boolean;
+  queue_wait: DurationObservation;
+  /**
+   * Queued Imports
+   */
+  queued_imports: number;
+  /**
+   * Queued Runs
+   */
+  queued_runs: number;
+  /**
+   * Sample Limit
+   */
+  sample_limit: number;
+  /**
+   * Scope
+   */
+  scope: "owner" | "deployment";
+  /**
+   * Window Start
+   */
+  window_start: string;
 };
 
 /**
@@ -6116,13 +6321,17 @@ export type SelfProfileUpdate = {
  */
 export type SettingsStatus = {
   /**
+   * Backup Evidence
+   */
+  backup_evidence?: Array<BackupEvidence>;
+  /**
    * Backup Note
    */
   backup_note?: string;
   /**
    * Backup Status
    */
-  backup_status?: "not_reported";
+  backup_status?: "not_reported" | "restricted" | "observations_registered";
   /**
    * Dependencies
    */
@@ -6722,6 +6931,44 @@ export type UploadMapping = {
    * Volume Unit
    */
   volume_unit: "shares" | "lots" | "contracts" | "unknown";
+};
+
+/**
+ * UsageObservation
+ */
+export type UsageObservation = {
+  /**
+   * Calls
+   */
+  calls: number;
+  /**
+   * Charged Tokens
+   */
+  charged_tokens: number | null;
+  /**
+   * Input Tokens
+   */
+  input_tokens: number | null;
+  /**
+   * Invalid Usage Calls
+   */
+  invalid_usage_calls: number;
+  /**
+   * Known Usage Calls
+   */
+  known_usage_calls: number;
+  /**
+   * Output Tokens
+   */
+  output_tokens: number | null;
+  /**
+   * Truncated
+   */
+  truncated: boolean;
+  /**
+   * Unknown Usage Calls
+   */
+  unknown_usage_calls: number;
 };
 
 /**
@@ -8946,6 +9193,54 @@ export type ReadResearchModelCallResponses = {
 
 export type ReadResearchModelCallResponse =
   ReadResearchModelCallResponses[keyof ReadResearchModelCallResponses];
+
+export type ReadOperationsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Scope
+     */
+    scope?: "owner" | "deployment";
+    /**
+     * Days
+     */
+    days?: number;
+  };
+  url: "/api/v1/operations";
+};
+
+export type ReadOperationsErrors = {
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+};
+
+export type ReadOperationsError =
+  ReadOperationsErrors[keyof ReadOperationsErrors];
+
+export type ReadOperationsResponses = {
+  /**
+   * Successful Response
+   */
+  200: OperationsPublic;
+};
+
+export type ReadOperationsResponse =
+  ReadOperationsResponses[keyof ReadOperationsResponses];
 
 export type ReadPortableCandidateData = {
   body?: never;

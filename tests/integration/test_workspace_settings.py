@@ -402,5 +402,6 @@ def test_status_never_invents_backup_receipt(api, owner_headers):
     result = api.get("/api/v1/settings/status", headers=owner_headers)
     assert result.status_code == 200
     assert result.json()["schema_revision"] == "005_settings"
-    assert result.json()["backup_status"] == "not_reported"
-    assert "not prove" in result.json()["backup_note"]
+    assert result.json()["backup_status"] == "restricted"
+    assert result.json()["backup_evidence"] == []
+    assert "administrators" in result.json()["backup_note"]

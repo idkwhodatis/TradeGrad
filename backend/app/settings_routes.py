@@ -170,7 +170,24 @@ def read_quota(user: CurrentUser, session: SessionDep, request: Request):
     response_model=SettingsStatus,
     operation_id="read_settings_status",
 )
-def read_status(user: CurrentUser, session: SessionDep):
+def read_status(user: CurrentUser, session: SessionDep, request: Request):
+    from backend.app.operations_receipts import NOTE, receipt_evidence
+
+    settings = request.app.state.settings
+    revision = session.execute(
+        text("SELECT version_num FROM alembic_version")
+    ).scalar_one()
+    evidence = (
+        receipt_evidence(
+            settings.operations_backup_receipts,
+            application_ref=settings.operations_application_ref,
+            schema_revision=revision,
+            now=utcnow(),
+            max_age_seconds=settings.operations_receipt_max_age_seconds,
+        )
+        if user.is_superuser
+        else []
+    )
     dependencies = {}
     for name in ("fastapi", "sqlalchemy", "psycopg", "pydantic", "procrastinate"):
         try:
@@ -185,9 +202,14 @@ def read_status(user: CurrentUser, session: SessionDep):
             else []
         ),
         dependencies=dependencies,
-        schema_revision=session.execute(
-            text("SELECT version_num FROM alembic_version")
-        ).scalar_one(),
+        schema_revision=revision,
+        backup_status=("observations_registered" if evidence else "not_reported")
+        if user.is_superuser
+        else "restricted",
+        backup_evidence=evidence,
+        backup_note=NOTE
+        if user.is_superuser
+        else "Backup command observations are visible only to administrators. No backup archive is exposed by the API.",
     )
 
 

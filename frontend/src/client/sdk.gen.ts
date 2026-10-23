@@ -280,6 +280,9 @@ import type {
   ReadMeData,
   ReadMeErrors,
   ReadMeResponses,
+  ReadOperationsData,
+  ReadOperationsErrors,
+  ReadOperationsResponses,
   ReadPortableCandidateData,
   ReadPortableCandidateErrors,
   ReadPortableCandidateResponses,
@@ -1334,6 +1337,22 @@ export const readResearchModelCall = <ThrowOnError extends boolean = true>(
   >({
     security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/model-calls/{model_call_id}",
+    ...options,
+  });
+
+/**
+ * Operations
+ */
+export const readOperations = <ThrowOnError extends boolean = true>(
+  options?: Options<ReadOperationsData, ThrowOnError>,
+): RequestResult<ReadOperationsResponses, ReadOperationsErrors, ThrowOnError> =>
+  (options?.client ?? client).get<
+    ReadOperationsResponses,
+    ReadOperationsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/operations",
     ...options,
   });
 

@@ -588,7 +588,35 @@ export function SettingsManagement({
                 {name}: {version}
               </p>
             ))}
-            <p className="mt-3">Backup status: not reported</p>
+            <p className="mt-3">
+              Backup status:{" "}
+              {(status.data.backup_status ?? "not_reported").replaceAll(
+                "_",
+                " ",
+              )}
+            </p>
+            {status.data.backup_evidence?.map((evidence) => (
+              <div
+                className="mt-3 text-xs"
+                key={`${evidence.receipt.operation}:${evidence.receipt.manifest_sha256}:${evidence.receipt.observed_at}`}
+              >
+                <p>
+                  {evidence.receipt.operation} ·{" "}
+                  {evidence.state.replaceAll("_", " ")} · observed{" "}
+                  {evidence.receipt.observed_at}
+                </p>
+                <p>
+                  Backup created: {evidence.receipt.backup_created_at} · schema{" "}
+                  {evidence.receipt.schema_revision}
+                </p>
+                <p className="hash">
+                  Application: {evidence.receipt.application_ref}
+                </p>
+                <p className="hash">
+                  Manifest SHA-256: {evidence.receipt.manifest_sha256}
+                </p>
+              </div>
+            ))}
             <p className="text-xs muted">{status.data.backup_note}</p>
             <p className="text-xs muted mt-3">
               {status.data.secret_reference_boundary}

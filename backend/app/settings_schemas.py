@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from backend.app.operations_schemas import BackupEvidence
+
 
 class ManagementInput(BaseModel):
     model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
@@ -77,6 +79,9 @@ class SettingsStatus(BaseModel):
     permissions: list[str]
     dependencies: dict[str, str]
     schema_revision: str
-    backup_status: Literal["not_reported"] = "not_reported"
+    backup_status: Literal["not_reported", "restricted", "observations_registered"] = (
+        "not_reported"
+    )
+    backup_evidence: list[BackupEvidence] = Field(default_factory=list)
     backup_note: str = "No verified backup receipt is registered. Use the operator cold-backup and restore drill; heartbeat or schema readiness does not prove backup coverage."
     secret_reference_boundary: str = "Only disable or re-enable existing operator-allowlisted profile references for their already listed owners. No endpoint, environment reference, key, credential rotation or allowlist grant is accepted. Revocation stops new admissions and worker model-call boundaries, not an already admitted external call."

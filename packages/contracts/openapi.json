@@ -143,6 +143,111 @@
         "title": "AttemptPublic",
         "type": "object"
       },
+      "BackupEvidence": {
+        "properties": {
+          "age_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Seconds"
+          },
+          "backup_age_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backup Age Seconds"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/BackupReceipt"
+          },
+          "state": {
+            "enum": [
+              "observed",
+              "stale",
+              "version_mismatch",
+              "invalid_time",
+              "identity_unavailable"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "receipt",
+          "state"
+        ],
+        "title": "BackupEvidence",
+        "type": "object"
+      },
+      "BackupReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "application_ref": {
+            "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$",
+            "title": "Application Ref",
+            "type": "string"
+          },
+          "backup_created_at": {
+            "format": "date-time",
+            "title": "Backup Created At",
+            "type": "string"
+          },
+          "format": {
+            "const": "tradegrad.backup-receipt.v1",
+            "default": "tradegrad.backup-receipt.v1",
+            "title": "Format",
+            "type": "string"
+          },
+          "manifest_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Manifest Sha256",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "operation": {
+            "enum": [
+              "create",
+              "verify",
+              "restore"
+            ],
+            "title": "Operation",
+            "type": "string"
+          },
+          "schema_revision": {
+            "enum": [
+              "003_m3",
+              "004_m5",
+              "005_settings"
+            ],
+            "title": "Schema Revision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation",
+          "application_ref",
+          "schema_revision",
+          "manifest_sha256",
+          "backup_created_at",
+          "observed_at"
+        ],
+        "title": "BackupReceipt",
+        "type": "object"
+      },
       "BenchmarkConfig": {
         "additionalProperties": false,
         "properties": {
@@ -1177,6 +1282,106 @@
           "value"
         ],
         "title": "DifferenceValue",
+        "type": "object"
+      },
+      "DiskObservation": {
+        "properties": {
+          "available_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Bytes"
+          },
+          "capacity_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacity Bytes"
+          },
+          "free_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Free Bytes"
+          },
+          "state": {
+            "enum": [
+              "observed",
+              "restricted",
+              "unavailable"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "DiskObservation",
+        "type": "object"
+      },
+      "DurationObservation": {
+        "properties": {
+          "count": {
+            "default": 0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "max_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Seconds"
+          },
+          "mean_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Seconds"
+          },
+          "p95_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P95 Seconds"
+          },
+          "unavailable_count": {
+            "default": 0,
+            "title": "Unavailable Count",
+            "type": "integer"
+          }
+        },
+        "title": "DurationObservation",
         "type": "object"
       },
       "EngineProfile": {
@@ -3059,6 +3264,68 @@
         "title": "ImportDetail",
         "type": "object"
       },
+      "ImportObservation": {
+        "properties": {
+          "cancelled": {
+            "title": "Cancelled",
+            "type": "integer"
+          },
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "failure_fraction": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Fraction"
+          },
+          "partial": {
+            "title": "Partial",
+            "type": "integer"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "integer"
+          },
+          "sampled_completed": {
+            "title": "Sampled Completed",
+            "type": "integer"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          },
+          "unsuccessful_fraction": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unsuccessful Fraction"
+          }
+        },
+        "required": [
+          "sampled_completed",
+          "ready",
+          "failed",
+          "partial",
+          "cancelled",
+          "failure_fraction",
+          "unsuccessful_fraction",
+          "truncated"
+        ],
+        "title": "ImportObservation",
+        "type": "object"
+      },
       "ImportPublic": {
         "properties": {
           "cancel_requested": {
@@ -4113,6 +4380,111 @@
           }
         },
         "title": "ObjectiveConfig",
+        "type": "object"
+      },
+      "OperationsPublic": {
+        "properties": {
+          "active_imports": {
+            "title": "Active Imports",
+            "type": "integer"
+          },
+          "active_runs": {
+            "title": "Active Runs",
+            "type": "integer"
+          },
+          "attempt_runtime": {
+            "$ref": "#/components/schemas/DurationObservation"
+          },
+          "attempts_truncated": {
+            "title": "Attempts Truncated",
+            "type": "boolean"
+          },
+          "cancellation_latency": {
+            "$ref": "#/components/schemas/DurationObservation"
+          },
+          "current_queue_age": {
+            "$ref": "#/components/schemas/DurationObservation"
+          },
+          "disk": {
+            "$ref": "#/components/schemas/DiskObservation"
+          },
+          "imports": {
+            "$ref": "#/components/schemas/ImportObservation"
+          },
+          "model_usage": {
+            "$ref": "#/components/schemas/UsageObservation"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "observation_ttl_seconds": {
+            "default": 60,
+            "title": "Observation Ttl Seconds",
+            "type": "integer"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "queue_counts_truncated": {
+            "title": "Queue Counts Truncated",
+            "type": "boolean"
+          },
+          "queue_wait": {
+            "$ref": "#/components/schemas/DurationObservation"
+          },
+          "queued_imports": {
+            "title": "Queued Imports",
+            "type": "integer"
+          },
+          "queued_runs": {
+            "title": "Queued Runs",
+            "type": "integer"
+          },
+          "sample_limit": {
+            "title": "Sample Limit",
+            "type": "integer"
+          },
+          "scope": {
+            "enum": [
+              "owner",
+              "deployment"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "window_start": {
+            "format": "date-time",
+            "title": "Window Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "observed_at",
+          "window_start",
+          "scope",
+          "sample_limit",
+          "queued_runs",
+          "queued_imports",
+          "active_runs",
+          "active_imports",
+          "queue_counts_truncated",
+          "current_queue_age",
+          "queue_wait",
+          "attempt_runtime",
+          "cancellation_latency",
+          "attempts_truncated",
+          "imports",
+          "model_usage",
+          "disk",
+          "notes"
+        ],
+        "title": "OperationsPublic",
         "type": "object"
       },
       "OptimizationResultPublic": {
@@ -10597,14 +10969,25 @@
       },
       "SettingsStatus": {
         "properties": {
+          "backup_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/BackupEvidence"
+            },
+            "title": "Backup Evidence",
+            "type": "array"
+          },
           "backup_note": {
             "default": "No verified backup receipt is registered. Use the operator cold-backup and restore drill; heartbeat or schema readiness does not prove backup coverage.",
             "title": "Backup Note",
             "type": "string"
           },
           "backup_status": {
-            "const": "not_reported",
             "default": "not_reported",
+            "enum": [
+              "not_reported",
+              "restricted",
+              "observations_registered"
+            ],
             "title": "Backup Status",
             "type": "string"
           },
@@ -11698,6 +12081,75 @@
           "price_semantics"
         ],
         "title": "UploadMapping",
+        "type": "object"
+      },
+      "UsageObservation": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "charged_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Charged Tokens"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "invalid_usage_calls": {
+            "title": "Invalid Usage Calls",
+            "type": "integer"
+          },
+          "known_usage_calls": {
+            "title": "Known Usage Calls",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          },
+          "unknown_usage_calls": {
+            "title": "Unknown Usage Calls",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "calls",
+          "known_usage_calls",
+          "unknown_usage_calls",
+          "input_tokens",
+          "output_tokens",
+          "charged_tokens",
+          "invalid_usage_calls",
+          "truncated"
+        ],
+        "title": "UsageObservation",
         "type": "object"
       },
       "UserPolicyDeclaration": {
@@ -15786,6 +16238,97 @@
           }
         ],
         "summary": "Model Call"
+      }
+    },
+    "/api/v1/operations": {
+      "get": {
+        "operationId": "read_operations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "owner",
+              "enum": [
+                "owner",
+                "deployment"
+              ],
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "maximum": 31,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationsPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Operations"
       }
     },
     "/api/v1/portable-candidates/{candidate_id}": {

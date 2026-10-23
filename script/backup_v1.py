@@ -21,6 +21,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("operation", choices=("create", "verify", "restore"))
     parser.add_argument("--backup", required=True, type=Path)
     parser.add_argument("--storage", type=Path)
+    parser.add_argument(
+        "--receipt-output",
+        type=Path,
+        help="New sanitized JSON receipt outside the backup; no overwrite. Publish only this metadata to operations settings.",
+    )
     parser.add_argument("--durable-parent", type=Path)
     parser.add_argument(
         "--application-ref", required=True, help="Exact release Git SHA, not a tag/URL"
@@ -55,10 +60,25 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         limits = BackupLimits(**{name: getattr(args, name) for name in vars(defaults)})
+        if args.receipt_output and args.storage:
+            from backend.app.operations_backup import _path
+
+            if _path(args.receipt_output).is_relative_to(_path(args.storage)):
+                raise BackupError("Receipt output must be outside application storage")
         if args.operation == "verify":
-            verify_backup(
+            manifest = verify_backup(
                 args.backup, application_ref=args.application_ref, limits=limits
             )
+            if args.receipt_output:
+                from backend.app.operations_receipts import write_success_receipt
+
+                write_success_receipt(
+                    operation="verify",
+                    manifest=manifest,
+                    backup_root=args.backup,
+                    destination=args.receipt_output,
+                    limits=limits,
+                )
             print(
                 "Backup integrity verified. This does not establish authenticity or restore readiness."
             )
@@ -84,17 +104,26 @@ def main(argv: list[str] | None = None) -> int:
             "limits": limits,
         }
         if args.operation == "create":
-            create_backup(destination=args.backup, **common)
-            print(
-                "Private backup created and integrity verified. Do not upload application backups to CI artifacts."
-            )
+            manifest = create_backup(destination=args.backup, **common)
         else:
-            restore_backup(
+            manifest = restore_backup(
                 backup_root=args.backup, trust_backup=args.trust_backup_sql, **common
             )
-            print(
-                "Database and immutable bytes restored and verified. Keep services stopped until the operator restart checks pass."
+        if args.receipt_output:
+            from backend.app.operations_receipts import write_success_receipt
+
+            write_success_receipt(
+                operation=args.operation,
+                manifest=manifest,
+                backup_root=args.backup,
+                destination=args.receipt_output,
+                limits=limits,
             )
+        print(
+            "Private backup created and integrity verified. Do not upload application backups to CI artifacts."
+            if args.operation == "create"
+            else "Database and immutable bytes restored and verified. Keep services stopped until the operator restart checks pass."
+        )
         return 0
     except KeyboardInterrupt:
         print(
@@ -104,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
         return 130
     except Exception:  # noqa: BLE001 -- no connection/driver/file exception may reveal a credential
         print(
-            "Operation failed; no complete result is claimed. Keep services stopped; preserve any partial target for private inspection and retry only into new empty targets.",
+            "Operation or receipt publication failed; no command-completion receipt is claimed. Keep services stopped; preserve any partial target for private inspection and retry only into new empty targets.",
             file=sys.stderr,
         )
         return 1

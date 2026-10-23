@@ -1,3 +1,4 @@
+import { OperationsPanel } from "./operations-panel";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -194,6 +195,7 @@ export function OverviewPage() {
           </div>
         ))}
       </div>
+      <OperationsPanel />
       <div className="section-grid">
         <Panel
           title="Recent experiments"

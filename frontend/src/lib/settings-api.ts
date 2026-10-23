@@ -19,6 +19,7 @@ export const settingsDefaultsOptions = queryOptions({
 });
 export const settingsStatusOptions = queryOptions({
   queryKey: ["settings-status"],
+  refetchInterval: 30_000,
   queryFn: async ({ signal }) =>
     (await sdk.readSettingsStatus({ signal })).data!,
 });

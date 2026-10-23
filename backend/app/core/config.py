@@ -7,6 +7,7 @@ from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
+from backend.app.operations_schemas import BackupReceipt
 from packages.tradegrad_adapter.model_profiles import (
     OperatorModelProfile,
     validate_registry,
@@ -32,6 +33,15 @@ class Settings(BaseSettings):
     max_active_imports_per_user: int = Field(default=4, ge=1, le=100)
     max_upload_bytes: int = Field(default=10_000_000, ge=1024, le=10_000_000)
     max_active_runs_per_user: int = Field(default=4, ge=1, le=100)
+
+    # Sanitized JSON receipts are injected by the operator, never loaded from backup paths.
+    operations_application_ref: str | None = Field(
+        default=None, pattern=r"^(?:[a-f0-9]{40}|[a-f0-9]{64})$"
+    )
+    operations_backup_receipts: tuple[BackupReceipt, ...] = Field(
+        default=(), max_length=16
+    )
+    operations_receipt_max_age_seconds: int = Field(default=86400, ge=60, le=2592000)
 
     model_profiles_enabled: bool = False
     model_profiles: tuple[OperatorModelProfile, ...] = Field(

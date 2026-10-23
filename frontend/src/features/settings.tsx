@@ -1,3 +1,4 @@
+import { OperationsPanel } from "./operations-panel";
 import { SettingsManagement } from "./settings-management";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorState, Loading, PageHeader, Panel } from "@/components/common";
@@ -158,6 +159,7 @@ export function SettingsPage() {
           </p>
         </Panel>
       </div>
+      <OperationsPanel />
       <SettingsManagement capabilities={capabilities.data} />
     </>
   );

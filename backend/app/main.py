@@ -629,4 +629,7 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
     from backend.app.settings_routes import router as settings_router
 
     app.include_router(settings_router, prefix=PREFIX)
+    from backend.app.operations_routes import router as operations_router
+
+    app.include_router(operations_router, prefix=PREFIX)
     return app

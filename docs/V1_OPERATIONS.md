@@ -189,3 +189,12 @@ also requires explicit mutation opt-in and actual attempt overlap for its two-ru
 concurrency observation. Neither invents performance numbers when unavailable.
 Set final resource budgets/capacity only after representative workload and
 hardware measurements. Shared hosted-runner timings do not certify a user's host.
+
+## Bounded operations evidence
+
+Overview and Settings now expose bounded owner/admin operational observations and
+sanitized operator-produced backup-command receipts. See
+[V1_OPERATIONAL_OBSERVATIONS.md](V1_OPERATIONAL_OBSERVATIONS.md) for exact windows,
+limits, unavailable/stale semantics, private receipt registration and unrun gates.
+[Retention preview](V1_RETENTION.md) is dry-run only: safe destructive application
+remains blocked pending cooperative writer exclusion and cleanup/recovery tests.
