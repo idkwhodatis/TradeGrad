@@ -486,11 +486,15 @@ class Controller:
         self.native_start_verified = False
 
     def verify_native_start(self, broker):
-        """Called before the first native bar callback; no seeded inventory."""
+        """Called before the first native bar callback; no seeded inventory.
+
+        AKQuant 0.3.27 exposes Strategy.positions as a property, not the removed
+        Strategy.get_positions method. Keep the reviewed native API explicit.
+        """
         if self.native_start_verified:
             return
         if (
-            any(broker.get_positions().values())
+            any(broker.positions.values())
             or self.pending
             or float(broker.cash) != self.inputs.initial_cash
             or float(broker.equity) != self.inputs.initial_cash
@@ -611,10 +615,10 @@ class Controller:
                 reserved[rec["listing_id"]] = (
                     reserved.get(rec["listing_id"], 0.0) + rec["remaining_quantity"]
                 )
-        native_positions = broker.get_positions()
+        native_positions = dict(broker.positions)
         if any(q > native_positions.get(key, 0.0) for key, q in reserved.items()):
             raise ValueError("pending sells exceed native decision-close holdings")
-        for key, quantity in broker.get_positions().items():
+        for key, quantity in native_positions.items():
             if not quantity:
                 continue
             if key not in current or quantity < 0:

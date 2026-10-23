@@ -256,9 +256,6 @@ class FakeBroker:
         self.session, self.legs = session, legs
         self.orders, self.submissions, self.cancelled = {}, [], []
 
-    def get_positions(self):
-        return self.positions.copy()
-
     def get_available_position(self, key):
         return self.available.get(key, 0.0)
 
@@ -1297,3 +1294,12 @@ def test_daily_barrier_rejects_future_bar_before_prior_session_decision():
             SimpleNamespace(timestamp=to_ns(data.sessions[1].close_time), symbol=L2),
             broker,
         )
+
+
+def test_inert_broker_matches_pinned_positions_property_not_removed_method():
+    import inspect
+
+    assert not hasattr(FakeBroker, "get_positions")
+    source = inspect.getsource(Controller)
+    assert "broker.get_positions(" not in source
+    assert "broker.positions" in source
