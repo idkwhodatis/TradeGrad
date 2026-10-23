@@ -224,3 +224,60 @@ explicitly includes cold cleanup/restore tests in its opted-in private backup
 drill. Ruff and whitespace checks passed. Full actual worker resume after cold
 cleanup is a separate required prepared/hosted proof, not inferred from these
 counts; acceptance remains incomplete until that and the exact-head gates pass.
+
+## Prepared real worker resume-after-cleanup gate
+
+`tests/system/test_cold_retention_recovery.py` now prepares the remaining native
+research boundary proof. It reuses `ResearchProcessHarness` and its synthetic
+upload/frozen-model optimization, never SQL updates to manufacture progress.
+The pinned owned worker is briefly stopped at a real generated-candidate Docker
+evaluation: cold planning must refuse its live lifecycle lock, HTTP pause is
+admitted, and the worker is continued to checkpoint and finish its actual queue
+job. The test requires confirmed stopped attempts/evaluators, no model SDK
+process admissions (the model is explicitly in-process frozen), and drained
+research/data queues/outboxes. All owned API/producer/worker processes must then
+be identity-safely stopped before the cold operator is called.
+
+The test hashes the full private inventory and validates every reference and
+manifest, adds exactly one exclusive-created abandoned atomic upload temporary,
+and uses explicit future **test inspection time** to age it without changing
+business/database timestamps. Real dry-run → exact plan acknowledgement → apply
+must remove only that fixture and produce a private durable completion journal.
+All original files and DB references must remain identical. The same owned
+service commands restart, HTTP resume must bind generation 2 to the exact
+checkpoint, and the real worker must execute only the missing validation window.
+Completed evaluations, all original source/checkpoint/replay/log bytes, model
+call fingerprints, candidate lineage, and downloadable artifact hashes persist.
+The test requires a new complete terminal checkpoint and exactly paused/succeeded
+terminal events, not merely an HTTP accepted response.
+
+Run only on the authorized hosted disposable runtime, after integrating the
+identity-safe `ProcessHarness.stop_processes` / `script.ci_owned_group` helper:
+
+```sh
+TRADEGRAD_REQUIRE_COLD_RECOVERY=1 \
+TRADEGRAD_REQUIRE_RESEARCH_INTEGRATION=1 \
+TEST_DATABASE_URL="$TEST_DATABASE_URL" \
+API_PYTHON="$API_PYTHON" DATA_PYTHON="$DATA_PYTHON" \
+RESEARCH_PYTHON="$RESEARCH_PYTHON" \
+"$RESEARCH_PYTHON" -m pytest tests/system/test_cold_retention_recovery.py -q \
+  --junitxml=v1-cold-research-resume-junit.xml
+```
+
+The inherited 240-second absolute budget covers the test body; identity-safe
+fixture cleanup has its own bounded containment. No workflow change is included
+in this preparation. `tests/operations/test_cold_recovery_contract.py` checks only
+source-level opt-in, SQL read-only, owned signaling and operation-order contracts.
+Collection or those inert checks do not establish PG, Docker, deletion or resume
+acceptance. Actual execution remains required on the exact cumulative head.
+
+Scope note: the current native worker stores evidence under
+`runs/{run}/attempts/{attempt}`, while the narrow retention temp/log classifiers
+recognize `runs/{run}/{attempt}`. Unrecognized native paths remain preserved;
+this gate deliberately uses the actual supported upload temporary layout and
+checks native log bytes directly, rather than relying on the aged-log counter.
+Expanding path eligibility/counting is not part of this test-only patch.
+Discardable Docker operational log rotation remains separate from permanently
+retained artifact/Run logs. Data-worker retry and the independent crash/partial
+cleanup/backup-restore gates also remain required; this native resume case does
+not substitute for them.
