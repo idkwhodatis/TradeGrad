@@ -277,89 +277,11 @@ jobs:
         run: |
           export API_PYTHON=$(command -v python)
           .venv-research/bin/python -m pytest tests/system/test_portable_final_pipeline.py -q --junitxml=m5-portable-final-application-junit.xml
-      - name: Exercise the real HTTP, queue, engine and browser boundary
-        shell: bash
-        run: |
-          set -euo pipefail
-          set +m
-          mkdir -p var/ci-logs
-          setsid uvicorn backend.app.asgi:app --host 127.0.0.1 --port 8000 >var/ci-logs/api.log 2>&1 & api=$!
-          setsid python -m workers.research dispatcher >var/ci-logs/dispatcher.log 2>&1 & dispatcher=$!
-          setsid .venv-research/bin/python -m workers.research worker >var/ci-logs/worker.log 2>&1 & worker=$!
-          setsid python -m workers.research reconciler >var/ci-logs/reconciler.log 2>&1 & reconciler=$!
-          setsid .venv-data/bin/python -m workers.data dispatcher >var/ci-logs/data-dispatcher.log 2>&1 & data_dispatcher=$!
-          setsid .venv-data/bin/python -m workers.data worker >var/ci-logs/data-worker.log 2>&1 & data_worker=$!
-          benchmark_worker=
-          cleanup() {
-            outcome=$?
-            set +e
-            # Each recorded root was started in its own session. Stop only
-            # these owned process groups before listing any remaining containers.
-            owned=("$api" "$dispatcher" "$worker" "$reconciler" "$data_dispatcher" "$data_worker")
-            if [ -n "$benchmark_worker" ]; then owned+=("$benchmark_worker"); fi
-            for pid in "${owned[@]}"; do kill -TERM -- "-$pid" 2>/dev/null || true; done
-            deadline=$((SECONDS + 5))
-            alive=1
-            while [ "$SECONDS" -lt "$deadline" ]; do
-              alive=0
-              for pid in "${owned[@]}"; do kill -0 -- "-$pid" 2>/dev/null && alive=1; done
-              [ "$alive" = 0 ] && break
-              sleep 0.1
-            done
-            for pid in "${owned[@]}"; do kill -KILL -- "-$pid" 2>/dev/null || true; done
-            deadline=$((SECONDS + 5))
-            alive=1
-            while [ "$SECONDS" -lt "$deadline" ]; do
-              alive=0
-              for pid in "${owned[@]}"; do kill -0 -- "-$pid" 2>/dev/null && alive=1; done
-              [ "$alive" = 0 ] && break
-              sleep 0.1
-            done
-            if [ "$alive" != 0 ]; then
-              echo 'Owned process-group stop was not confirmed' >&2
-              outcome=1
-            fi
-            for pid in "${owned[@]}"; do
-              if ! kill -0 "$pid" 2>/dev/null; then wait "$pid" 2>/dev/null || true; fi
-            done
-            # This hosted job owns the fresh VM and all containers with these
-            # application labels. No unconfirmed worker may turn this gate green.
-            for profile in evaluator-v1 portable-evaluator-v1; do
-              docker ps -aq --filter "label=io.tradegrad.managed=$profile" | xargs -r docker rm -f >/dev/null || outcome=1
-              remaining=$(docker ps -aq --filter "label=io.tradegrad.managed=$profile") || outcome=1
-              [ -z "$remaining" ] || outcome=1
-            done
-            exit "$outcome"
-          }
-          trap cleanup EXIT
-          python - <<'PY'
-          import time, urllib.request
-          for attempt in range(60):
-              try:
-                  with urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=2) as response:
-                      if response.status == 200:
-                          break
-              except OSError:
-                  time.sleep(1)
-          else:
-              raise SystemExit('API readiness failed; real browser gate cannot run')
-          PY
-          if [ "$DATA_PROVIDER_MODE" = live ]; then
-            npm run test:e2e --prefix frontend -- --grep @provider-flow
-          else
-            npm run test:e2e --prefix frontend
-            mkdir -p var/ci-evidence
-            python script/benchmark_v1.py --origin http://127.0.0.1:8000 \
-              --allow-result-access-records --require-result --samples 20 --warmup 2 \
-              --timeout-seconds 3 --max-points 200 --table-limit 50 --window-days 30 \
-              > var/ci-evidence/m6-reference-performance.json
-            # A second owned worker is required for actual attempt overlap,
-            # rather than presenting two queued requests as concurrent execution.
-            setsid .venv-research/bin/python -m workers.research worker >var/ci-logs/benchmark-worker.log 2>&1 & benchmark_worker=$!
-            python -m script.benchmark_v1_workloads --origin http://127.0.0.1:8000 \
-              --allow-fixture-workload-mutations --timeout-seconds 5 --total-timeout-seconds 300 \
-              > var/ci-evidence/m6-workload-performance.json
-          fi
+      - name: Owned full fixture browser and performance acceptance or scoped live provider flows
+        env:
+          TRADEGRAD_REQUIRE_APPLICATION_BROWSER: "1"
+          TRADEGRAD_APPLICATION_STAGE: m6
+        run: python -m script.ci_application_browser
       - name: Remove the disposable database
         if: always()
         run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
