@@ -165,7 +165,10 @@ test("@portable-upload explicit unverified declaration persists without rewritin
   const preflight = await post("/portable-runs/preflight", config, 200);
   expect(preflight.is_synthetic).toBe(false);
   expect(preflight.data_evidence).toBe("user_declaration_unverified");
-  expect(preflight.warnings.join(" ")).toContain("unverified");
+  expect(preflight.warnings.join(" ")).toContain("not independently verified");
+  expect(preflight.warnings.join(" ")).toContain(
+    "no provider, runtime or cross-framework certification",
+  );
   const run = await post("/portable-runs", config, 202);
   const readRun = async (): Promise<PortableRunDetail> => {
     const response = await request.get(api(`/portable-runs/${run.id}`), {
