@@ -1,10 +1,24 @@
 # B6 mode-aware result exploration follow-on
 
+## Accepted cumulative fixture evidence, 2026-10-23
+
+The complete fixture gate passed in [run 39942518018](https://github.com/idkwhodatis/TradeGrad/actions/runs/39942518018)
+at head `42f6cc25f2e4525dcbaad4e58ee95cf733e286cd`, tree `a99216d3fe10b5c5015627e78cabad1e5de66577`.
+See [PC and exact suite counts](V1_IMPLEMENTATION.md#original-v1-cumulative-fixture-evidence-accepted-pc).
+This evidence is for that exact source, not live upstreams or production deployment.
+
+Actual native/portable research and final exploration, native recorded indicators,
+immutable benchmarks, owner-scoped bounded query projections and persisted browser
+reload/navigation passed in PC. The dedicated indicator/exploration group passed
+its one case; other mode checks belong to their application/browser groups.
+Portable indicators are not invented, policy output is not trusted accounting,
+and chart filtering does not recompute optimizer metrics or certify session coverage.
+
 This source change closes the native-final and portable research/final explorer,
 and named listing/candidate query gaps recorded in the earlier native-only B6
-slice. It does **not** claim that the real runtime acceptance gates have passed.
-The original implementation/validation history in the acceptance matrix is not
-rewritten by this follow-on.
+slice. Its cumulative real runtime fixture evidence is now PC. The original
+implementation/validation history in the acceptance matrix is not rewritten
+by this later result.
 
 ## Evidence and trust boundaries
 
@@ -143,5 +157,5 @@ scenario additionally requires visible SVGs under those named charts.
 
 The full frontend unit suite passed (492 cases), as did typecheck, production
 build and changed-file formatting. These component checks do not execute a real
-browser. The cumulative hosted chart scenario is still required; this repair
-does not change the earlier M5, M6 or native-operator stage trees.
+browser. The cumulative hosted chart scenario subsequently passed at PC;
+this repair does not change the earlier M5, M6 or native-operator stage trees.

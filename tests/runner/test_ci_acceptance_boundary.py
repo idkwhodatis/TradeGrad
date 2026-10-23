@@ -195,6 +195,37 @@ def test_daily_engineering_budget_is_required_after_fixture_performance():
     assert "var/ci-evidence/v1-daily-reference-budget-receipt.json" in evidence
 
 
+def test_live_sdk_probes_cannot_suppress_independent_browser_evidence():
+    import re
+    from pathlib import Path
+
+    workflow = (
+        Path(__file__).resolve().parents[2] / ".github/workflows/v1-validation.yml"
+    ).read_text()
+    application = workflow.split("  application:\n", 1)[1].split("\n  compose:", 1)[0]
+    blocks = re.split(r"(?=^      - name: )", application, flags=re.MULTILINE)
+    runtime = next(block for block in blocks if "id: data_runtime" in block)
+    assert ".venv-data/bin/python -m pip install --require-hashes" in runtime
+    browser = next(block for block in blocks if "id: application_browser" in block)
+    live = next(
+        block
+        for block in blocks
+        if "name: Explicit scoped live-provider smoke" in block
+    )
+    assert blocks.index(runtime) < blocks.index(browser) < blocks.index(live)
+    assert "!cancelled()" in live and "env.DATA_PROVIDER_MODE == 'live'" in live
+    assert "steps.data_runtime.outcome == 'success'" in live
+    assert "steps.application_browser.outcome" not in live
+    assert "continue-on-error" not in live and "|| true" not in live
+    assert 'TRADEGRAD_MARKETDATA_LIVE: "1"' in live
+    assert 'TRADEGRAD_OPENBB_LIVE: "1"' in live
+    assert (
+        "tests/marketdata/test_live_providers.py tests/marketdata/test_openbb.py"
+        in live
+    )
+    assert "--junitxml=m2-live-provider-junit.xml" in live
+
+
 def test_workflow_preserves_failed_steps_and_chains_verified_cleanup():
     import re
     from pathlib import Path

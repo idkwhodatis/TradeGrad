@@ -1,5 +1,37 @@
 # V1 six-year daily engineering reference: measured calibration and guardrail
 
+## Accepted cumulative fixture evidence, 2026-10-23
+
+The complete fixture gate passed in [run 39942518018](https://github.com/idkwhodatis/TradeGrad/actions/runs/39942518018)
+at head `42f6cc25f2e4525dcbaad4e58ee95cf733e286cd`, tree `a99216d3fe10b5c5015627e78cabad1e5de66577`.
+See [PC and exact suite counts](V1_IMPLEMENTATION.md#original-v1-cumulative-fixture-evidence-accepted-pc).
+This evidence is for that exact source, not live upstreams or production deployment.
+
+The actual daily reference and all nine frozen engineering limits passed in PC.
+The original run-39930596032 calibration and budget remain immutable. The sixth
+run independently passed all nine limits while failing recovery; that history is
+not replaced by the new pass. Host observations and unknown client/container
+reservations remain explicit. One synthetic listing, 1,456 sessions and zero model
+calls do not establish market-scale throughput, a production SLO or agreed capacity.
+
+| Dimension | PC observed (ms) | Frozen maximum (ms) |
+| --- | ---: | ---: |
+| `metadata_api.p95_ms` | 4.131 | 17 |
+| `metadata_api.max_ms` | 4.295 | 20 |
+| `windowed_chart.p95_ms` | 15.877 | 81 |
+| `windowed_chart.max_ms` | 16.129 | 97 |
+| `import.completion_wall_ms` | 1,531.552 | 8,000 |
+| `single_evaluation.persisted_lifecycle_ms` | 912.167 | 4,000 |
+| `standalone_configured_run.batch_wall_ms` | 6,142.241 | 31,000 |
+| `concurrent_runs.batch_wall_ms` | 6,821.055 | 35,000 |
+| `total_wall_ms` | 15,020.575 | 75,000 |
+
+Raw report SHA-256: `171b6f86445765abc86ad4f35470e3db27ee79b6bb1678eedad6a616459996da`.
+Separate receipt SHA-256: `902d9c881bc1f77220ae423157c26133e49997f56caaee8e3a95a6fe1f38c5c0`.
+Frozen budget SHA-256: `60d5256bab7f8f0050ed8329f2c282b81da5b5cfbe78a351678ce4b67f52eeb8`.
+The measured source/environment/image identities remain those of the new report;
+matching workflow labels do not prove identical hardware or worker reservations.
+
 ## Status and scope
 
 The plan's §10.3 asks for metadata API, windowed chart, import, single evaluation
@@ -284,8 +316,10 @@ engineering guardrail passed, 1 means the raw report failed validation or a
 budget, and 2 means input/receipt file handling failed. Preserve/upload the raw
 aggregate and receipt separately with the exact-run job evidence; never merge
 receipt thresholds into the raw measurement. Do not swallow a failing exit or
-reuse a previous receipt as evidence for a new invocation. This addition alone
-does not modify the hosted process owner or workflow integration.
+reuse a previous receipt as evidence for a new invocation. The fixture workflow
+requires this separate check after successful browser/performance acceptance and
+preserves its receipt alongside the unchanged raw measurement. The hosted process
+owner and benchmark execution are unchanged.
 
 ## Finite bounds and failure behavior
 

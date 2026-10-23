@@ -1,9 +1,24 @@
 # B7 operational observations and backup-command receipts
 
+## Accepted cumulative fixture evidence, 2026-10-23
+
+The complete fixture gate passed in [run 39942518018](https://github.com/idkwhodatis/TradeGrad/actions/runs/39942518018)
+at head `42f6cc25f2e4525dcbaad4e58ee95cf733e286cd`, tree `a99216d3fe10b5c5015627e78cabad1e5de66577`.
+See [PC and exact suite counts](V1_IMPLEMENTATION.md#original-v1-cumulative-fixture-evidence-accepted-pc).
+This evidence is for that exact source, not live upstreams or production deployment.
+
+The actual operations application case, PostgreSQL/browser checks and
+backup/upgrade coverage passed. These are bounded historical owner/admin
+observations and sanitized receipts, not production monitoring guarantees.
+The separate dry-run-first explicit retention apply now has real cooperative
+writer-refusal and cleanup-to-same-checkpoint-resume evidence under PC.
+No cleanup scheduler, Run-log deletion or production-storage operation is enabled.
+
 This completion slice implements bounded historical observations, not a production
 monitoring platform or release-readiness certificate. It does not enable a cleanup
-scheduler. Destructive retention remains a separate required completion stage; see
-[V1_RETENTION.md](V1_RETENTION.md) for the fail-closed preview and exact writer map.
+scheduler. Retention remains a separate dry-run-first bounded explicit command;
+see [V1_RETENTION.md](V1_RETENTION.md) for cooperative exclusion, exact writer
+mapping and the accepted disposable cleanup/resume evidence.
 
 ## Read-only observations
 
@@ -132,7 +147,7 @@ Prepared real tests:
 - `tests/integration/test_backup_restore.py`: real old-schema restore/upgrade and Settings
   cold restore, with exact manifest-bound create/verify/restore receipt assertions.
 - `tests/integration/test_retention_preview.py`: real PG reference/active-work gates;
-  it does not test deletion because apply is blocked.
+  it covers preview only; explicit apply and cold resume have separate tests.
 - `tests/system/test_operations_pipeline.py`: set
   `TRADEGRAD_REQUIRE_OPERATIONS_INTEGRATION=1` against an already-running disposable
   loopback stack after actual import/research workloads; it requires real observed
@@ -151,5 +166,5 @@ cases and two cold restore cases collected only; two Chromium flows listed only.
 The hosted ordinary application workflow now explicitly runs the operations
 observation check after actual fixture workloads. Its HTTP requests also have a
 Linux absolute deadline covering trickled headers/body. Metrics are observations,
-not a representative deployment capacity claim. Retention mutation is still
-unavailable in this slice until the separate writer-exclusion work is validated.
+not a representative deployment capacity claim. Retention mutation remains a
+separate command; its later writer-exclusion and cold-resume checks passed in PC.

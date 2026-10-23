@@ -1,5 +1,19 @@
 # V1 Settings management
 
+## Accepted cumulative fixture evidence, 2026-10-23
+
+The complete fixture gate passed in [run 39942518018](https://github.com/idkwhodatis/TradeGrad/actions/runs/39942518018)
+at head `42f6cc25f2e4525dcbaad4e58ee95cf733e286cd`, tree `a99216d3fe10b5c5015627e78cabad1e5de66577`.
+See [PC and exact suite counts](V1_IMPLEMENTATION.md#original-v1-cumulative-fixture-evidence-accepted-pc).
+This evidence is for that exact source, not live upstreams or production deployment.
+
+Actual PostgreSQL and browser management/default/quota/permission checks passed,
+including last-active-admin protection, existing operator-reference enablement,
+versions and backup receipts. The 16-case backup/upgrade group passed genuine
+historical-schema restore and upgrade through ProviderConnection migration.
+Earlier collected-only checks remain historical. No raw secrets, new grants,
+arbitrary endpoints or rewriting of frozen runs is authorized.
+
 This slice implements the original V1 Settings page. It does not enable live
 trading, arbitrary model providers, paid calls by default, or V2 capabilities.
 
@@ -109,7 +123,7 @@ integration owns adding `005_settings` to supported cold-backup revisions and
 running the real old-revision restore/upgrade drill before release. Existing
 003/004 archive support must remain intact.
 
-## Prepared verification, not runtime evidence
+## Historical preparation and verification contract
 
 Pure checks cover strict contracts, self-escalation input rejection, effective
 quota caps, reference narrowing/privacy/hash stability, every admission/retry
@@ -139,7 +153,8 @@ an operator profile with an unset secret; it makes no model call.
 
 No local PostgreSQL, sockets, Docker, browser, candidate execution, provider calls
 or SDK execution was used. PostgreSQL and browser cases were collected only.
-They still require real hosted execution; pure tests are not acceptance evidence.
+They subsequently passed in PC; the local collection and pure tests are not
+the hosted acceptance evidence.
 
 ## Combined recovery gate
 
@@ -147,7 +162,8 @@ The additive `005_settings` revision is admitted by the private cold-backup tool
 The prepared real PostgreSQL drills restore genuine `003_m3` archives and then
 upgrade through `004_m5` to `005_settings`, and separately back up and restore
 `005_settings` management rows together with immutable RunConfig and artifact
-bytes. These remain pending until the exact-head hosted gate passes.
+bytes. These real restore/upgrade checks subsequently passed in PC, including
+the later `006_provider_connections` migration and its immutable revision rows.
 
 The hosted Settings browser opt-in provisions a separate administrator with a
 job-local random password. No existing account is promoted, and no deployment

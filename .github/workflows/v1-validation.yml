@@ -141,6 +141,7 @@ jobs:
       - name: Install separately locked API runtime
         run: python -m pip install --require-hashes -r backend/requirements.lock
       - name: Install separately hash-locked data worker and generate lean OpenBB client
+        id: data_runtime
         run: |
           python -m venv .venv-data
           .venv-data/bin/python -m pip install --require-hashes -r runtimes/data/requirements.lock
@@ -166,12 +167,6 @@ jobs:
         env:
           TRADEGRAD_LOCAL_ENGINE_BRIDGE: "1"
         run: .venv-data/bin/python -m pytest tests/marketdata -q --ignore=tests/marketdata/test_live_providers.py -k "not optional_live" --junitxml=m2-data-contracts-junit.xml
-      - name: Explicit scoped live-provider smoke (no fixtures or fallback)
-        if: env.DATA_PROVIDER_MODE == 'live'
-        env:
-          TRADEGRAD_MARKETDATA_LIVE: "1"
-          TRADEGRAD_OPENBB_LIVE: "1"
-        run: .venv-data/bin/python -m pytest tests/marketdata/test_live_providers.py tests/marketdata/test_openbb.py -q -k "test_live_resolve_fetch_and_snapshot or optional_live" --junitxml=m2-live-provider-junit.xml
       - name: Validate portable SDK, actual TradeTGD adapter and frozen final contracts
         run: .venv-research/bin/python -m pytest tests/portable --ignore=tests/portable/test_isolation.py --ignore=tests/portable/test_upload_admission.py -q --junitxml=m5-portable-contracts-junit.xml
       - name: Validate portable upload admission with the locked data runtime
@@ -505,6 +500,15 @@ jobs:
           --receipt var/ci-evidence/v1-daily-reference-budget-receipt.json
           --source-commit "${{ github.sha }}"
           --github-run-id "${{ github.run_id }}"
+      # Independent public SDK probes do not use the application DB or its
+      # service processes. Collect them even if a scoped live browser flow
+      # failed, without suppressing either failure or substituting fixtures.
+      - name: Explicit scoped live-provider smoke (no fixtures or fallback)
+        if: ${{ !cancelled() && env.DATA_PROVIDER_MODE == 'live' && steps.data_runtime.outcome == 'success' }}
+        env:
+          TRADEGRAD_MARKETDATA_LIVE: "1"
+          TRADEGRAD_OPENBB_LIVE: "1"
+        run: .venv-data/bin/python -m pytest tests/marketdata/test_live_providers.py tests/marketdata/test_openbb.py -q -k "test_live_resolve_fetch_and_snapshot or optional_live" --junitxml=m2-live-provider-junit.xml
       - name: Remove the disposable database
         if: always()
         run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true

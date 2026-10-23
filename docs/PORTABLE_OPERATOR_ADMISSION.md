@@ -1,5 +1,19 @@
 # B9: bounded portable model and upload admission
 
+## Accepted cumulative fixture evidence, 2026-10-23
+
+The complete fixture gate passed in [run 39942518018](https://github.com/idkwhodatis/TradeGrad/actions/runs/39942518018)
+at head `42f6cc25f2e4525dcbaad4e58ee95cf733e286cd`, tree `a99216d3fe10b5c5015627e78cabad1e5de66577`.
+See [PC and exact suite counts](V1_IMPLEMENTATION.md#original-v1-cumulative-fixture-evidence-accepted-pc).
+This evidence is for that exact source, not live upstreams or production deployment.
+
+All nine dedicated portable synthetic operator cases passed, alongside all 18
+native operator cases, including their required isolated profile-browser paths.
+Ordinary browser profile skips are not substitutes for these results. Earlier
+local collection counts remain historical. Default-off/owner-allowlisted existing
+secret references and unverified raw/no-actions admission are unchanged. No paid
+model, independent corporate-action evidence or V2 execution is claimed.
+
 This source slice extends portable research without changing upstream `TradeTGD`,
 its recorded model calls, the strict strategy/state protocol, the isolated policy
 and trusted engine siblings, T+1 execution, or the no-host-fallback boundary.
@@ -119,7 +133,7 @@ new candidate/wrapper/SDK subprocess execution were denied or unavailable and
 were not retried or bypassed. No live/paid model call, production secret,
 deployment, security-setting change, commit, merge or PR comment occurred.
 
-## Main-tree integration checkpoint
+## Historical main-tree integration checkpoint
 
 Integrated after native result exploration on 2026-10-23 UTC. Available checks
 passed: 1,196 backend/operations/Compose-helper tests (including four owned
@@ -140,4 +154,5 @@ step retains eighteen. Main integration passed 24 inert launcher tests, 469
 frontend tests (including 15 reporter contract cases), TypeScript and Ruff.
 All 27 native/portable hosted cases collected only. Neither a skipped profile
 case nor zero selected cases can satisfy the dedicated reporter. Actual
-synthetic SDK/Chromium results remain pending on the final exact tree.
+synthetic SDK/Chromium results subsequently passed at PC; the local collection
+reported here remains historical preparation, not the runtime evidence.

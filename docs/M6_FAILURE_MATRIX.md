@@ -1,6 +1,20 @@
 # M6 failure, ownership and resource matrix
 
-Status: **bounded local hardening and contract checks, not release acceptance**.
+## Accepted cumulative fixture evidence, 2026-10-23
+
+The complete fixture gate passed in [run 39942518018](https://github.com/idkwhodatis/TradeGrad/actions/runs/39942518018)
+at head `42f6cc25f2e4525dcbaad4e58ee95cf733e286cd`, tree `a99216d3fe10b5c5015627e78cabad1e5de66577`.
+See [PC and exact suite counts](V1_IMPLEMENTATION.md#original-v1-cumulative-fixture-evidence-accepted-pc).
+This evidence is for that exact source, not live upstreams or production deployment.
+
+Historical local checks, exact P6 evidence and PC remain separately attributed.
+Both required real recovery cases passed; the finite per-case ownership/resource
+map, backup/restore/upgrade, result-to-browser and independent Compose gates passed.
+The failed sixth recovery poll remains failed-run history, not a pass inferred
+from its subsequent diagnostic. Prepared/collected/skipped cases are not promoted.
+Power-loss, production saturation/deployment, V2 and licensing limits remain.
+
+Status: **bounded cumulative fixture acceptance at PC, not production certification**.
 This matrix maps implementation-plan §§10.2–10.3 to concrete evidence sources.
 It does not promote M5's local stage (`fe28c5a2e85e2f06d08c34a1f43a56a62cfa747f`)
 or older M1/M2 hosted reports into an exact-head M6 runtime pass. Hosted gates
@@ -128,7 +142,8 @@ or hostile database-administrator mutation has been audited.
 4. TLS/public Internet exposure, production account lifecycle, shared proxy rate
    limits, production capacity, large-universe/minute data and multi-host operations
    are not accepted by this matrix. Measure representative workloads on agreed
-   hardware before setting final budgets; no full resource-saturation proof exists.
+   hardware before setting production budgets. The separate frozen engineering
+   regression guardrail is not capacity; no full resource-saturation proof exists.
 5. V2 remains excluded: no broker account, live orders, external execution-framework
    equivalence, deployment or reconciliation acceptance. V1 reference packages do
    not authorize public redistribution or turn portable contracts into live support.

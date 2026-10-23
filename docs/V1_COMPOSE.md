@@ -1,12 +1,26 @@
 # Opt-in full V1 Compose profile
 
+## Accepted cumulative fixture evidence, 2026-10-23
+
+The complete fixture gate passed in [run 39942518018](https://github.com/idkwhodatis/TradeGrad/actions/runs/39942518018)
+at head `42f6cc25f2e4525dcbaad4e58ee95cf733e286cd`, tree `a99216d3fe10b5c5015627e78cabad1e5de66577`.
+See [PC and exact suite counts](V1_IMPLEMENTATION.md#original-v1-cumulative-fixture-evidence-accepted-pc).
+This evidence is for that exact source, not live upstreams or production deployment.
+
+The independent Compose job passed 69 source checks and 45 Chromium cases with
+two separately scoped profile skips. Exact image provenance, three readiness/
+restart verification markers, owned-browser cleanup and final evaluator absence
+were verified. Eight services' bounded log configuration was read back; rollover
+stress testing was not performed. The application job owns separate storage and
+images. This is disposable single-host acceptance, not a production deployment.
+
 `infra/compose.full.yml` packages the original V1 single-host application. It is
 separate from the existing **database-only** `infra/compose.yml`; do not combine
 the two files or reuse that development database volume accidentally. This is a
-prepared self-hosted/hosted-CI profile, not a deployment performed by this change.
-Static tests are not evidence that the images built, Docker isolation worked,
-or a real browser completed a workflow. The exact-Compose hosted gate below must
-pass at the final source revision before claiming application acceptance.
+self-hosted/hosted-CI profile with exact PC disposable acceptance, not a production
+deployment performed by this change. Static tests alone do not prove image build,
+Docker isolation or a real browser workflow; the independent exact-Compose hosted
+job supplied those outcomes at its recorded source revision.
 
 ## Roles and boundaries
 
@@ -323,8 +337,8 @@ is no `continue-on-error` or waived acceptance group. Compose generates temporar
 resolves the official Docker CLI and application base repository digests, and
 records built image IDs. It never uploads resolved configuration, private raw
 logs, database archives or restart-proof records. Local source checks passed;
-real build/start/restart/Chromium acceptance remains unverified until this job
-has actually passed at the published revision.
+real build/start/restart/Chromium acceptance subsequently passed in PC at the
+published revision recorded above.
 
 ## Disposable operational logs versus immutable Run evidence
 
@@ -346,5 +360,5 @@ The hosted Compose gate reads back only each of the eight running services'
 logging configuration and checks the exact bounded policy. Its allowlisted JSON
 report contains no log contents or environment. Local preparation passed 67
 Compose/helper tests, Ruff, shell syntax and whitespace checks. Actual Compose
-read-back and rollover behavior have not run locally; the report explicitly
-states that it is configuration evidence, not a rollover stress test.
+read-back subsequently passed in the hosted PC job. Rollover stress testing was
+not performed; the report explicitly identifies configuration evidence only.

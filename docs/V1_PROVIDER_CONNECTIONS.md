@@ -1,5 +1,19 @@
 # V1 owner-local public provider connections
 
+## Accepted cumulative fixture evidence, 2026-10-23
+
+The complete fixture gate passed in [run 39942518018](https://github.com/idkwhodatis/TradeGrad/actions/runs/39942518018)
+at head `42f6cc25f2e4525dcbaad4e58ee95cf733e286cd`, tree `a99216d3fe10b5c5015627e78cabad1e5de66577`.
+See [PC and exact suite counts](V1_IMPLEMENTATION.md#original-v1-cumulative-fixture-evidence-accepted-pc).
+This evidence is for that exact source, not live upstreams or production deployment.
+
+Actual PostgreSQL revision concurrency/immutability, owner isolation,
+import/probe frozen defaults, delayed-worker execution after disablement,
+corrupt-binding rejection, browser save/conflict/reload and backup/migration
+coverage passed within PC. These public/no-auth preferences do not create accounts,
+store secrets or grant new endpoints. Receipt integrity and `fixture_passed` are
+not live connectivity or data-use rights; separate live outcomes remain pending.
+
 Data Sources now manages the three public/no-auth acquisition adapters with
 persisted owner-local configuration. This is not an account connection, a secret
 store, a new endpoint selector, or authorization to trade. AKShare/Eastmoney,
@@ -77,8 +91,8 @@ rows/files/hashes; a separate parametrized 005/006 backup restores management
 rows, including multiple immutable connection revisions in 006. Downgrade removes
 only the new table, so never downgrade an active deployment with queued v3 jobs.
 
-The following must execute on the authorized real-stack CI environment, not be
-inferred from collection or synthetic unit results:
+The following real-stack contracts executed in PC; their results are not inferred
+from collection or synthetic unit results:
 
 ```sh
 .venv-api/bin/python -m pytest -q tests/integration/test_provider_connections.py tests/integration/test_provider_completion_http.py tests/integration/test_migrations.py tests/integration/test_workspace_settings.py

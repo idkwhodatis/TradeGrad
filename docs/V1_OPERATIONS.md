@@ -1,5 +1,19 @@
 # V1 single-host research workbench operations
 
+## Accepted cumulative fixture evidence, 2026-10-23
+
+The complete fixture gate passed in [run 39942518018](https://github.com/idkwhodatis/TradeGrad/actions/runs/39942518018)
+at head `42f6cc25f2e4525dcbaad4e58ee95cf733e286cd`, tree `a99216d3fe10b5c5015627e78cabad1e5de66577`.
+See [PC and exact suite counts](V1_IMPLEMENTATION.md#original-v1-cumulative-fixture-evidence-accepted-pc).
+This evidence is for that exact source, not live upstreams or production deployment.
+
+The bounded disposable application and independent Compose/restart/cleanup scope
+passed, including genuine backup/empty-target restore/upgrade and cold-retention
+resume. Retention is dry-run-first bounded explicit apply, not preview-only;
+no user-storage cleanup or automatic GC is authorized. Frozen measured engineering
+budgets are separate from a future agreed production capacity/SLO profile.
+Native same-process evidence and private durable-root assumptions remain explicit.
+
 This is a development/self-hosted research profile, not an internet-facing
 production deployment or broker-connected trading service. Follow the exact
 stage evidence in [V1_IMPLEMENTATION.md](V1_IMPLEMENTATION.md); a documented
@@ -187,16 +201,18 @@ not a production throughput promise. Result reads append exposure records, and
 benchmarking them requires explicit acknowledgement. The fixture workload driver
 also requires explicit mutation opt-in and actual attempt overlap for its two-run
 concurrency observation. Neither invents performance numbers when unavailable.
-Set final resource budgets/capacity only after representative workload and
-hardware measurements. Shared hosted-runner timings do not certify a user's host.
+The frozen daily engineering regression budget is measured separately; any
+production capacity/SLO profile still requires agreed workload/hardware and its
+own measurements. Shared hosted-runner timings do not certify a user's host.
 
 ## Bounded operations evidence
 
 Overview and Settings now expose bounded owner/admin operational observations and
 sanitized operator-produced backup-command receipts. See
 [V1_OPERATIONAL_OBSERVATIONS.md](V1_OPERATIONAL_OBSERVATIONS.md) for exact windows,
-limits, unavailable/stale semantics, private receipt registration and unrun gates.
-[Retention preview](V1_RETENTION.md) is dry-run only: safe destructive application
-remains blocked pending cooperative writer exclusion and cleanup/recovery tests.
+limits, unavailable/stale semantics, private receipt registration and exact PC evidence.
+[Bounded retention](V1_RETENTION.md) is dry-run-first explicit apply with cooperative
+writer exclusion and accepted disposable cleanup-to-same-checkpoint-resume evidence.
+No production/user-storage cleanup or automatic GC is authorized.
 
 Owner-local public adapter preferences and their separate frozen evidence contract are documented in [Provider connections](V1_PROVIDER_CONNECTIONS.md).

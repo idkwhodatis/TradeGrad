@@ -1,13 +1,26 @@
 # V1 cold retention: cooperative exclusion and explicit apply
 
-## Implementation status, not a release acceptance claim
+## Accepted cumulative fixture evidence, 2026-10-23
+
+The complete fixture gate passed in [run 39942518018](https://github.com/idkwhodatis/TradeGrad/actions/runs/39942518018)
+at head `42f6cc25f2e4525dcbaad4e58ee95cf733e286cd`, tree `a99216d3fe10b5c5015627e78cabad1e5de66577`.
+See [PC and exact suite counts](V1_IMPLEMENTATION.md#original-v1-cumulative-fixture-evidence-accepted-pc).
+This evidence is for that exact source, not live upstreams or production deployment.
+
+Real PostgreSQL/concurrent-writer refusal and disposable explicit cleanup passed;
+the dedicated cold-recovery case resumed from the exact retained checkpoint with
+unchanged model replies/lineage and only missing evaluations. Cleanup remains
+dry-run-first, exact-plan/hash/inode checked, cooperatively fenced and journalled.
+Referenced data/source/final/checkpoint/replay/Run logs remain retained. No user
+storage cleanup, automatic GC or power-loss/storage certification is authorized.
+
+## Bounded implementation and accepted disposable evidence
 
 The cold command now implements dry-run-first cleanup of exact expired atomic
-publisher temporaries. It is no longer a preview-only substitute. The change is
-prepared for real PostgreSQL concurrent-writer and disposable cleanup/recovery
-acceptance; those hosted gates have **not run in this local stage**. Do not call
-V22/B7 accepted or use this command on user storage until the exact integrated
-head passes the acceptance checklist below. No production cleanup, migration,
+publisher temporaries. It is no longer a preview-only substitute. Real PostgreSQL
+concurrent-writer refusal, disposable cleanup and same-checkpoint worker resume
+passed in PC. These scoped outcomes do not authorize use on user storage or
+certify arbitrary installations. No production cleanup, migration,
 service startup, credential change, scheduler, API cleanup endpoint or automatic
 GC is introduced.
 
@@ -222,10 +235,10 @@ owned filesystem-writer exit/retry cases. The 18 new PostgreSQL barrier/cleanup
 cases collected successfully; they did not run locally. The hosted workflow now
 explicitly includes cold cleanup/restore tests in its opted-in private backup
 drill. Ruff and whitespace checks passed. Full actual worker resume after cold
-cleanup is a separate required prepared/hosted proof, not inferred from these
-counts; acceptance remains incomplete until that and the exact-head gates pass.
+cleanup remained a separate required hosted proof, not inferred from those
+local counts; that dedicated cold-recovery case subsequently passed in PC.
 
-## Prepared real worker resume-after-cleanup gate
+## Real worker resume-after-cleanup acceptance contract
 
 `tests/system/test_cold_retention_recovery.py` now prepares the remaining native
 research boundary proof. It reuses `ResearchProcessHarness` and its synthetic

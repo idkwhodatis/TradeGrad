@@ -1,6 +1,20 @@
 # V1 provider workflow completion slice
 
-Status: implemented and offline-validated against base
+## Accepted cumulative fixture evidence, 2026-10-23
+
+The complete fixture gate passed in [run 39942518018](https://github.com/idkwhodatis/TradeGrad/actions/runs/39942518018)
+at head `42f6cc25f2e4525dcbaad4e58ee95cf733e286cd`, tree `a99216d3fe10b5c5015627e78cabad1e5de66577`.
+See [PC and exact suite counts](V1_IMPLEMENTATION.md#original-v1-cumulative-fixture-evidence-accepted-pc).
+This evidence is for that exact source, not live upstreams or production deployment.
+
+The provider system group passed all nine cases, with the three provider browser
+optimization flows included in ordinary Chromium (45 passed, two separate profile
+skips). Actual PG/workers/Docker used generated SDK/model responses through the
+same immutable snapshots and original TradeTGD. Earlier collected-only reports
+below are historical preparation. Separate live SDK/browser evidence is pending;
+the live browser selector exercises seed evaluation, not these optimization cases.
+
+Historical local preparation: implemented and offline-validated against base
 `a4500bd1408c8d5b5d7e1227fb4a2e93fc371f27`. The new real PostgreSQL,
 Procrastinate, Docker and Chromium acceptance gates are prepared and collected,
 **not executed in this environment**. This is not a live-provider, paid-model,
@@ -112,7 +126,7 @@ completed **owner's** receipt; import history retains earlier receipts. Repeatin
 a test creates a new job rather than overwriting an old receipt. Provider
 availability can change after any receipt. No live test was run here.
 
-## Validation and hosted execution contract
+## Historical local validation and hosted execution contract
 
 Offline checks run here:
 
@@ -129,7 +143,7 @@ successfully but were not executed. Exact patch hashes are in the handoff. Calen
 unit-deprecation warnings and the existing large Monaco/ECharts chunk warning
 are not live acceptance evidence.
 
-Authorized hosted jobs must run, on the final combined source and matching images:
+The hosted execution contract used the combined source and matching images:
 
 ```sh
 # Existing PG test environment, dedicated runtimes, migrations and build inputs
@@ -146,8 +160,8 @@ The system gate also requires `TEST_DATABASE_URL`, `API_PYTHON`, `DATA_PYTHON`,
 `RESEARCH_PYTHON` and the normal pinned evaluator image environment. Browser
 credentials and URLs use the existing E2E harness. No workflow file, deployment,
 strategy execution, service, socket, Docker command or browser was run/changed in
-this local implementation task. Tests must be explicitly added to the parent
-hosted gate; collection/skips do not close acceptance. Current live probes remain
+that local implementation task. The tests were subsequently integrated and passed
+in PC; collection/skips alone never close acceptance. Current live probes remain
 a separate opt-in provider-specific evidence ledger, never fallback to fixtures.
 
 Combined completion-tree check: 131 pure tests passed with four SDK/live/process
@@ -155,5 +169,5 @@ paths deliberately excluded, and all 421 frontend unit tests passed. Typecheck,
 production build and regenerated combined contracts passed. The 19 PG/system
 cases and three Chromium scenarios were collected only. The workflow now
 contains an explicit three-adapter-to-TradeTGD system step in addition to the
-ordinary real browser suite. Its presence is not an execution result; exact-head
-hosted and live-source evidence remain pending.
+ordinary real browser suite. Its presence alone was not an execution result;
+subsequent hosted fixture evidence is PC. Live-source evidence remains pending.

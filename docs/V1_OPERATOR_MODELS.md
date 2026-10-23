@@ -1,5 +1,19 @@
 # Original V1 completion: operator-managed model profiles
 
+## Accepted cumulative fixture evidence, 2026-10-23
+
+The complete fixture gate passed in [run 39942518018](https://github.com/idkwhodatis/TradeGrad/actions/runs/39942518018)
+at head `42f6cc25f2e4525dcbaad4e58ee95cf733e286cd`, tree `a99216d3fe10b5c5015627e78cabad1e5de66577`.
+See [PC and exact suite counts](V1_IMPLEMENTATION.md#original-v1-cumulative-fixture-evidence-accepted-pc).
+This evidence is for that exact source, not live upstreams or production deployment.
+
+Historical native PM evidence remains on its recorded head. Cumulative native
+and portable groups passed 18 and nine cases respectively, including real locked
+SDK/process/container and dedicated profile-browser paths against a synthetic
+loopback server. Durable replay/usage/stop boundaries passed. Ordinary browser
+profile skips are not this evidence. No paid provider, real user credential,
+new grant or deterministic future online output is claimed.
+
 This is a distinct completion slice for the original V1 “choose a model and
 budget, run TradeGrad” requirement, not live-provider acceptance or a V2 feature.
 It retains unchanged `src.optimizer.TradeTGD` and the durable intent/response,
@@ -8,7 +22,7 @@ operator-configured OpenAI-compatible profiles. The B9 extension carries the sam
 profile/process/receipt boundary into the separate portable protocol; see
 [`PORTABLE_OPERATOR_ADMISSION.md`](PORTABLE_OPERATOR_ADMISSION.md). Capability
 entries declare `strategy_modes`. Profiles remain disabled by default, and
-portable hosted SDK/container/browser acceptance is prepared, not yet executed.
+portable hosted synthetic SDK/container/browser acceptance passed at PC.
 
 ## Default and operator boundary
 
