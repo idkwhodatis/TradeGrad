@@ -1,7 +1,7 @@
 # M5 hosted validation checkpoint
 
-Recorded 2026-10-23. **Full M5 acceptance remains pending on a normal full-gate
-head.** Targeted diagnostics are not a substitute for cumulative acceptance.
+Recorded 2026-10-23. **The subsequent normal full M5 gate passed; see the final
+section.** Targeted diagnostics are not a substitute for cumulative acceptance.
 
 ## Last complete full-gate attempt
 
@@ -45,7 +45,7 @@ tested commit `64fa3f8bc9f83b09c1ed9cfb5436e21da1155a22`, tree
 - The baseline and full application jobs were deliberately skipped in this
   explicitly labelled diagnostic profile. Its success **does not pass M5**.
 
-## Remaining sequence
+## Gate rule retained after diagnosis
 
 A normal feature-branch push without the diagnostic marker must pass the entire
 M5 workflow on its exact head before M6, native-operator admission and cumulative
@@ -53,3 +53,17 @@ completion gates advance. Separate bounded live-source checks remain distinct
 from frozen-data/model tests. No paid/live model calls, trades, merge or deployment
 are part of this checkpoint. Git commit metadata does not alter actual GitHub
 push or workflow timestamps.
+
+## Subsequent complete M5 acceptance
+
+[Run 39903672696](https://github.com/idkwhodatis/TradeGrad/actions/runs/39903672696)
+passed on exact head `5bf831f63fa0daf406a355ae99f09d3b9b471be1`, tree
+`6e3daf769f6415c19cdc30d8fa33b2e3e21a36f5`. The sanitized artifact verified
+297/297 PostgreSQL, 52/52 paired-container and 28/28 Chromium cases, all required
+native/portable application groups and explicit owned process/container cleanup.
+Both required real worker recovery cases passed. Seven unrelated opt-in cases
+in that recovery test file were intentionally skipped, not counted as passed.
+
+This is the complete normal M5 workflow, not a combination of the earlier failed
+run and one-case diagnostic. Only the diagnostic-only job was intentionally
+skipped. Later M6/operator/cumulative/live-source gates retain their own evidence.

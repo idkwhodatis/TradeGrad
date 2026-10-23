@@ -6,9 +6,11 @@
 > acceptance check also passed. M2 passed its complete deterministic PostgreSQL,
 > Docker/recovery and Chromium gate on `0f6e8359`; live providers remain unverified.
 > M3 configured research passed its complete real-stack gate on `5f9125ca`.
-> M4's full browser/workbench gate passed on `4dba3edc`; M5 portable/final
-> acceptance is pending its separate hosted gate. M6 hardening and required V1
-> completion slices are implemented locally, with sequential real-stack gates pending. The original M1 seed-only mode remains
+> M4's full browser/workbench gate passed on `4dba3edc`. M5 portable/final
+> acceptance passed on `5bf831f6`; M6 restore/upgrade, browser and reference-workload
+> acceptance passed on `32fe1252`; native operator admission passed on `45501347`
+> using synthetic HTTP, not a paid provider. Cumulative completion and live-source
+> gates remain separate; written code alone is not final acceptance. The original M1 seed-only mode remains
 > cold-start; configured research has an explicit warm-up contract.
 > This is not complete V1 and has no live trading. See
 > [staged validation](docs/M1_VALIDATION.md), [M2 limitations](docs/M2_VALIDATION.md),

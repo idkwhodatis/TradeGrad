@@ -170,14 +170,21 @@ API, data worker, PostgreSQL or evaluator containers**. Retain the enclosing
 job's exact runner configuration and process-owner/runtime resource evidence
 alongside the JSON. Unknown/unsupported observations remain null.
 
-There is no chosen hardware promise or final production budget yet. Review an
-actual successful hosted report, source/input/image hashes, runner allocation,
-container limits, queue contention and the polling/cache caveats first. Then
-agree with the user which hardware, workload and measured thresholds constitute
-release acceptance. A source fixture, pure test result, safety timeout, single
-measurement or theoretical projection cannot replace that agreement. In this
-version `performance_threshold` is deliberately null, `capacity_claim=false`
-and `user_agreed_production_profile=false`.
+There is no production hardware promise or production SLO. Review the actual
+successful hosted report, source/input/image hashes, runner allocation, container
+limits, queue contention and polling/cache caveats before freezing a modest
+engineering reference and explicit measured budgets. Record the exact calibration
+report and distinguish observed values from chosen future regression guardrails.
+This engineering acceptance does not wait for, or pretend to establish, a
+user-agreed production deployment profile. Such a profile would need separate
+workload/hardware agreement and measurements.
+
+A source fixture, pure test result, safety timeout, single measurement or
+theoretical projection is not production-capacity evidence. The initial raw
+calibration report keeps `performance_threshold` null, `capacity_claim=false`
+and `user_agreed_production_profile=false`; a separately immutable engineering
+budget record must identify its source report rather than rewriting those raw
+measurements or claiming a retrospective production SLO.
 
 ## Finite bounds and failure behavior
 

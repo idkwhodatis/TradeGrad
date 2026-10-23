@@ -51,22 +51,30 @@ component checks and 184 frontend contracts. Its complete browser/queue/database
 acceptance subsequently passed on exact repaired head
 `4dba3edc515a99345de806679f64091faddb8dd1` in
 [run 39875412249](https://github.com/idkwhodatis/TradeGrad/actions/runs/39875412249).
-See [M4 evidence](M4_VALIDATION.md). M5 portable
-research, frozen selection and separate final-evaluation workflows passed the
-available local gate and scoped review; real paired-container/application/browser acceptance
-remains pending. See [M5 boundaries and gates](M5_VALIDATION.md).
-M6 local preparation adds a private cold backup/empty-target restore and genuine
-M3-to-M5 migration drill, bootstrap durability/resource regressions, and bounded
-reference performance drivers. Its real restore/upgrade and measured workload
-acceptance has not run yet. See [operations](V1_OPERATIONS.md),
+See [M4 evidence](M4_VALIDATION.md). M5 passed its normal complete hosted gate on
+`5bf831f63fa0daf406a355ae99f09d3b9b471be1` in
+[run 39903672696](https://github.com/idkwhodatis/TradeGrad/actions/runs/39903672696),
+including 297 PostgreSQL, 52 paired-container and 28 Chromium cases, both required
+real worker recoveries and all native/portable final application flows. See
+[M5 boundaries](M5_VALIDATION.md) and [hosted checkpoint](M5_HOSTED_CHECKPOINT.md).
+M6 subsequently passed on `32fe1252fc27b6fe4d7cbee1ae3cebcff3c02495` in
+[run 39907196795](https://github.com/idkwhodatis/TradeGrad/actions/runs/39907196795),
+including private cold backup/empty-target restore, genuine M3-to-M5 migration,
+28 Chromium cases and both bounded reference/concurrent-workload reports. These
+synthetic loopback measurements do not establish production capacity or replace
+the later six-year daily reference. See [operations](V1_OPERATIONS.md),
 [M6 evidence and remaining gates](M6_VALIDATION.md),
 [failure matrix](M6_FAILURE_MATRIX.md) and [restore profile](M6_BACKUP_RESTORE.md).
 The original-V1 model admission completion is a distinct subsequent slice:
 disabled-by-default, owner-allowlisted OpenAI-compatible profiles for native
 research, bounded trusted SDK subprocesses, and durable process-stop receipts.
 It retains upstream TradeTGD and historical fixture configuration bytes. Its
-synthetic SDK/application and profile-browser gates are separate from real
-provider acceptance. A separately reviewed portable extension now admits the same
+synthetic SDK/application and profile-browser gates passed on
+`4550134750d6369701e996aeeabb9eb2572cacd6` in
+[run 39911259617](https://github.com/idkwhodatis/TradeGrad/actions/runs/39911259617),
+together with the complete inherited application/browser/performance gate. This
+is separate from real-provider acceptance. A separately reviewed portable
+extension now admits the same
 operator profile boundary; see [portable admission](PORTABLE_OPERATOR_ADMISSION.md).
 See [operator model boundaries and evidence](V1_OPERATOR_MODELS.md).
 Live provider verification is separate from deterministic

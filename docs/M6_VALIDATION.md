@@ -1,6 +1,7 @@
 # M6 release hardening: evidence and remaining acceptance
 
-Status: **local implementation and review; exact-head hosted acceptance pending**.
+Status: **exact-head M6 hosted gate passed on `32fe1252`; original-V1 operator
+and cumulative completion gates remain separate**.
 This stage is not a claim of production readiness, live-provider acceptance,
 portable runtime certification or complete V1 delivery. It builds on the sealed
 M5 implementation plus the separate M4 cache-header/fixture/privacy repair.
@@ -113,3 +114,27 @@ See [reference HTTP methodology](M6_PERFORMANCE.md) and
 [fixture workload methodology](M6_WORKLOAD_PERFORMANCE.md) before interpreting
 any later numerical artifact. The reference run must be associated with its
 actual source revision and CI run, not an earlier stage's passing report.
+
+## Verified hosted gate, 2026-10-23 UTC
+
+[Run 39907196795](https://github.com/idkwhodatis/TradeGrad/actions/runs/39907196795)
+passed on `32fe1252fc27b6fe4d7cbee1ae3cebcff3c02495`, tree
+`26a93cfd48d5750a5458dde91a32821e8abb2e5c`. It includes the actual private backup,
+empty-target restore and historical-schema upgrade drill; 52 paired-container
+cases; 28 Chromium cases; required real worker recovery and native/portable
+application groups; and explicit owned process/container cleanup.
+
+Both fixed-schema performance reports succeeded: 20 zero-error samples per
+reference endpoint, one standalone native evaluation and two actually overlapping
+evaluations (1.428 seconds observed overlap), all confirmed stopped. These are
+synthetic loopback reference measurements, not a production SLO or the later
+six-year representative workload. The current cumulative migration006, cold
+cleanup-to-resume, independent full Compose and operator extensions still require
+their separate exact-tree gates.
+
+The recorded benchmark host/client was Linux x86_64 with Python 3.12.15, four
+logical/affinity CPUs and 16,765,407,232 physical-memory bytes. Container
+reservations and unavailable cgroup limits are not inferred from host totals.
+The verified reference report SHA-256 is
+`0bd0584098ed656cf18423e64714e8468e277f67d77f44501186173f1ed46f27`; the workload
+report is `f8d6f704e718d1639b50eec9ead3cbb541cb35b3e107b450a2b008278f9ef9ee`.

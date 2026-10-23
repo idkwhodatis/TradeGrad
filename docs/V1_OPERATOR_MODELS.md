@@ -131,7 +131,7 @@ execution outside this reviewed automatic recovery path; do not delete receipts,
 clear `sandbox_stopped`, or retry the run to manufacture proof. Completed-call
 crash recovery remains available when its stop receipt was durably published.
 
-## Prepared hosted acceptance, not executed locally
+## Historical hosted preparation, not executed locally
 
 `tests/system/test_operator_model_pipeline.py` requires both
 `GITHUB_ACTIONS=true` and `TRADEGRAD_REQUIRE_MODEL_INTEGRATION=1`. Its only server is
@@ -224,7 +224,8 @@ reporter requires exactly one passed, non-skipped case; raw child output is
 discarded. Success also requires zero synthetic HTTP model requests. Pure
 launcher tests validate environment shaping, command selection and mocked
 containment/deadline transitions, not actual detached-browser containment. That
-proof remains part of the unexecuted hosted case.
+proof was unexecuted during local preparation; the later actual hosted result
+is recorded below.
 
 After integration on top of the M6 preparation and M5 fixture repair, the
 available cumulative suites passed 1903 API/runner/portable tests (69 explicit
@@ -234,3 +235,25 @@ cases were collected, not executed locally. All 36 workflow shell blocks parsed;
 model integration/browser flags remain scoped to their dedicated hosted step.
 The broad legacy baseline lint command still reports three pre-existing findings
 in baseline fixture scripts/tests; changed model Python files pass scoped Ruff.
+
+## Verified native admission gate, 2026-10-23 UTC
+
+[Run 39911259617](https://github.com/idkwhodatis/TradeGrad/actions/runs/39911259617)
+passed on exact head `4550134750d6369701e996aeeabb9eb2572cacd6`, tree
+`13067a0ab784580867ee31a03e3c5959745bd8c7`. The actual hosted synthetic HTTP/SDK
+application group and isolated operator-profile Chromium case passed their
+required teardown boundary, followed by the full native/portable application,
+ordinary browser and reference-workload regressions.
+
+The verified artifact contains 18/18 dedicated SDK/application/profile-browser
+cases, 306 PostgreSQL cases plus the separate restore/upgrade drill, and 52/52
+paired-container cases. The ordinary browser suite has 28 passed and one
+intentionally profile-gated case; that operator case is actually executed in the
+dedicated group, not waived. Both performance reports passed their bounded
+predicates and all owned cleanup was confirmed. Overlapping suites are not
+added into a fabricated unique-case total.
+
+This verifies native operator admission with actual SDK transport to the owned
+synthetic server, not a paid/live provider or real user credential. The portable
+operator extension belongs to the later cumulative gate and is not inferred from
+this native pass. Disabled-by-default settings and all existing boundaries remain.

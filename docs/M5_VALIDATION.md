@@ -1,6 +1,7 @@
 # M5: portable research and frozen final evaluation
 
-Status: **implementation and available local checks; hosted acceptance pending**.
+Status: **complete scoped M5 hosted gate passed on `5bf831f6`; cumulative completion
+acceptance is separate**. See the [exact-head checkpoint](M5_HOSTED_CHECKPOINT.md).
 Neither the portable runtime nor its controller-T+1 profile is certified by
 fixture, schema, source-inspection or fake-broker tests. No live source, paid
 model, external trading framework, broker or live-trading claim is made.

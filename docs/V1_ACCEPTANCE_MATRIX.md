@@ -1,7 +1,7 @@
 # TradeGrad WebUI V1 acceptance matrix
 
-Current reconciliation: 2026-10-23 UTC, after local completion slices for result
-exploration, the daily reference, and owner-local provider revisions. This document is **not an
+Current reconciliation: 2026-10-23 UTC, after complete M5, M6 and native operator
+hosted passes, with all original-V1 completion slices integrated locally. This document is **not an
 unqualified release acceptance**. The [initial static audit](V1_ACCEPTANCE_AUDIT_INITIAL.md)
 is preserved as historical evidence; its absent-feature conclusions must not be
 read as the current implementation state.
@@ -22,10 +22,10 @@ not added into a fabricated unique-test total.
 | H2 | `0f6e83599ce3251dcdda1a97345d314271c53f3c`, [39868584582](https://github.com/idkwhodatis/TradeGrad/actions/runs/39868584582) | Three real adapter implementations with frozen SDK responses, immutable snapshots and original seed evaluation passed. Not live upstream acceptance. |
 | H3 | `5f9125caa47107824f75094dcec08b799a829b8f`, [39870319437](https://github.com/idkwhodatis/TradeGrad/actions/runs/39870319437) | Actual source TradeTGD, corrected warm-up, frozen model, durable recovery and real browser passed. |
 | H4 | `4dba3edc515a99345de806679f64091faddb8dd1`, [39875412249](https://github.com/idkwhodatis/TradeGrad/actions/runs/39875412249) | Configured primary research, persistent results/comparison/ownership and full then-current real browser suite passed. |
-| P5 | `fd83d1f06dc5162652810081c57151e495820ac4`, [39892471923](https://github.com/idkwhodatis/TradeGrad/actions/runs/39892471923) | Narrow legacy-provenance repair is running, not accepted. Prior run39889731625 passed52 paired cases and reached both recovered artifact downloads, then failed provenance409; later final/browser gates were skipped. |
-| P6 | Prepared exact-tree M6 target `14049e338f1721bf3741fc95755f8c2756877fd4` | Full restore/upgrade/performance/recovery gate waits for P5, not accepted. |
-| PM | Prepared native operator target `e0736281bbb5d21e6904b9f2fe84c6ae18d6225c` | Default-off allowlisted model admission; actual synthetic HTTP/SDK/kernel/browser gate waits for P6. No paid/live calls. |
-| PC | Final cumulative completion target not yet frozen | All completion slices, portable operator admission, full independent Compose, three provider optimization flows, final browser/PG/recovery/performance gates required. |
+| P5 | `5bf831f63fa0daf406a355ae99f09d3b9b471be1`, [39903672696](https://github.com/idkwhodatis/TradeGrad/actions/runs/39903672696) | Complete normal M5 gate passed: 297 PostgreSQL, 52 paired-container and 28 Chromium cases, both required real worker recoveries, native/portable research/final groups and owned cleanup. Earlier failed/diagnostic evidence is retained in M5_HOSTED_CHECKPOINT.md. |
+| P6 | `32fe1252fc27b6fe4d7cbee1ae3cebcff3c02495`, [39907196795](https://github.com/idkwhodatis/TradeGrad/actions/runs/39907196795) | Complete M6 passed: actual private restore/upgrade, inherited application/isolation/recovery, 28 Chromium cases and both scoped reference/concurrent-workload reports. Not six-year or production-capacity acceptance. |
+| PM | `4550134750d6369701e996aeeabb9eb2572cacd6`, [39911259617](https://github.com/idkwhodatis/TradeGrad/actions/runs/39911259617) | Complete native operator gate passed: actual synthetic HTTP/SDK lifecycle, isolated operator-profile Chromium, inherited native/portable application/browser/performance and cleanup. Not portable operator or live paid-provider acceptance. |
+| PC | Integrated completion tree; exact source/tree and full run are frozen at publication | All completion slices, portable operator admission, independent full Compose, three-provider optimization, final browser/PG/recovery/cold-cleanup/representative-performance gates are required. Earlier accepted stages do not pass this cumulative tree. |
 
 The prior unsafe ordinary-launcher run `39889096353` was superseded by the reviewed
 identity-owner repair and confirmed cancelled during PostgreSQL; its paired and
@@ -139,14 +139,15 @@ unchanged and there has been no merge or deployment.
 | V100 | L397, L523 | Frozen fixtures plus small live source probes; upgrade affected contracts/pins without rewriting history | implemented; current hosted gate pending | `tests/marketdata/test_live_providers.py`; `frontend/tests/e2e/provider-research.spec.ts`; separate live workflow profile | Frozen fixtures remain ordinary acceptance. Bounded public AKShare Shanghai/Shenzhen, Yahoo US and OpenBB Nasdaq checks are authorized but not yet run on the final completion tree; preserve each actual success/failure, never silently fall back or call an unattempted probe failed. |
 | V101 | L525, L529 | Actual component notices; unresolved TradeGrad public redistribution permission; chart attribution | implemented notices; external distribution prerequisite unresolved | `docs/THIRD_PARTY.md`; FastAPI notice/license; Lightweight Charts attribution; upstream baseline record | No root upstream TradeGrad license was found at the pinned baseline. Standalone public distribution permission remains unresolved; editing notices or passing CI does not resolve it. The authorized public-fork development branch is not a claim of licensed product redistribution. |
 | V102 | L531 | Separate data rights; manifest terms_url/upstream/acquisition time | implemented; current hosted gate pending | `packages/marketdata/{contracts,normalize,storage}.py`; provider provenance builders; `tests/integration/test_provider_completion_http.py` | New manifests retain immutable connector/upstream/endpoint/parameters/acquisition/package/build evidence and explicit terms_url. Existing published hashes are not rewritten. Source-code licenses do not grant market-data redistribution rights; default remains personal/internal research. |
-| V103 | L533 | Reliable research workbench + immutable inputs/strategies + full results + portable contracts | implemented substantial V1; final acceptance incomplete | All 103 rows; exact-head gate ledger below | V1 is not fully accepted yet. Required pending work is finite: M5→M6→operator→cumulative gates (including ProviderConnection); final live-source evidence; measured reference budget/accounting. No V2/broker/paper/live trading scope is included. |
+| V103 | L533 | Reliable research workbench + immutable inputs/strategies + full results + portable contracts | implemented substantial V1; final acceptance incomplete | All 103 rows; exact-head gate ledger above | V1 is not fully accepted yet. Required pending work is finite: cumulative gates (including portable operator and ProviderConnection); final live-source evidence; measured reference budget/accounting. No V2/broker/paper/live trading scope is included. |
 
 ## Finite remaining acceptance
 
 1. Validate integrated owner-scoped ProviderConnection revisions, frozen
    import/probe defaults and migration/restore coverage on the final real stack.
    Local checks do not replace these gates or justify introducing credentials.
-2. Finish the sequential P5, P6, PM and final cumulative PC gates on exact trees.
+2. P5, P6 and native PM are accepted only on their recorded exact heads. Finish
+   the final cumulative PC gates on their own exact tree.
    Required real PostgreSQL/Procrastinate, three evaluator images, process kills,
    cancellation/recovery, Chromium and full Compose cannot be replaced by local
    fixtures. Repairs receive their own commit and affected/full exact-head rerun.
