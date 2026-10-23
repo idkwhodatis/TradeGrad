@@ -230,6 +230,14 @@ def validate_research_submission(session, owner_id, body, settings):
             "Seed strategy bytes do not match immutable hash",
             422,
         )
+    from packages.tradegrad_adapter.native_contract import validate_native_binding
+
+    try:
+        validate_native_binding(
+            body.strategy_contract, strategy.manifest, strategy.parameters
+        )
+    except ValueError as error:
+        raise DomainError("strategy_contract_mismatch", str(error), 422) from None
     for _split, window in body.windows.items():  # noqa: PERF102 (WindowSet is not a dict)
         if window.start < dataset.start_date or window.end > dataset.end_date:
             raise DomainError(

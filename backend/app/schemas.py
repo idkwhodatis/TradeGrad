@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
+from packages.tradegrad_adapter.native_contract import NativeStrategyContract
+
 Task = Literal["cn_time", "us_time", "cn_cross", "us_cross"]
 RunStatus = Literal[
     "queued",
@@ -56,6 +58,8 @@ class StrategyPublic(PublicModel):
     name: str
     task: Task
     mode: Literal["native_akquant"]
+    manifest: NativeStrategyContract | None = None
+    parameters: dict[str, bool | int | float | str] | None = None
     content_sha256: str
     parent_id: UUID | None
     created_at: datetime

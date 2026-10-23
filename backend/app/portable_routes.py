@@ -26,6 +26,7 @@ from backend.app.portable_schemas import (
     PortableRunCreate,
     PortableRunDetail,
     PortableRunPublic,
+    PortableSourceCreate,
     PortableStrategyCreate,
     PortableStrategyDetail,
     PortableStrategyPublic,
@@ -101,6 +102,28 @@ def create_strategy(
     return item
 
 
+@router.post(
+    "/portable-strategy-versions",
+    response_model=PortableStrategyDetail,
+    status_code=201,
+    responses={200: {"model": PortableStrategyDetail}},
+    operation_id="create_portable_source_version",
+)
+def create_source_version(
+    body: PortableSourceCreate,
+    user: CurrentUser,
+    session: SessionDep,
+    response: Response,
+    idempotency_key: IdempotencyKey,
+):
+    from backend.app.portable_authoring import create_portable_source
+
+    item, created = create_portable_source(session, user.id, body, idempotency_key)
+    session.commit()
+    response.status_code = 201 if created else 200
+    return item
+
+
 @router.get(
     "/portable-strategies",
     response_model=Page[PortableStrategyPublic],
@@ -145,6 +168,17 @@ def strategy(strategy_id: UUID, user: CurrentUser, session: SessionDep):
     if item is None:
         raise DomainError("not_found", "Portable strategy not found", 404)
     return item
+
+
+@router.get(
+    "/portable-strategies/{strategy_id}/source-draft",
+    response_model=PortableSourceCreate,
+    operation_id="portable_source_draft",
+)
+def source_draft(strategy_id: UUID, user: CurrentUser, session: SessionDep):
+    from backend.app.portable_authoring import portable_source_draft
+
+    return portable_source_draft(strategy(strategy_id, user, session))
 
 
 @router.post(

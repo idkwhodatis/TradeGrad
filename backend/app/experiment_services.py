@@ -653,6 +653,9 @@ def freeze_final_selection(session, owner_id, body, settings):
     snapshot = get_exposure_snapshot(session, owner_id, split)
     portable = config.schema_version == "tradegrad.portable.run.v1"
     policy_manifest, parameters = (None, None)
+    if not portable and config.strategy_contract is not None:
+        policy_manifest = config.strategy_contract.model_dump(mode="json")
+        parameters = config.strategy_contract.parameter_values()
     if portable:
         source_strategy = owned_resource(
             session, StrategyVersion, run.strategy_version_id, owner_id

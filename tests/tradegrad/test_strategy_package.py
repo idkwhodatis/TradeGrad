@@ -424,3 +424,50 @@ def test_allowlisted_json_cannot_smuggle_excluded_operational_payloads(field):
         deterministic_archive(
             [("data/dataset-manifest.json", canonical({field: disposable}))]
         )
+
+
+def test_declared_native_parameters_are_exported_without_changing_legacy_packages(
+    package_input,
+):
+    from packages.tradegrad_adapter.native_contract import NativeStrategyContract
+
+    value = copy.deepcopy(package_input)
+    declaration = NativeStrategyContract.model_validate(
+        {
+            "lookback_bars": 20,
+            "warmup_bars": 20,
+            "requires_shorting": False,
+            "parameters": [
+                {
+                    "name": "allocation",
+                    "kind": "number",
+                    "value": 0.2,
+                    "minimum": 0.1,
+                    "maximum": 0.9,
+                }
+            ],
+        }
+    ).model_dump(mode="json")
+    value.source_config["strategy_contract"] = declaration
+    value.final_config["source_config"] = copy.deepcopy(value.source_config)
+    value.selection["source_config_sha256"] = sha256(canonical(value.source_config))
+    value.final_config["source_config_sha256"] = value.selection["source_config_sha256"]
+    value.selection["final_config_sha256"] = sha256(canonical(value.final_config))
+    built = build_strategy_package(value)
+    with zipfile.ZipFile(io.BytesIO(built.archive)) as archive:
+        parameters = json.loads(archive.read("strategy/parameters.json"))
+        assert parameters["status"] == "explicit" and parameters["values"] == {
+            "allocation": 0.2
+        }
+        assert (
+            json.loads(archive.read("strategy/strategy-manifest.v1.json"))[
+                "native_declaration"
+            ]
+            == declaration
+        )
+        assert (
+            json.loads(archive.read("selection/source-config.json"))[
+                "strategy_contract"
+            ]
+            == declaration
+        )

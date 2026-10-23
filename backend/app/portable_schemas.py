@@ -7,6 +7,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.app.schemas import AttemptPublic, PublicModel, RunStatus
+from backend.app.strategy_schemas import StrategyCreate
+from packages.strategy_sdk.contracts import StrategyManifest
 from packages.tradegrad_adapter.config import VersionRef, WindowSet
 from packages.tradegrad_adapter.portable_config import PortableRunConfig
 
@@ -70,11 +72,19 @@ class PortableStrategyCreate(BaseModel):
     initial_cash: float = Field(default=1_000_000, gt=0, le=1e12)
 
 
+class PortableSourceCreate(StrategyCreate):
+    """Identity hashes are server-assigned; all other manifest claims are frozen."""
+
+    manifest: StrategyManifest
+    parameters: dict[str, Any]
+
+
 class PortableStrategyPublic(PublicModel):
     id: UUID
     name: str
     task: Literal["cn_time", "us_time", "cn_cross", "us_cross"]
     mode: Literal["portable"]
+    parent_id: UUID | None = None
     content_sha256: str
     manifest: dict[str, Any]
     parameters: dict[str, Any]

@@ -22,6 +22,8 @@ from pydantic import (
     model_validator,
 )
 
+from .native_contract import NativeStrategyContract
+
 Task = Literal["cn_time", "us_time", "cn_cross", "us_cross"]
 Profile = Literal["source_compat", "corrected_explicit_config"]
 Split = Literal["train", "validation", "holdout"]
@@ -320,6 +322,14 @@ class RunConfig(FrozenModel):
     prompt_version: Literal["source_prompts.v1"] = "source_prompts.v1"
     environment_digest: Sha256
     benchmark: BenchmarkConfig | None = None
+    strategy_contract: NativeStrategyContract | None = None
+
+    @model_serializer(mode="wrap")
+    def historical_native_representation(self, serializer):
+        values = serializer(self)
+        if self.strategy_contract is None:
+            values.pop("strategy_contract", None)
+        return values
 
     @model_validator(mode="after")
     def implemented_semantics(self):
@@ -332,8 +342,20 @@ class RunConfig(FrozenModel):
             raise ValueError("Task and market profile must agree")
         if self.execution_mode == "optimization" and self.windows.validation is None:
             raise ValueError("Optimization requires a distinct validation window")
-        minimum = 20 if self.task.endswith("_time") else 3
+        minimum = (
+            max(
+                self.strategy_contract.lookback_bars, self.strategy_contract.warmup_bars
+            )
+            if self.strategy_contract is not None
+            else 20
+            if self.task.endswith("_time")
+            else 3
+        )
         if self.profile == "source_compat":
+            if self.strategy_contract is not None:
+                raise ValueError(
+                    "source_compat cannot add strategy declarations or parameter overrides"
+                )
             if (
                 self.warmup.sessions != 0
                 or self.warmup.history_policy != "source_cold_start"
@@ -361,11 +383,18 @@ class RunConfig(FrozenModel):
                 raise ValueError(
                     "Corrected profile requires explicit timezone and lot size"
                 )
-        if market == "US" and not (
+        requires_shorting = (
+            self.strategy_contract.requires_shorting
+            if self.strategy_contract is not None
+            else market == "US"
+        )
+        if requires_shorting and not (
             self.market_profile.risk_config
             and self.market_profile.risk_config.enable_short_sell
         ):
-            raise ValueError("The US seeds require explicit short-selling support")
+            raise ValueError(
+                "Strategy requires short-selling support; enable an admitted margin profile or choose a long-only strategy"
+            )
         if self.warmup.sessions > self.market_profile.history_depth:
             raise ValueError("Warm-up exceeds pinned engine history depth")
         return self

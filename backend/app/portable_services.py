@@ -59,6 +59,7 @@ from packages.tradegrad_adapter.portable_prompts import (
     PROMPT_VERSION,
     template_source,
     validate_policy_source,
+    validate_user_policy_source,
 )
 
 
@@ -204,7 +205,9 @@ def portable_defaults(session, owner_id, body):
         )
     manifest = parse_manifest(canonical_json(strategy.manifest))
     schema, state = reference_state(manifest.strategy_kind)
-    if manifest.state_schema != schema:
+    if manifest.authoring is not None:
+        state = manifest.authoring.initial_state
+    elif manifest.state_schema != schema:
         raise DomainError(
             "reference_mismatch",
             "Reference policy state schema differs from reviewed template",
@@ -238,7 +241,9 @@ def portable_defaults(session, owner_id, body):
             "sha256": hash_json(strategy.parameters),
         },
         windows=body.windows,
-        warmup=WarmupConfig(sessions=manifest.data.warmup_bars),
+        warmup=WarmupConfig(
+            sessions=max(manifest.data.warmup_bars, manifest.data.lookback_bars)
+        ),
         initial_state=state,
         initial_cash=initial_cash,
         optimizer=OptimizerConfig(max_iterations=0)
@@ -282,7 +287,15 @@ def validate_portable_submission(session, owner_id, body, settings):
             or strategy.mode != "portable"
         ):
             raise ValueError("Portable task, market and source mode must agree")
-        validate_policy_source(strategy.code, body.strategy_kind)
+        parsed_manifest = parse_manifest(canonical_json(strategy.manifest))
+        if parsed_manifest.authoring is None:
+            validate_policy_source(strategy.code, body.strategy_kind)
+        else:
+            validate_user_policy_source(strategy.code, body.strategy_kind)
+            if body.optimizer.max_iterations > 0:
+                validate_policy_source(
+                    strategy.code, body.strategy_kind, baseline=strategy.code
+                )
         if (
             hashlib.sha256(strategy.code.encode()).hexdigest()
             != body.seed_strategy.sha256

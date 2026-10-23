@@ -470,6 +470,7 @@ def config_projection(config: dict) -> dict:
         "profile",
         "dataset",
         "seed_strategy",
+        "strategy_contract",
         "universe",
         "windows",
         "warmup",
@@ -631,10 +632,31 @@ def build_strategy_package(value: PackageInput) -> BuiltPackage:
         "replay_scope": "selected_strategy_execution_not_model_reoptimization",
         "reproducibility": "reference_only_requires_matching_snapshot_and_pinned_images",
     }
+    native_declaration = None
+    if native and value.source_config.get("strategy_contract") is not None:
+        from packages.tradegrad_adapter.native_contract import NativeStrategyContract
+
+        try:
+            native_declaration = NativeStrategyContract.model_validate(
+                value.source_config["strategy_contract"]
+            )
+        except ValueError:
+            raise PackageError("Native parameter declaration is invalid") from None
+        if (
+            effective_config.get("strategy_contract")
+            != value.source_config["strategy_contract"]
+        ):
+            raise PackageError("Native final/source parameter declarations differ")
     parameters = {
         "schema_version": "tradegrad.strategy-parameters.v1",
-        "status": "embedded_in_source" if native else "explicit",
-        "values": None if native else value.parameters,
+        "status": "explicit"
+        if native_declaration is not None or not native
+        else "embedded_in_source",
+        "values": native_declaration.parameter_values()
+        if native_declaration is not None
+        else None
+        if native
+        else value.parameters,
     }
     strategy_manifest = {
         "schema_version": "strategy-manifest.v1",
@@ -643,6 +665,10 @@ def build_strategy_package(value: PackageInput) -> BuiltPackage:
         "parameters_sha256": sha256(canonical(parameters)),
         "capabilities": capabilities,
     }
+    if native_declaration is not None:
+        strategy_manifest["native_declaration"] = native_declaration.model_dump(
+            mode="json"
+        )
     files = {
         "strategy/strategy.py": value.strategy_code,
         "strategy/parameters.json": canonical(parameters),

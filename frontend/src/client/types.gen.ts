@@ -564,6 +564,44 @@ export type CoveragePublic = {
 };
 
 /**
+ * DataRequirements
+ */
+export type DataRequirements = {
+  /**
+   * Bar Complete
+   */
+  bar_complete?: "exchange_session_closed";
+  /**
+   * History Order
+   */
+  history_order?: "oldest_first";
+  /**
+   * Interval
+   */
+  interval?: "1d";
+  /**
+   * Lookback Bars
+   */
+  lookback_bars: number;
+  /**
+   * Max Listings
+   */
+  max_listings: number;
+  /**
+   * Missing Bar Policy
+   */
+  missing_bar_policy?: "reject_snapshot";
+  /**
+   * Snapshot Rule
+   */
+  snapshot_rule?: "all_effective_listings_complete";
+  /**
+   * Warmup Bars
+   */
+  warmup_bars: number;
+};
+
+/**
  * DataUsageExposurePublic
  */
 export type DataUsageExposurePublic = {
@@ -694,6 +732,40 @@ export type DifferenceValue = {
    */
   evaluation_id: string;
   value: JsonValue;
+};
+
+/**
+ * EngineProfile
+ */
+export type EngineProfile = {
+  /**
+   * Application Settlement Enforcement
+   */
+  application_settlement_enforcement?: "trusted_controller_daily_next_open_inventory.v1";
+  /**
+   * Engine
+   */
+  engine?: "akquant";
+  /**
+   * Engine Settlement Mode
+   */
+  engine_settlement_mode?: "T+0";
+  /**
+   * Environment Sha256
+   */
+  environment_sha256: string;
+  /**
+   * Profile Sha256
+   */
+  profile_sha256: string;
+  /**
+   * Profile Version
+   */
+  profile_version?: "akquant.portable.cash-daily.controller-t1.v3";
+  /**
+   * Version
+   */
+  version?: "0.3.27";
 };
 
 /**
@@ -2253,6 +2325,76 @@ export type ModelProfilePublic = {
 };
 
 /**
+ * NativeParameter
+ */
+export type NativeParameter = {
+  /**
+   * Choices
+   */
+  choices?: Array<boolean | number | number | string>;
+  /**
+   * Kind
+   */
+  kind: "integer" | "number" | "boolean" | "string";
+  /**
+   * Maximum
+   */
+  maximum?: number | null;
+  /**
+   * Minimum
+   */
+  minimum?: number | null;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Value
+   */
+  value: boolean | number | number | string;
+};
+
+/**
+ * NativeStrategyContract
+ */
+export type NativeStrategyContract = {
+  /**
+   * Contract Version
+   */
+  contract_version?: "native-declarations.v1";
+  /**
+   * Evidence
+   */
+  evidence?: "user_declared_not_code_verified";
+  /**
+   * Lookback Bars
+   */
+  lookback_bars: number;
+  /**
+   * Parameter Binding
+   */
+  parameter_binding?: "context.tradegrad_parameters.v1";
+  /**
+   * Parameters
+   */
+  parameters?: Array<NativeParameter>;
+  /**
+   * Required Fields
+   */
+  required_fields?: Array<
+    "open" | "high" | "low" | "close" | "volume" | "amount"
+  >;
+  /**
+   * Requires Shorting
+   */
+  requires_shorting: boolean;
+  /**
+   * Warmup Bars
+   */
+  warmup_bars: number;
+};
+
+/**
  * ObjectiveConfig
  */
 export type ObjectiveConfig = {
@@ -2382,6 +2524,52 @@ export type OptimizerConfig = {
    * Worst Ratio
    */
   worst_ratio?: number;
+};
+
+/**
+ * OrderCapabilities
+ */
+export type OrderCapabilities = {
+  /**
+   * Account Mode
+   */
+  account_mode?: "cash_long_only";
+  /**
+   * Close Today
+   */
+  close_today?: false;
+  /**
+   * Fractional Shares
+   */
+  fractional_shares?: false;
+  /**
+   * Leverage
+   */
+  leverage?: 1;
+  /**
+   * Oco
+   */
+  oco?: false;
+  /**
+   * Order Types
+   */
+  order_types?: Array<"market" | "limit">;
+  /**
+   * Quantity Unit
+   */
+  quantity_unit?: "shares";
+  /**
+   * Short
+   */
+  short?: false;
+  /**
+   * Time In Force
+   */
+  time_in_force?: Array<"GTC">;
+  /**
+   * Trailing Stop
+   */
+  trailing_stop?: false;
 };
 
 /**
@@ -4170,6 +4358,39 @@ export type PortableSlippageConfig = {
 };
 
 /**
+ * PortableSourceCreate
+ *
+ * Identity hashes are server-assigned; all other manifest claims are frozen.
+ */
+export type PortableSourceCreate = {
+  /**
+   * Code
+   *
+   * Exact Python source, at most 131072 UTF-8 bytes. Syntax parsing only; never executed by the API.
+   */
+  code: string;
+  manifest: StrategyManifest;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Parameters
+   */
+  parameters: {
+    [key: string]: unknown;
+  };
+  /**
+   * Parent Id
+   */
+  parent_id?: string | null;
+  /**
+   * Task
+   */
+  task: "cn_time" | "us_time" | "cn_cross" | "us_cross";
+};
+
+/**
  * PortableStrategyCreate
  */
 export type PortableStrategyCreate = {
@@ -4230,6 +4451,10 @@ export type PortableStrategyDetail = {
     [key: string]: unknown;
   };
   /**
+   * Parent Id
+   */
+  parent_id?: string | null;
+  /**
    * Task
    */
   task: "cn_time" | "us_time" | "cn_cross" | "us_cross";
@@ -4271,6 +4496,10 @@ export type PortableStrategyPublic = {
   parameters: {
     [key: string]: unknown;
   };
+  /**
+   * Parent Id
+   */
+  parent_id?: string | null;
   /**
    * Task
    */
@@ -4393,6 +4622,24 @@ export type PreviewPage = {
    * Offset
    */
   offset: number;
+};
+
+/**
+ * PriceAssumptions
+ */
+export type PriceAssumptions = {
+  /**
+   * Actions Snapshot Sha256
+   */
+  actions_snapshot_sha256: string;
+  /**
+   * Corporate Actions
+   */
+  corporate_actions?: "reject_window_with_actions";
+  /**
+   * Price Basis
+   */
+  price_basis?: "unadjusted";
 };
 
 /**
@@ -4809,6 +5056,7 @@ export type ResearchRunCreate = {
    */
   schema_version?: "tradegrad.run.v1";
   seed_strategy: VersionRef;
+  strategy_contract?: NativeStrategyContract | null;
   /**
    * Task
    */
@@ -5604,6 +5852,7 @@ export type RunConfig = {
    */
   schema_version?: "tradegrad.run.v1";
   seed_strategy: VersionRef;
+  strategy_contract?: NativeStrategyContract | null;
   /**
    * Task
    */
@@ -5964,6 +6213,43 @@ export type SplitVersionPublic = {
 };
 
 /**
+ * StateField
+ */
+export type StateField = {
+  /**
+   * Kind
+   */
+  kind:
+    "string" | "integer" | "number" | "boolean" | "object" | "array" | "null";
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Required
+   */
+  required?: boolean;
+};
+
+/**
+ * StateSchema
+ */
+export type StateSchema = {
+  /**
+   * Fields
+   */
+  fields: Array<StateField>;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Version
+   */
+  version: number;
+};
+
+/**
  * StateSnapshot
  */
 export type StateSnapshot = {
@@ -6003,6 +6289,7 @@ export type StrategyCreate = {
    * Exact Python source, at most 131072 UTF-8 bytes. Syntax parsing only; never executed by the API.
    */
   code: string;
+  manifest?: NativeStrategyContract | null;
   /**
    * Name
    */
@@ -6037,6 +6324,7 @@ export type StrategyDetail = {
    * Id
    */
   id: string;
+  manifest?: NativeStrategyContract | null;
   /**
    * Mode
    */
@@ -6046,6 +6334,12 @@ export type StrategyDetail = {
    */
   name: string;
   /**
+   * Parameters
+   */
+  parameters?: {
+    [key: string]: boolean | number | number | string;
+  } | null;
+  /**
    * Parent Id
    */
   parent_id: string | null;
@@ -6053,6 +6347,79 @@ export type StrategyDetail = {
    * Task
    */
   task: "cn_time" | "us_time" | "cn_cross" | "us_cross";
+};
+
+/**
+ * StrategyManifest
+ */
+export type StrategyManifest = {
+  /**
+   * Asset Type
+   */
+  asset_type?: "equity";
+  authoring?: UserPolicyDeclaration | null;
+  /**
+   * Calendar
+   */
+  calendar: "XNYS" | "XSHG";
+  capabilities?: OrderCapabilities;
+  /**
+   * Code Sha256
+   */
+  code_sha256: string;
+  /**
+   * Conformance
+   */
+  conformance?: "interface_only";
+  /**
+   * Contract Version
+   */
+  contract_version?: "portable.v1";
+  /**
+   * Currency
+   */
+  currency: string;
+  data: DataRequirements;
+  /**
+   * Decision Timing
+   */
+  decision_timing?: "after_close";
+  engine_profile: EngineProfile;
+  /**
+   * Execution Timing
+   */
+  execution_timing?: "NextOpen";
+  /**
+   * External Framework Equivalence
+   */
+  external_framework_equivalence?: "not_certified";
+  /**
+   * Market
+   */
+  market: "US" | "CN";
+  /**
+   * Parameters Sha256
+   */
+  parameters_sha256: string;
+  prices: PriceAssumptions;
+  /**
+   * Reference Result Sha256
+   */
+  reference_result_sha256?: string | null;
+  state_schema: StateSchema;
+  /**
+   * Strategy Id
+   */
+  strategy_id: string;
+  /**
+   * Strategy Kind
+   */
+  strategy_kind: "portfolio" | "event";
+  /**
+   * Timezone
+   */
+  timezone: string;
+  universe: UniverseAssumptions;
 };
 
 /**
@@ -6135,6 +6502,7 @@ export type StrategyPublic = {
    * Id
    */
   id: string;
+  manifest?: NativeStrategyContract | null;
   /**
    * Mode
    */
@@ -6143,6 +6511,12 @@ export type StrategyPublic = {
    * Name
    */
   name: string;
+  /**
+   * Parameters
+   */
+  parameters?: {
+    [key: string]: boolean | number | number | string;
+  } | null;
   /**
    * Parent Id
    */
@@ -6169,6 +6543,28 @@ export type Token = {
    * Token Type
    */
   token_type?: "bearer";
+};
+
+/**
+ * UniverseAssumptions
+ */
+export type UniverseAssumptions = {
+  /**
+   * Semantics
+   */
+  semantics:
+    | "user_fixed"
+    | "current_snapshot"
+    | "historical_membership"
+    | "point_in_time_verified";
+  /**
+   * Snapshot Sha256
+   */
+  snapshot_sha256: string;
+  /**
+   * Survivorship Bias
+   */
+  survivorship_bias: "possible" | "membership_evidence_required";
 };
 
 /**
@@ -6326,6 +6722,24 @@ export type UploadMapping = {
    * Volume Unit
    */
   volume_unit: "shares" | "lots" | "contracts" | "unknown";
+};
+
+/**
+ * UserPolicyDeclaration
+ *
+ * User claims only; parsed data is never a policy safety certificate.
+ */
+export type UserPolicyDeclaration = {
+  /**
+   * Evidence
+   */
+  evidence?: "user_declared_not_code_verified";
+  initial_state: StateSnapshot;
+  parameter_schema: StateSchema;
+  /**
+   * Source Kind
+   */
+  source_kind?: "user_authored";
 };
 
 /**
@@ -10029,6 +10443,99 @@ export type ReadPortableStrategyResponses = {
 
 export type ReadPortableStrategyResponse =
   ReadPortableStrategyResponses[keyof ReadPortableStrategyResponses];
+
+export type PortableSourceDraftData = {
+  body?: never;
+  path: {
+    /**
+     * Strategy Id
+     */
+    strategy_id: string;
+  };
+  query?: never;
+  url: "/api/v1/portable-strategies/{strategy_id}/source-draft";
+};
+
+export type PortableSourceDraftErrors = {
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+};
+
+export type PortableSourceDraftError =
+  PortableSourceDraftErrors[keyof PortableSourceDraftErrors];
+
+export type PortableSourceDraftResponses = {
+  /**
+   * Successful Response
+   */
+  200: PortableSourceCreate;
+};
+
+export type PortableSourceDraftResponse =
+  PortableSourceDraftResponses[keyof PortableSourceDraftResponses];
+
+export type CreatePortableSourceVersionData = {
+  body: PortableSourceCreate;
+  headers: {
+    /**
+     * Idempotency-Key
+     */
+    "Idempotency-Key": string;
+  };
+  path?: never;
+  query?: never;
+  url: "/api/v1/portable-strategy-versions";
+};
+
+export type CreatePortableSourceVersionErrors = {
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+};
+
+export type CreatePortableSourceVersionError =
+  CreatePortableSourceVersionErrors[keyof CreatePortableSourceVersionErrors];
+
+export type CreatePortableSourceVersionResponses = {
+  /**
+   * OK
+   */
+  200: PortableStrategyDetail;
+  /**
+   * Successful Response
+   */
+  201: PortableStrategyDetail;
+};
+
+export type CreatePortableSourceVersionResponse =
+  CreatePortableSourceVersionResponses[keyof CreatePortableSourceVersionResponses];
 
 export type ListPortableTemplatesData = {
   body?: never;

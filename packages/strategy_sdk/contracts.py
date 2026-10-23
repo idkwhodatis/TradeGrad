@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Annotated, Literal, Protocol
 from zoneinfo import ZoneInfo
 
-from pydantic import Field, model_validator
+from pydantic import Field, model_serializer, model_validator
 
 from .base import (
     Contract,
@@ -118,6 +118,17 @@ class EngineProfile(Contract):
     environment_sha256: Hash
 
 
+class UserPolicyDeclaration(Contract):
+    """User claims only; parsed data is never a policy safety certificate."""
+
+    source_kind: Literal["user_authored"] = "user_authored"
+    parameter_schema: StateSchema
+    initial_state: StateSnapshot
+    evidence: Literal["user_declared_not_code_verified"] = (
+        "user_declared_not_code_verified"
+    )
+
+
 class StrategyManifest(Contract):
     contract_version: Literal["portable.v1"] = CONTRACT_VERSION
     strategy_kind: Literal["portfolio", "event"]
@@ -137,12 +148,22 @@ class StrategyManifest(Contract):
     capabilities: OrderCapabilities = OrderCapabilities()
     state_schema: StateSchema
     engine_profile: EngineProfile
+    authoring: UserPolicyDeclaration | None = None
     reference_result_sha256: Hash | None = None
     conformance: Literal["interface_only"] = "interface_only"
     external_framework_equivalence: Literal["not_certified"] = "not_certified"
 
+    @model_serializer(mode="wrap")
+    def historical_manifest(self, serializer):
+        value = serializer(self)
+        if self.authoring is None:
+            value.pop("authoring", None)
+        return value
+
     @model_validator(mode="after")
     def market_semantics(self):
+        if self.authoring is not None:
+            StateCodec(self.state_schema).decode(self.authoring.initial_state)
         expected = {
             "US": ("USD", "XNYS", "America/New_York"),
             "CN": ("CNY", "XSHG", "Asia/Shanghai"),

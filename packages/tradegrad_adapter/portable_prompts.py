@@ -37,11 +37,30 @@ def template_source(kind: str) -> str:
     )
 
 
-def validate_policy_source(source: str, kind: str) -> None:
+def validate_user_policy_source(source: str, kind: str) -> None:
+    """Syntax/interface claims only. Never import or execute source here."""
+    if (
+        kind not in {"portfolio", "event"}
+        or not isinstance(source, str)
+        or not 0 < len(source.encode("utf-8")) <= 131072
+    ):
+        raise ValueError("Portable source must be bounded UTF-8 Python")
+    tree = ast.parse(source.encode("utf-8"), filename="policy.py")
+    if not any(
+        isinstance(node, ast.ClassDef) and node.name == "Policy" for node in tree.body
+    ):
+        raise ValueError(
+            "Portable source must declare a Policy class; runtime validates its interface in isolation"
+        )
+
+
+def validate_policy_source(
+    source: str, kind: str, *, baseline: str | None = None
+) -> None:
     """Reject protected changes before any sandbox is launched, without exec."""
     if not isinstance(source, str) or not 0 < len(source.encode()) <= 1_048_576:
         raise ValueError("Portable source exceeds its byte bounds")
-    baseline = template_source(kind)
+    baseline = template_source(kind) if baseline is None else baseline
     if source.count(START) != 1 or source.count(END) != 1:
         raise ValueError(
             "Portable source must preserve exactly one protected edit region"

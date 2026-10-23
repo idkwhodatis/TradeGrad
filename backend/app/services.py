@@ -162,6 +162,12 @@ def submit_run(
             "Task, dataset market and strategy task must agree",
             422,
         )
+    if strategy.manifest is not None or strategy.parameters is not None:
+        raise DomainError(
+            "configured_research_required",
+            "This strategy declares data or parameters. Use configured research with zero iterations to preflight and evaluate it.",
+            422,
+        )
     if body.start_date < dataset.start_date or body.end_date > dataset.end_date:
         raise DomainError(
             "coverage_error",

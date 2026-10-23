@@ -41,7 +41,8 @@ describe("complete configured research form", () => {
       ),
     );
     const pairs = [
-      ["ResearchRunCreate", body],
+      // Optional declaration is absent on historical requests to preserve their hashes.
+      ["ResearchRunCreate", { ...body, strategy_contract: undefined }],
       ["MarketConfig", body.market_profile],
       ["WarmupConfig", body.warmup],
       ["OptimizerConfig", body.optimizer],

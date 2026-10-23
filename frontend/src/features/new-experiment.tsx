@@ -326,6 +326,17 @@ function ExperimentWizard({
                 row.manifest.listings.length === 1)),
         )
       : dataset;
+    const nextSeed = taskChanged
+      ? catalog.strategies.find((row) => row.task === task)
+      : seed;
+    const nextWarmup = structuredClone(
+      selected.warmup,
+    ) as ResearchFormValues["warmup"];
+    if (profile === "corrected_explicit_config" && nextSeed?.manifest)
+      nextWarmup.sessions = Math.max(
+        nextSeed.manifest.lookback_bars,
+        nextSeed.manifest.warmup_bars,
+      );
     reset({
       ...getValues(),
       task,
@@ -333,7 +344,7 @@ function ExperimentWizard({
       market_profile: structuredClone(
         selected.market_profile,
       ) as ResearchFormValues["market_profile"],
-      warmup: structuredClone(selected.warmup) as ResearchFormValues["warmup"],
+      warmup: nextWarmup,
       ...(taskChanged
         ? {
             dataset: versionRef(nextDataset),
@@ -343,8 +354,11 @@ function ExperimentWizard({
             seed_strategy: versionRef(
               catalog.strategies.find((row) => row.task === task),
             ),
+            strategy_contract:
+              catalog.strategies.find((row) => row.task === task)?.manifest ??
+              undefined,
             windows: nextDataset
-              ? suggestWindows(nextDataset, selected.warmup.sessions)
+              ? suggestWindows(nextDataset, nextWarmup.sessions)
               : defaults.windows,
           }
         : {}),
@@ -728,16 +742,24 @@ function ExperimentWizard({
                     {...register("seed_strategy.id")}
                     value={body.seed_strategy.id}
                     {...attrs("seed_strategy.id")}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const selectedSeed = catalog.strategies.find(
+                        (row) => row.id === event.target.value,
+                      );
+                      setValue("seed_strategy", versionRef(selectedSeed));
                       setValue(
-                        "seed_strategy",
-                        versionRef(
-                          catalog.strategies.find(
-                            (row) => row.id === event.target.value,
+                        "strategy_contract",
+                        selectedSeed?.manifest ?? undefined,
+                      );
+                      if (selectedSeed?.manifest)
+                        setValue(
+                          "warmup.sessions",
+                          Math.max(
+                            selectedSeed.manifest.lookback_bars,
+                            selectedSeed.manifest.warmup_bars,
                           ),
-                        ),
-                      )
-                    }
+                        );
+                    }}
                   >
                     <option value="">Select a compatible seed</option>
                     {compatibleSeeds.map((row) => (
@@ -747,7 +769,7 @@ function ExperimentWizard({
                     ))}
                   </select>,
                   seed
-                    ? `native_akquant · SHA-256 ${seed.content_sha256}. Portable mode is unavailable.`
+                    ? `native_akquant · SHA-256 ${seed.content_sha256}. ${seed.manifest ? `Declared fields: ${seed.manifest.required_fields?.join(", ")}; lookback ${seed.manifest.lookback_bars}; warm-up ${seed.manifest.warmup_bars}; shorting ${seed.manifest.requires_shorting}. Parameters pinned from this version, not verified code behavior.` : "Legacy undeclared seed defaults."}`
                     : "Choose a native AKQuant seed matching the task.",
                 )}
               </>

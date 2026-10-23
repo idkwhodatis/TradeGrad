@@ -172,6 +172,14 @@ def validate_final_binding(session, run):
             "final_binding_mismatch",
             "Frozen selection, exact code, source config or final run bindings differ",
         )
+    from packages.tradegrad_adapter.native_contract import validate_native_binding
+
+    try:
+        validate_native_binding(
+            source_config.strategy_contract, strategy.manifest, strategy.parameters
+        )
+    except ValueError as error:
+        raise DomainError("final_binding_mismatch", str(error), 422) from None
     return selection, source_config, dataset, strategy, split
 
 

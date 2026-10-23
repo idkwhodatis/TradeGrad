@@ -205,6 +205,7 @@ def run_backtest(
     *,
     engine_overrides: dict | None = None,
     result_callback=None,
+    strategy_contract: dict | None = None,
 ):
     date2symbols = Date2Symbols.from_date2symbol_dir(date2symbol_dir)
     all_symbols = set()
@@ -221,13 +222,16 @@ def run_backtest(
 
         engine_kwargs.update(validate_engine_overrides(engine_overrides))
 
+    context = {"all_symbols": all_symbols, "date2symbols": date2symbols}
+    if strategy_contract is not None:
+        from packages.tradegrad_adapter.native_contract import native_context
+
+        context = native_context(context, strategy_contract)
+
     result = aq.run_backtest(
         data=data_map,
         strategy_source=strategy_path,
-        context={
-            "all_symbols": all_symbols,
-            "date2symbols": date2symbols,
-        },
+        context=context,
         start_time=start_time,
         end_time=end_time,
         **engine_kwargs,

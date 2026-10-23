@@ -43,7 +43,10 @@ from packages.tradegrad_adapter.portable_environment import (
     portable_environment_digest,
     portable_environment_manifest,
 )
-from packages.tradegrad_adapter.portable_prompts import validate_policy_source
+from packages.tradegrad_adapter.portable_prompts import (
+    validate_policy_source,
+    validate_user_policy_source,
+)
 from packages.tradegrad_adapter.portable_results import canonical_json_bytes
 from packages.tradegrad_adapter.strategy_package import (
     canonical,
@@ -279,7 +282,15 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
                 raise ValueError(
                     "Portable immutable input identity or ownership differs"
                 )
-            validate_policy_source(strategy.code, config.strategy_kind)
+            user_authored = bool((strategy.manifest or {}).get("authoring"))
+            if user_authored:
+                validate_user_policy_source(strategy.code, config.strategy_kind)
+                if config.optimizer.max_iterations > 0:
+                    validate_policy_source(
+                        strategy.code, config.strategy_kind, baseline=strategy.code
+                    )
+            else:
+                validate_policy_source(strategy.code, config.strategy_kind)
             validate_portable_binding(config, strategy.manifest, strategy.parameters)
             seed_code, manifest, data_key, policy_manifest, parameters = (
                 strategy.code,
@@ -340,7 +351,14 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
             started = time.monotonic()
             benchmark_input = None
             try:
-                validate_policy_source(code, config.strategy_kind)
+                if user_authored:
+                    validate_user_policy_source(code, config.strategy_kind)
+                    if code != seed_code or config.optimizer.max_iterations > 0:
+                        validate_policy_source(
+                            code, config.strategy_kind, baseline=seed_code
+                        )
+                else:
+                    validate_policy_source(code, config.strategy_kind)
                 from backend.app.benchmark_services import prepare_for_window
 
                 with factory() as benchmark_session:

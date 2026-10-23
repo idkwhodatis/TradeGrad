@@ -89,6 +89,36 @@ export function researchModelProfileFor(
   );
 }
 
+export const nativeContractSchema = z.strictObject({
+  contract_version: z.literal("native-declarations.v1").optional(),
+  required_fields: z
+    .array(z.enum(["open", "high", "low", "close", "volume", "amount"]))
+    .min(1)
+    .max(6)
+    .optional(),
+  lookback_bars: integer(0, 252),
+  warmup_bars: integer(0, 252),
+  requires_shorting: z.boolean(),
+  parameter_binding: z.literal("context.tradegrad_parameters.v1").optional(),
+  evidence: z.literal("user_declared_not_code_verified").optional(),
+  parameters: z
+    .array(
+      z.strictObject({
+        name: z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/),
+        kind: z.enum(["integer", "number", "boolean", "string"]),
+        value: z.union([z.boolean(), z.number(), z.string()]),
+        minimum: z.number().nullable().optional(),
+        maximum: z.number().nullable().optional(),
+        choices: z
+          .array(z.union([z.boolean(), z.number(), z.string()]))
+          .max(32)
+          .optional(),
+      }),
+    )
+    .max(32)
+    .optional(),
+});
+
 // These are the implemented RunConfig fields, not a second API transport contract.
 // Literal controls remain visible and pinned rather than implying unsupported options.
 export const researchFormSchema = z
@@ -100,6 +130,7 @@ export const researchFormSchema = z
     dataset: reference,
     universe: reference,
     seed_strategy: reference,
+    strategy_contract: nativeContractSchema.nullable().optional(),
     windows: z.strictObject({
       train: windowSchema,
       validation: windowSchema,
@@ -220,7 +251,8 @@ export const researchFormSchema = z
     if (cn && market.risk_config?.enable_short_sell)
       add("market_profile.risk_config", "CN short-selling is not certified.");
     if (
-      (!cn && !market.risk_config?.enable_short_sell) ||
+      ((body.strategy_contract?.requires_shorting ?? !cn) &&
+        !market.risk_config?.enable_short_sell) ||
       (market.risk_config?.enable_short_sell &&
         market.risk_config.account_mode !== "margin")
     )
@@ -228,8 +260,20 @@ export const researchFormSchema = z
         "market_profile.risk_config",
         "US seeds require explicit margin and short-selling support.",
       );
-    const minimum = body.task.endsWith("_time") ? 20 : 3;
+    const minimum = body.strategy_contract
+      ? Math.max(
+          body.strategy_contract.lookback_bars,
+          body.strategy_contract.warmup_bars,
+        )
+      : body.task.endsWith("_time")
+        ? 20
+        : 3;
     if (body.profile === "source_compat") {
+      if (body.strategy_contract)
+        add(
+          "strategy_contract",
+          "Declared contracts require corrected_explicit_config; legacy source compatibility is unchanged.",
+        );
       if (
         body.warmup.sessions !== 0 ||
         body.warmup.history_policy !== "source_cold_start"
@@ -388,6 +432,17 @@ export function researchDefaults(
     environment_digest: capabilities.environment_digest,
     benchmark: null,
   };
+  const selectedStrategy = catalog.strategies.find(
+    (row) => row.id === body.seed_strategy.id,
+  );
+  if (selectedStrategy?.manifest) {
+    body.strategy_contract = selectedStrategy.manifest;
+    body.warmup.sessions = Math.max(
+      selectedStrategy.manifest.lookback_bars,
+      selectedStrategy.manifest.warmup_bars,
+    );
+    if (dataset) body.windows = suggestWindows(dataset, body.warmup.sessions);
+  }
   // Defaults are server-owned and complete; local schema validates before use/submission.
   return structuredClone(body) as ResearchFormValues;
 }
@@ -416,6 +471,14 @@ export function researchSelectionIssues(
     (row) => row.id === body.seed_strategy.id,
   );
   const universe = catalog.universes.find((row) => row.id === body.universe.id);
+  if (
+    stableJson(strategy?.manifest ?? null) !==
+    stableJson(body.strategy_contract ?? null)
+  )
+    add(
+      "seed_strategy.id",
+      "Reselect the seed to pin its exact immutable declaration and parameter values.",
+    );
   for (const [path, value, reference] of [
     ["dataset.id", dataset, body.dataset],
     ["seed_strategy.id", strategy, body.seed_strategy],
@@ -544,7 +607,11 @@ export function researchSelectionIssues(
 }
 
 export function researchStepFor(path: string) {
-  if (/^(task|profile|dataset|universe|seed_strategy|benchmark)/.test(path))
+  if (
+    /^(task|profile|dataset|universe|seed_strategy|benchmark|strategy_contract)/.test(
+      path,
+    )
+  )
     return 0;
   if (/^(windows|warmup)/.test(path)) return 1;
   return 2;

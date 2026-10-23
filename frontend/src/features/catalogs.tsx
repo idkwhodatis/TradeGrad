@@ -32,6 +32,7 @@ import {
   strategyTasks,
   type StrategyDraft,
 } from "@/lib/strategy-versions";
+import { PortableLibrary } from "./portable/library";
 import { taskLabels } from "@/lib/format";
 
 export function StrategiesPage() {
@@ -40,12 +41,12 @@ export function StrategiesPage() {
     <>
       <PageHeader
         title="Strategy library"
-        subtitle="Choose a seed, upload Python, or derive a new native version. Saved source is never edited in place."
+        subtitle="Upload source, inspect declarations, or derive a new native or portable version. Saved versions never change in place."
       />
       <p className="notice">
-        Native AKQuant source only. Saving parses Python syntax; it does not
-        execute code, validate isolation, prove safety, or certify a portable
-        strategy. Run evaluations separately in the configured isolated runtime.
+        Saving parses Python syntax and declaration schemas; it does not execute
+        code, validate isolation, prove safety, or certify a portable strategy.
+        Run evaluations separately in the configured isolated runtime.
       </p>
       <div className="mt-6">
         {user.isPending ? (
@@ -53,7 +54,13 @@ export function StrategiesPage() {
         ) : user.error ? (
           <ErrorState error={user.error} retry={() => void user.refetch()} />
         ) : user.data ? (
-          <StrategyWorkspace key={user.data.id} owner={user.data.id} />
+          <>
+            <StrategyWorkspace key={user.data.id} owner={user.data.id} />
+            <PortableLibrary
+              key={`portable-${user.data.id}`}
+              owner={user.data.id}
+            />
+          </>
         ) : null}
       </div>
     </>
@@ -208,6 +215,7 @@ function StrategyWorkspace({ owner }: { owner: string }) {
                 task: source.task,
                 code: source.code,
                 parent_id: source.id,
+                manifest: source.manifest,
               })
             }
           />
@@ -359,6 +367,19 @@ function StrategySource({
           <p className="muted text-sm mb-4">
             Read-only saved version · {detail.data.id}
           </p>
+          <details className="mb-4">
+            <summary>Declared data requirements and parameters</summary>
+            <pre className="overflow-auto">
+              {JSON.stringify(
+                detail.data.manifest ?? {
+                  evidence: "Legacy source: no user declaration",
+                  parameters: null,
+                },
+                null,
+                2,
+              )}
+            </pre>
+          </details>
           <div className="flex gap-3 mb-4">
             <Button onClick={() => onEdit(detail.data!)}>
               Edit as new version
@@ -438,7 +459,7 @@ function StrategyForm({
       return;
     }
     try {
-      onChange({ body, pending: null });
+      onChange({ ...draft, body, pending: null });
       setError(null);
     } catch (failure) {
       setError(failure);
@@ -453,6 +474,7 @@ function StrategyForm({
       const code = await readStrategyUpload(file);
       if (!mounted.current) return;
       onChange({
+        ...draft,
         body: {
           ...draft.body,
           code,
@@ -470,7 +492,19 @@ function StrategyForm({
   }
   async function submit() {
     if (submitting.current || uploadGuard.current || uploading) return;
-    const validation = strategyInputError(draft.body);
+    let body = draft.body;
+    try {
+      if (draft.contractText !== undefined)
+        body = { ...body, manifest: JSON.parse(draft.contractText) };
+    } catch {
+      setError(
+        new Error(
+          "The declaration must be valid JSON, or null for legacy behavior.",
+        ),
+      );
+      return;
+    }
+    const validation = strategyInputError(body);
     if (validation) {
       setError(new Error(validation));
       return;
@@ -478,7 +512,7 @@ function StrategyForm({
     submitting.current = true;
     setBusy(true);
     setError(null);
-    const pending = draft.pending || strategySubmissionFor(draft.body);
+    const pending = draft.pending || strategySubmissionFor(body);
     let sent = false;
     try {
       onChange({ body: pending.body, pending });
@@ -586,6 +620,64 @@ function StrategyForm({
             }}
           />
         </label>
+        <label className="field mb-4">
+          <span>Native declaration JSON (null preserves legacy defaults)</span>
+          <textarea
+            aria-label="Native declaration JSON"
+            rows={10}
+            disabled={locked}
+            value={
+              draft.contractText ??
+              JSON.stringify(draft.body.manifest ?? null, null, 2)
+            }
+            onChange={(event) => {
+              try {
+                onChange({ ...draft, contractText: event.target.value });
+              } catch (failure) {
+                setError(failure);
+              }
+            }}
+          />
+        </label>
+        <Button
+          type="button"
+          variant="outline"
+          className="mb-4"
+          disabled={locked}
+          onClick={() =>
+            onChange({
+              ...draft,
+              contractText: JSON.stringify(
+                {
+                  contract_version: "native-declarations.v1",
+                  required_fields: ["open", "high", "low", "close", "volume"],
+                  lookback_bars: 20,
+                  warmup_bars: 20,
+                  requires_shorting: draft.body.task.startsWith("us"),
+                  parameters: [
+                    {
+                      name: "window",
+                      kind: "integer",
+                      value: 20,
+                      minimum: 1,
+                      maximum: 252,
+                    },
+                  ],
+                },
+                null,
+                2,
+              ),
+            })
+          }
+        >
+          Add declaration example
+        </Button>
+        <p className="notice mb-4">
+          Declarations are user claims, not verified code behavior. Required
+          fields including amount must be non-null; warm-up must cover declared
+          history. Bounded parameters are available as self.tradegrad_parameters
+          in the isolated native engine. Changing a value creates a new version.
+        </p>
         <CodeEditor
           code={draft.body.code}
           disabled={locked}

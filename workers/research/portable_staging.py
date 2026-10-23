@@ -66,7 +66,10 @@ def validate_portable_binding(
     if manifest.universe.semantics != "user_fixed":
         raise ValueError("Initial portable research requires an explicit fixed basket")
     StateCodec(manifest.state_schema).decode(config.initial_state)
-    # The current two reviewed reference templates expose only these business parameters.
+    if manifest.authoring is not None:
+        StateCodec(manifest.authoring.parameter_schema).encode(params)
+        return manifest
+    # The original reviewed reference templates retain exact parameter restrictions.
     name = "quantity" if manifest.strategy_kind == "event" else "top_n"
     upper = 1_000_000 if name == "quantity" else 100
     if (

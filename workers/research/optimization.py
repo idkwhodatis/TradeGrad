@@ -108,6 +108,10 @@ def stage_research_input(
             "run_config_sha256": config.sha256,
         },
     }
+    if config.strategy_contract is not None:
+        request["evaluation_config"]["strategy_contract"] = (
+            config.strategy_contract.model_dump(mode="json")
+        )
     (target / "strategy.py").write_bytes(code.encode())
     (target / "request.json").write_bytes(canonical_bytes(request))
     # Preflight evidence is private orchestration metadata, not candidate input.
@@ -317,6 +321,13 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
                 != config.seed_strategy.sha256
             ):
                 raise ValueError("Immutable seed strategy changed")
+            from packages.tradegrad_adapter.native_contract import (
+                validate_native_binding,
+            )
+
+            validate_native_binding(
+                config.strategy_contract, strategy.manifest, strategy.parameters
+            )
             seed_code, manifest, data_key = (
                 strategy.code,
                 dataset.manifest,

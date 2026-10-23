@@ -10,7 +10,7 @@ def _evaluation_config(value, start, end):
     from packages.tradegrad_adapter.results import validate_engine_overrides
 
     keys = {"engine_overrides", "window", "warmup", "benchmark", "run_config_sha256"}
-    if not isinstance(value, dict) or set(value) != keys:
+    if not isinstance(value, dict) or set(value) - {"strategy_contract"} != keys:
         raise ValueError("Invalid evaluation_config schema")
     window = value["window"]
     if not isinstance(window, dict) or set(window) != {"start", "end", "role"}:
@@ -43,6 +43,10 @@ def _evaluation_config(value, start, end):
         or any(c not in "0123456789abcdef" for c in digest)
     ):
         raise ValueError("Invalid immutable RunConfig hash")
+    if "strategy_contract" in value:
+        from packages.tradegrad_adapter.native_contract import NativeStrategyContract
+
+        NativeStrategyContract.model_validate(value["strategy_contract"])
     validate_engine_overrides(value["engine_overrides"])
     return value
 
@@ -96,6 +100,8 @@ def main(input_dir=Path("/input"), output_dir=Path("/output")):
             "profile": profile,
         }
         common["engine_overrides"] = config["engine_overrides"]
+        if "strategy_contract" in config:
+            common["strategy_contract"] = config["strategy_contract"]
 
         def capture(result, performance, engine_kwargs):
             from src.market import MARKETS

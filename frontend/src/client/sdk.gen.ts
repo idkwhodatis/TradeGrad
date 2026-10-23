@@ -48,6 +48,9 @@ import type {
   CreatePortableRunData,
   CreatePortableRunErrors,
   CreatePortableRunResponses,
+  CreatePortableSourceVersionData,
+  CreatePortableSourceVersionErrors,
+  CreatePortableSourceVersionResponses,
   CreatePortableStrategyData,
   CreatePortableStrategyErrors,
   CreatePortableStrategyResponses,
@@ -232,6 +235,9 @@ import type {
   PortableRetryFinalEvaluationData,
   PortableRetryFinalEvaluationErrors,
   PortableRetryFinalEvaluationResponses,
+  PortableSourceDraftData,
+  PortableSourceDraftErrors,
+  PortableSourceDraftResponses,
   PreflightFinalEvaluationData,
   PreflightFinalEvaluationErrors,
   PreflightFinalEvaluationResponses,
@@ -2011,6 +2017,52 @@ export const readPortableStrategy = <ThrowOnError extends boolean = true>(
     security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/portable-strategies/{strategy_id}",
     ...options,
+  });
+
+/**
+ * Source Draft
+ */
+export const portableSourceDraft = <ThrowOnError extends boolean = true>(
+  options: Options<PortableSourceDraftData, ThrowOnError>,
+): RequestResult<
+  PortableSourceDraftResponses,
+  PortableSourceDraftErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).get<
+    PortableSourceDraftResponses,
+    PortableSourceDraftErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/portable-strategies/{strategy_id}/source-draft",
+    ...options,
+  });
+
+/**
+ * Create Source Version
+ */
+export const createPortableSourceVersion = <
+  ThrowOnError extends boolean = true,
+>(
+  options: Options<CreatePortableSourceVersionData, ThrowOnError>,
+): RequestResult<
+  CreatePortableSourceVersionResponses,
+  CreatePortableSourceVersionErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    CreatePortableSourceVersionResponses,
+    CreatePortableSourceVersionErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/portable-strategy-versions",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
 /**

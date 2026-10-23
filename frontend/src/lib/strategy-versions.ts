@@ -10,6 +10,7 @@ export const strategyTasks = [
 export type StrategySubmission = { key: string; body: StrategyCreate };
 export type StrategyDraft = {
   body: StrategyCreate;
+  contractText?: string;
   // Keep the exact request after any ambiguous result, including a tab reload.
   pending: StrategySubmission | null;
 };
@@ -22,7 +23,13 @@ export const emptyStrategy = (): StrategyCreate => ({
 export const strategyBytes = (code: string) =>
   new TextEncoder().encode(code).byteLength;
 const fingerprint = (body: StrategyCreate) =>
-  JSON.stringify([body.name, body.task, body.code, body.parent_id ?? null]);
+  JSON.stringify([
+    body.name,
+    body.task,
+    body.code,
+    body.parent_id ?? null,
+    body.manifest ?? null,
+  ]);
 
 export function strategySubmissionFor(
   body: StrategyCreate,
@@ -30,7 +37,7 @@ export function strategySubmissionFor(
 ): StrategySubmission {
   return previous && fingerprint(previous.body) === fingerprint(body)
     ? previous
-    : { key: crypto.randomUUID(), body: { ...body } };
+    : { key: crypto.randomUUID(), body: structuredClone(body) };
 }
 
 export function strategyInputError(body: StrategyCreate): string | null {

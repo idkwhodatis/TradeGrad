@@ -66,6 +66,10 @@ def same_submission(
         and item.name == body.name
         and item.task == body.task
         and item.mode == "native_akquant"
+        and item.manifest
+        == (body.manifest.model_dump(mode="json") if body.manifest else None)
+        and item.parameters
+        == (body.manifest.parameter_values() if body.manifest else None)
         and item.parent_id == body.parent_id
         and item.code == body.code
         and item.content_sha256 == hashlib.sha256(body.code.encode("utf-8")).hexdigest()
@@ -118,6 +122,8 @@ def create_strategy_version(
             code=body.code,
             content_sha256=hashlib.sha256(body.code.encode("utf-8")).hexdigest(),
             parent_id=body.parent_id,
+            manifest=body.manifest.model_dump(mode="json") if body.manifest else None,
+            parameters=body.manifest.parameter_values() if body.manifest else None,
         )
         .on_conflict_do_nothing(index_elements=[StrategyVersion.id])
         .returning(StrategyVersion.id)

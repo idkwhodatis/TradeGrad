@@ -60,6 +60,10 @@ def stage_final_input(
             "run_config_sha256": config.sha256,
         },
     }
+    if source.strategy_contract is not None:
+        request["evaluation_config"]["strategy_contract"] = (
+            source.strategy_contract.model_dump(mode="json")
+        )
     target.mkdir(parents=True, mode=0o700)
     for name, content in {
         **staged.files,

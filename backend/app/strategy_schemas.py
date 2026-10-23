@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend.app.schemas import Task
+from packages.tradegrad_adapter.native_contract import NativeStrategyContract
 
 MAX_STRATEGY_BYTES = 128 * 1024
 
@@ -20,6 +21,7 @@ class StrategyCreate(BaseModel):
         description="Exact Python source, at most 131072 UTF-8 bytes. Syntax parsing only; never executed by the API.",
     )
     parent_id: UUID | None = None
+    manifest: NativeStrategyContract | None = None
 
     @field_validator("name")
     @classmethod

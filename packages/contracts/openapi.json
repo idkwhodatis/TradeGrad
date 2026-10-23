@@ -902,6 +902,66 @@
         "title": "CoveragePublic",
         "type": "object"
       },
+      "DataRequirements": {
+        "additionalProperties": false,
+        "properties": {
+          "bar_complete": {
+            "const": "exchange_session_closed",
+            "default": "exchange_session_closed",
+            "title": "Bar Complete",
+            "type": "string"
+          },
+          "history_order": {
+            "const": "oldest_first",
+            "default": "oldest_first",
+            "title": "History Order",
+            "type": "string"
+          },
+          "interval": {
+            "const": "1d",
+            "default": "1d",
+            "title": "Interval",
+            "type": "string"
+          },
+          "lookback_bars": {
+            "maximum": 252.0,
+            "minimum": 1.0,
+            "title": "Lookback Bars",
+            "type": "integer"
+          },
+          "max_listings": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Max Listings",
+            "type": "integer"
+          },
+          "missing_bar_policy": {
+            "const": "reject_snapshot",
+            "default": "reject_snapshot",
+            "title": "Missing Bar Policy",
+            "type": "string"
+          },
+          "snapshot_rule": {
+            "const": "all_effective_listings_complete",
+            "default": "all_effective_listings_complete",
+            "title": "Snapshot Rule",
+            "type": "string"
+          },
+          "warmup_bars": {
+            "maximum": 252.0,
+            "minimum": 1.0,
+            "title": "Warmup Bars",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lookback_bars",
+          "warmup_bars",
+          "max_listings"
+        ],
+        "title": "DataRequirements",
+        "type": "object"
+      },
       "DataUsageExposurePublic": {
         "properties": {
           "created_at": {
@@ -1117,6 +1177,57 @@
           "value"
         ],
         "title": "DifferenceValue",
+        "type": "object"
+      },
+      "EngineProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "application_settlement_enforcement": {
+            "const": "trusted_controller_daily_next_open_inventory.v1",
+            "default": "trusted_controller_daily_next_open_inventory.v1",
+            "title": "Application Settlement Enforcement",
+            "type": "string"
+          },
+          "engine": {
+            "const": "akquant",
+            "default": "akquant",
+            "title": "Engine",
+            "type": "string"
+          },
+          "engine_settlement_mode": {
+            "const": "T+0",
+            "default": "T+0",
+            "title": "Engine Settlement Mode",
+            "type": "string"
+          },
+          "environment_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Environment Sha256",
+            "type": "string"
+          },
+          "profile_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Profile Sha256",
+            "type": "string"
+          },
+          "profile_version": {
+            "const": "akquant.portable.cash-daily.controller-t1.v3",
+            "default": "akquant.portable.cash-daily.controller-t1.v3",
+            "title": "Profile Version",
+            "type": "string"
+          },
+          "version": {
+            "const": "0.3.27",
+            "default": "0.3.27",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile_sha256",
+          "environment_sha256"
+        ],
+        "title": "EngineProfile",
         "type": "object"
       },
       "ErrorResponse": {
@@ -3776,6 +3887,173 @@
         "title": "ModelProfilePublic",
         "type": "object"
       },
+      "NativeParameter": {
+        "additionalProperties": false,
+        "properties": {
+          "choices": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "maxItems": 32,
+            "title": "Choices",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "integer",
+              "number",
+              "boolean",
+              "string"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "maximum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum"
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum"
+          },
+          "name": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+            "title": "Name",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "value"
+        ],
+        "title": "NativeParameter",
+        "type": "object"
+      },
+      "NativeStrategyContract": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": "native-declarations.v1",
+            "default": "native-declarations.v1",
+            "title": "Contract Version",
+            "type": "string"
+          },
+          "evidence": {
+            "const": "user_declared_not_code_verified",
+            "default": "user_declared_not_code_verified",
+            "title": "Evidence",
+            "type": "string"
+          },
+          "lookback_bars": {
+            "maximum": 252.0,
+            "minimum": 0.0,
+            "title": "Lookback Bars",
+            "type": "integer"
+          },
+          "parameter_binding": {
+            "const": "context.tradegrad_parameters.v1",
+            "default": "context.tradegrad_parameters.v1",
+            "title": "Parameter Binding",
+            "type": "string"
+          },
+          "parameters": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/NativeParameter"
+            },
+            "maxItems": 32,
+            "title": "Parameters",
+            "type": "array"
+          },
+          "required_fields": {
+            "default": [
+              "open",
+              "high",
+              "low",
+              "close",
+              "volume"
+            ],
+            "items": {
+              "enum": [
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+                "amount"
+              ],
+              "type": "string"
+            },
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Required Fields",
+            "type": "array"
+          },
+          "requires_shorting": {
+            "title": "Requires Shorting",
+            "type": "boolean"
+          },
+          "warmup_bars": {
+            "maximum": 252.0,
+            "minimum": 0.0,
+            "title": "Warmup Bars",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lookback_bars",
+          "warmup_bars",
+          "requires_shorting"
+        ],
+        "title": "NativeStrategyContract",
+        "type": "object"
+      },
       "ObjectiveConfig": {
         "additionalProperties": false,
         "properties": {
@@ -3994,6 +4272,87 @@
           }
         },
         "title": "OptimizerConfig",
+        "type": "object"
+      },
+      "OrderCapabilities": {
+        "additionalProperties": false,
+        "properties": {
+          "account_mode": {
+            "const": "cash_long_only",
+            "default": "cash_long_only",
+            "title": "Account Mode",
+            "type": "string"
+          },
+          "close_today": {
+            "const": false,
+            "default": false,
+            "title": "Close Today",
+            "type": "boolean"
+          },
+          "fractional_shares": {
+            "const": false,
+            "default": false,
+            "title": "Fractional Shares",
+            "type": "boolean"
+          },
+          "leverage": {
+            "const": 1,
+            "default": 1,
+            "title": "Leverage",
+            "type": "integer"
+          },
+          "oco": {
+            "const": false,
+            "default": false,
+            "title": "Oco",
+            "type": "boolean"
+          },
+          "order_types": {
+            "default": [
+              "market",
+              "limit"
+            ],
+            "items": {
+              "enum": [
+                "market",
+                "limit"
+              ],
+              "type": "string"
+            },
+            "title": "Order Types",
+            "type": "array"
+          },
+          "quantity_unit": {
+            "const": "shares",
+            "default": "shares",
+            "title": "Quantity Unit",
+            "type": "string"
+          },
+          "short": {
+            "const": false,
+            "default": false,
+            "title": "Short",
+            "type": "boolean"
+          },
+          "time_in_force": {
+            "default": [
+              "GTC"
+            ],
+            "items": {
+              "const": "GTC",
+              "type": "string"
+            },
+            "title": "Time In Force",
+            "type": "array"
+          },
+          "trailing_stop": {
+            "const": false,
+            "default": false,
+            "title": "Trailing Stop",
+            "type": "boolean"
+          }
+        },
+        "title": "OrderCapabilities",
         "type": "object"
       },
       "Page_ArtifactPublic_": {
@@ -7061,6 +7420,64 @@
         "title": "PortableSlippageConfig",
         "type": "object"
       },
+      "PortableSourceCreate": {
+        "additionalProperties": false,
+        "description": "Identity hashes are server-assigned; all other manifest claims are frozen.",
+        "properties": {
+          "code": {
+            "description": "Exact Python source, at most 131072 UTF-8 bytes. Syntax parsing only; never executed by the API.",
+            "maxLength": 131072,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/StrategyManifest"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "task": {
+            "enum": [
+              "cn_time",
+              "us_time",
+              "cn_cross",
+              "us_cross"
+            ],
+            "title": "Task",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "task",
+          "code",
+          "manifest",
+          "parameters"
+        ],
+        "title": "PortableSourceCreate",
+        "type": "object"
+      },
       "PortableStrategyCreate": {
         "additionalProperties": false,
         "properties": {
@@ -7140,6 +7557,18 @@
             "title": "Parameters",
             "type": "object"
           },
+          "parent_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
           "task": {
             "enum": [
               "cn_time",
@@ -7199,6 +7628,18 @@
             "additionalProperties": true,
             "title": "Parameters",
             "type": "object"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
           },
           "task": {
             "enum": [
@@ -7401,6 +7842,33 @@
           "listing_id"
         ],
         "title": "PreviewPage",
+        "type": "object"
+      },
+      "PriceAssumptions": {
+        "additionalProperties": false,
+        "properties": {
+          "actions_snapshot_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Actions Snapshot Sha256",
+            "type": "string"
+          },
+          "corporate_actions": {
+            "const": "reject_window_with_actions",
+            "default": "reject_window_with_actions",
+            "title": "Corporate Actions",
+            "type": "string"
+          },
+          "price_basis": {
+            "const": "unadjusted",
+            "default": "unadjusted",
+            "title": "Price Basis",
+            "type": "string"
+          }
+        },
+        "required": [
+          "actions_snapshot_sha256"
+        ],
+        "title": "PriceAssumptions",
         "type": "object"
       },
       "PriceSemantics": {
@@ -8205,6 +8673,16 @@
           },
           "seed_strategy": {
             "$ref": "#/components/schemas/VersionRef"
+          },
+          "strategy_contract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NativeStrategyContract"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "task": {
             "enum": [
@@ -9674,6 +10152,16 @@
           "seed_strategy": {
             "$ref": "#/components/schemas/VersionRef"
           },
+          "strategy_contract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NativeStrategyContract"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "task": {
             "enum": [
               "cn_time",
@@ -10265,6 +10753,75 @@
         "title": "SplitVersionPublic",
         "type": "object"
       },
+      "StateField": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "string",
+              "integer",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 96,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+            "title": "Name",
+            "type": "string"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "kind"
+        ],
+        "title": "StateField",
+        "type": "object"
+      },
+      "StateSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/StateField"
+            },
+            "maxItems": 64,
+            "title": "Fields",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 96,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 1000000.0,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "version",
+          "fields"
+        ],
+        "title": "StateSchema",
+        "type": "object"
+      },
       "StateSnapshot": {
         "additionalProperties": false,
         "properties": {
@@ -10323,6 +10880,16 @@
             "title": "Code",
             "type": "string"
           },
+          "manifest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NativeStrategyContract"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "name": {
             "maxLength": 255,
             "minLength": 1,
@@ -10380,6 +10947,16 @@
             "title": "Id",
             "type": "string"
           },
+          "manifest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NativeStrategyContract"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "mode": {
             "const": "native_akquant",
             "title": "Mode",
@@ -10388,6 +10965,33 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "parameters": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameters"
           },
           "parent_id": {
             "anyOf": [
@@ -10423,6 +11027,170 @@
           "code"
         ],
         "title": "StrategyDetail",
+        "type": "object"
+      },
+      "StrategyManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_type": {
+            "const": "equity",
+            "default": "equity",
+            "title": "Asset Type",
+            "type": "string"
+          },
+          "authoring": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserPolicyDeclaration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "calendar": {
+            "enum": [
+              "XNYS",
+              "XSHG"
+            ],
+            "title": "Calendar",
+            "type": "string"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/OrderCapabilities",
+            "default": {
+              "account_mode": "cash_long_only",
+              "close_today": false,
+              "fractional_shares": false,
+              "leverage": 1,
+              "oco": false,
+              "order_types": [
+                "market",
+                "limit"
+              ],
+              "quantity_unit": "shares",
+              "short": false,
+              "time_in_force": [
+                "GTC"
+              ],
+              "trailing_stop": false
+            }
+          },
+          "code_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Code Sha256",
+            "type": "string"
+          },
+          "conformance": {
+            "const": "interface_only",
+            "default": "interface_only",
+            "title": "Conformance",
+            "type": "string"
+          },
+          "contract_version": {
+            "const": "portable.v1",
+            "default": "portable.v1",
+            "title": "Contract Version",
+            "type": "string"
+          },
+          "currency": {
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DataRequirements"
+          },
+          "decision_timing": {
+            "const": "after_close",
+            "default": "after_close",
+            "title": "Decision Timing",
+            "type": "string"
+          },
+          "engine_profile": {
+            "$ref": "#/components/schemas/EngineProfile"
+          },
+          "execution_timing": {
+            "const": "NextOpen",
+            "default": "NextOpen",
+            "title": "Execution Timing",
+            "type": "string"
+          },
+          "external_framework_equivalence": {
+            "const": "not_certified",
+            "default": "not_certified",
+            "title": "External Framework Equivalence",
+            "type": "string"
+          },
+          "market": {
+            "enum": [
+              "US",
+              "CN"
+            ],
+            "title": "Market",
+            "type": "string"
+          },
+          "parameters_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Parameters Sha256",
+            "type": "string"
+          },
+          "prices": {
+            "$ref": "#/components/schemas/PriceAssumptions"
+          },
+          "reference_result_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Result Sha256"
+          },
+          "state_schema": {
+            "$ref": "#/components/schemas/StateSchema"
+          },
+          "strategy_id": {
+            "title": "Strategy Id",
+            "type": "string"
+          },
+          "strategy_kind": {
+            "enum": [
+              "portfolio",
+              "event"
+            ],
+            "title": "Strategy Kind",
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "universe": {
+            "$ref": "#/components/schemas/UniverseAssumptions"
+          }
+        },
+        "required": [
+          "strategy_kind",
+          "strategy_id",
+          "code_sha256",
+          "parameters_sha256",
+          "market",
+          "currency",
+          "calendar",
+          "timezone",
+          "data",
+          "universe",
+          "prices",
+          "state_schema",
+          "engine_profile"
+        ],
+        "title": "StrategyManifest",
         "type": "object"
       },
       "StrategyPackageCreate": {
@@ -10526,6 +11294,16 @@
             "title": "Id",
             "type": "string"
           },
+          "manifest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NativeStrategyContract"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "mode": {
             "const": "native_akquant",
             "title": "Mode",
@@ -10534,6 +11312,33 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "parameters": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameters"
           },
           "parent_id": {
             "anyOf": [
@@ -10592,6 +11397,41 @@
           "expires_in"
         ],
         "title": "Token",
+        "type": "object"
+      },
+      "UniverseAssumptions": {
+        "additionalProperties": false,
+        "properties": {
+          "semantics": {
+            "enum": [
+              "user_fixed",
+              "current_snapshot",
+              "historical_membership",
+              "point_in_time_verified"
+            ],
+            "title": "Semantics",
+            "type": "string"
+          },
+          "snapshot_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Snapshot Sha256",
+            "type": "string"
+          },
+          "survivorship_bias": {
+            "enum": [
+              "possible",
+              "membership_evidence_required"
+            ],
+            "title": "Survivorship Bias",
+            "type": "string"
+          }
+        },
+        "required": [
+          "semantics",
+          "snapshot_sha256",
+          "survivorship_bias"
+        ],
+        "title": "UniverseAssumptions",
         "type": "object"
       },
       "UniverseCreate": {
@@ -10858,6 +11698,36 @@
           "price_semantics"
         ],
         "title": "UploadMapping",
+        "type": "object"
+      },
+      "UserPolicyDeclaration": {
+        "additionalProperties": false,
+        "description": "User claims only; parsed data is never a policy safety certificate.",
+        "properties": {
+          "evidence": {
+            "const": "user_declared_not_code_verified",
+            "default": "user_declared_not_code_verified",
+            "title": "Evidence",
+            "type": "string"
+          },
+          "initial_state": {
+            "$ref": "#/components/schemas/StateSnapshot"
+          },
+          "parameter_schema": {
+            "$ref": "#/components/schemas/StateSchema"
+          },
+          "source_kind": {
+            "const": "user_authored",
+            "default": "user_authored",
+            "title": "Source Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "parameter_schema",
+          "initial_state"
+        ],
+        "title": "UserPolicyDeclaration",
         "type": "object"
       },
       "UserPublic": {
@@ -17618,6 +18488,177 @@
           }
         ],
         "summary": "Strategy"
+      }
+    },
+    "/api/v1/portable-strategies/{strategy_id}/source-draft": {
+      "get": {
+        "operationId": "portable_source_draft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "strategy_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Strategy Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortableSourceCreate"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Source Draft"
+      }
+    },
+    "/api/v1/portable-strategy-versions": {
+      "post": {
+        "operationId": "create_portable_source_version",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortableSourceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortableStrategyDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortableStrategyDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Source Version"
       }
     },
     "/api/v1/portable-templates": {

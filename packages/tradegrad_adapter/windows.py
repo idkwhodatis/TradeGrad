@@ -224,14 +224,19 @@ def stage_csv_window(
     if not set(required_fields).issubset(header) or "date" not in header:
         raise PreflightError(
             "missing_fields",
-            "CSV is missing required strategy fields",
+            "CSV is missing required strategy fields: "
+            + ", ".join(sorted(set(required_fields) - set(header)))
+            + "; publish a snapshot containing those fields",
             listing_id=listing_id,
             details={"required": list(required_fields)},
         )
     date_column = header.index("date")
     numeric_columns = [
         header.index(name)
-        for name in ("open", "high", "low", "close", "volume")
+        for name in dict.fromkeys(
+            ("open", "high", "low", "close", "volume", *required_fields)
+        )
+        if name != "date"
         if name in header
     ]
     previous = deque(maxlen=warmup_sessions)
@@ -255,17 +260,17 @@ def stage_csv_window(
             except ValueError as exc:
                 raise PreflightError(
                     "invalid_bar",
-                    "OHLCV values must be finite numbers",
+                    f"Required field {header[index]} must contain a non-null finite number; publish corrected data",
                     listing_id=listing_id,
                 ) from exc
             if (
                 not math.isfinite(value)
                 or value < 0
-                or (header[index] != "volume" and value == 0)
+                or (header[index] not in ("volume", "amount") and value == 0)
             ):
                 raise PreflightError(
                     "invalid_bar",
-                    "OHLC prices must be positive; volume nonnegative and finite",
+                    f"Required field {header[index]} is invalid: OHLC prices must be positive; volume/amount nonnegative; all values finite. Publish corrected data",
                     listing_id=listing_id,
                 )
         if day < window.start:
@@ -604,6 +609,10 @@ def _stage_resolved_dataset_window(
         "Native code shares the engine process; staged inputs do not prove absence of strategy look-ahead.",
         "Pinned universe state is not independently verified point-in-time evidence.",
     ]
+    if config.strategy_contract is not None:
+        warnings.append(
+            "Data, lookback, shorting and parameter contracts are user declarations, not verified behavior of native Python."
+        )
     for listing in manifest.get("listings", []):
         if listing.get("calendar_note"):
             warnings.append(listing["calendar_note"])
@@ -627,6 +636,23 @@ def _stage_resolved_dataset_window(
             history_policy=config.warmup.history_policy,
             expected_sha256=entries[name],
             expected_sessions=schedule,
+            required_fields=tuple(
+                dict.fromkeys(
+                    (
+                        "date",
+                        "open",
+                        "high",
+                        "low",
+                        "close",
+                        "volume",
+                        *(
+                            config.strategy_contract.required_fields
+                            if config.strategy_contract
+                            else ()
+                        ),
+                    )
+                )
+            ),
             limits=limits,
         )
         reports.append(staged.report)
