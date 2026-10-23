@@ -244,40 +244,11 @@ jobs:
         run: |
           export API_PYTHON=$(command -v python)
           .venv-research/bin/python -m pytest tests/system/test_portable_final_pipeline.py -q --junitxml=m5-portable-final-application-junit.xml
-      - name: Exercise the real HTTP, queue, engine and browser boundary
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p var/ci-logs
-          uvicorn backend.app.asgi:app --host 127.0.0.1 --port 8000 >var/ci-logs/api.log 2>&1 & api=$!
-          python -m workers.research dispatcher >var/ci-logs/dispatcher.log 2>&1 & dispatcher=$!
-          .venv-research/bin/python -m workers.research worker >var/ci-logs/worker.log 2>&1 & worker=$!
-          python -m workers.research reconciler >var/ci-logs/reconciler.log 2>&1 & reconciler=$!
-          .venv-data/bin/python -m workers.data dispatcher >var/ci-logs/data-dispatcher.log 2>&1 & data_dispatcher=$!
-          .venv-data/bin/python -m workers.data worker >var/ci-logs/data-worker.log 2>&1 & data_worker=$!
-          cleanup() {
-            kill "$api" "$dispatcher" "$worker" "$reconciler" "$data_dispatcher" "$data_worker" 2>/dev/null || true
-            docker ps -aq --filter label=io.tradegrad.managed=evaluator-v1 | xargs -r docker rm -f >/dev/null
-            docker ps -aq --filter label=io.tradegrad.managed=portable-evaluator-v1 | xargs -r docker rm -f >/dev/null
-          }
-          trap cleanup EXIT
-          python - <<'PY'
-          import time, urllib.request
-          for attempt in range(60):
-              try:
-                  with urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=2) as response:
-                      if response.status == 200:
-                          break
-              except OSError:
-                  time.sleep(1)
-          else:
-              raise SystemExit('API readiness failed; real browser gate cannot run')
-          PY
-          if [ "$DATA_PROVIDER_MODE" = live ]; then
-            npm run test:e2e --prefix frontend -- --grep @provider-flow
-          else
-            npm run test:e2e --prefix frontend
-          fi
+      - name: Owned full fixture browser acceptance or scoped live provider flows
+        env:
+          TRADEGRAD_REQUIRE_APPLICATION_BROWSER: "1"
+          TRADEGRAD_APPLICATION_STAGE: m5
+        run: python -m script.ci_application_browser
       - name: Remove the disposable database
         if: always()
         run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
