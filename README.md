@@ -3,8 +3,9 @@
 > **WebUI V1 branch status:** M0's four-task engine baseline is validated. The M1
 > synthetic, seed-only web application passed real PostgreSQL, Docker isolation and
 > all nine real-browser gates. A separate actual two-worker SIGKILL/recovery
-> acceptance check also passed. M2 data integration is prepared locally; its hosted
-> acceptance is pending. M3–M5 research, browser workflows, portable execution and
+> acceptance check also passed. M2 passed its complete deterministic PostgreSQL,
+> Docker/recovery and Chromium gate on `0f6e8359`; live providers remain unverified.
+> M3–M5 research, browser workflows, portable execution and
 > frozen final-evaluation code are prepared under the local-first allowance, with
 > their separate hosted gates still pending. The original M1 seed-only mode remains
 > cold-start; configured research has an explicit warm-up contract.
