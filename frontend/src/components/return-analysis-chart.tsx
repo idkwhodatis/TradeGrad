@@ -27,6 +27,12 @@ export default function ResultReturnAnalysisChart({
   kind: "monthly" | "distribution";
 }) {
   const element = useRef<HTMLDivElement>(null);
+  // ECharts replaces its root aria-label after rendering. Keep both sources
+  // identical so the coverage caveats survive initialization and updates.
+  const description =
+    kind === "monthly"
+      ? "Monthly observed equity returns heatmap; asterisk means partial period"
+      : "Observed close-to-close return distribution; not certified daily returns";
   useEffect(() => {
     if (!element.current) return;
     const chart = init(element.current, undefined, { renderer: "svg" });
@@ -41,7 +47,7 @@ export default function ResultReturnAnalysisChart({
       kind === "monthly"
         ? {
             animation: false,
-            aria: { enabled: true },
+            aria: { enabled: true, description },
             tooltip: {
               renderMode: "richText",
               formatter: (params: {
@@ -109,7 +115,7 @@ export default function ResultReturnAnalysisChart({
           }
         : {
             animation: false,
-            aria: { enabled: true },
+            aria: { enabled: true, description },
             tooltip: { trigger: "axis", renderMode: "richText" },
             grid: { left: 55, right: 25, top: 25, bottom: 100 },
             xAxis: {
@@ -140,7 +146,7 @@ export default function ResultReturnAnalysisChart({
       observer.disconnect();
       chart.dispose();
     };
-  }, [value, kind]);
+  }, [value, kind, description]);
   return (
     <div
       ref={element}
@@ -156,11 +162,7 @@ export default function ResultReturnAnalysisChart({
             : 330,
       }}
       role="img"
-      aria-label={
-        kind === "monthly"
-          ? "Monthly observed equity returns heatmap; asterisk means partial period"
-          : "Observed close-to-close return distribution; not certified daily returns"
-      }
+      aria-label={description}
     />
   );
 }

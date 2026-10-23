@@ -1450,12 +1450,16 @@ test("persisted execution replay, declared indicators, monthly analysis and serv
     }),
   ).toBeVisible();
   await expect(
-    page.getByRole("img", { name: /^Monthly observed equity returns heatmap/ }),
+    page
+      .getByRole("img", { name: /^Monthly observed equity returns heatmap/ })
+      .locator("svg"),
   ).toBeVisible();
   await expect(
-    page.getByRole("img", {
-      name: /^Observed close-to-close return distribution/,
-    }),
+    page
+      .getByRole("img", {
+        name: /^Observed close-to-close return distribution/,
+      })
+      .locator("svg"),
   ).toBeVisible();
   await expect(
     page.getByRole("table", { name: "Monthly return values and coverage" }),

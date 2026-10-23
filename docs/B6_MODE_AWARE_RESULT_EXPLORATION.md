@@ -131,3 +131,17 @@ imports/calls. Preserve the parent's separate process-ownership/lifecycle
 hardening. Regenerate the contract/client after combining source schemas, using
 the repository generator without formatting generated client output. Historical
 acceptance-matrix consolidation is intentionally left to the parent integration.
+
+## Renderer accessibility integration check, 2026-10-23
+
+Static inspection of pinned ECharts 6.1.0 showed that enabling automatic ARIA
+generation replaces the chart root's JSX label. Monthly and distribution charts
+now pass the same explicit description to the renderer and DOM, preserving the
+partial-period and non-certified-daily-return caveats. Two component-contract
+regressions check both descriptions and series types; the existing real-browser
+scenario additionally requires visible SVGs under those named charts.
+
+The full frontend unit suite passed (492 cases), as did typecheck, production
+build and changed-file formatting. These component checks do not execute a real
+browser. The cumulative hosted chart scenario is still required; this repair
+does not change the earlier M5, M6 or native-operator stage trees.
