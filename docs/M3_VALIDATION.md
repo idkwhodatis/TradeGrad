@@ -1,9 +1,10 @@
 # M3: immutable research execution and recovery
 
-Status: **available local gate passed; full-stack hosted acceptance pending**. The user's
-2026-10-22 instruction permits local progression and provisionally defers an
-unavailable Playwright run. It does not turn missing PostgreSQL, Docker-isolation,
-live-source or live-model evidence into a pass. No M3 hosted acceptance is claimed.
+Status: **deterministic full-stack gate passed on the exact M3 head**. See the
+hosted acceptance section below for its source SHA and run. The earlier local-only
+checks remain historical evidence; the temporary local-first browser waiver does
+not replace later PostgreSQL, Docker, recovery or Chromium validation. Live market
+sources and online model-provider calls were not accepted by that fixture gate.
 
 ## Implemented boundary
 
