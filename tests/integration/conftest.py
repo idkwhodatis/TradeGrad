@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import secrets
 from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
 from uuid import uuid4
 
@@ -20,6 +21,19 @@ from sqlalchemy.exc import ArgumentError
 from sqlalchemy.pool import NullPool
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+@dataclass(repr=False)
+class SyntheticAccount:
+    """Generated fixture credentials must not enter pytest argument diagnostics."""
+
+    user: object
+    password: str
+    dataset: object
+    strategy: object
+
+    def __repr__(self) -> str:
+        return "SyntheticAccount(<private fixture>)"
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -132,7 +146,6 @@ def make_account(migrated_engine: Engine):
     """Provision actual persisted users; authentication still goes through HTTP."""
     from datetime import date
     from hashlib import sha256
-    from types import SimpleNamespace
 
     from sqlalchemy.orm import Session
 
@@ -172,7 +185,7 @@ def make_account(migrated_engine: Engine):
             )
             session.add_all([dataset, strategy])
             session.commit()
-        return SimpleNamespace(
+        return SyntheticAccount(
             user=user,
             password=password,
             dataset=dataset,
