@@ -119,9 +119,7 @@ async function resolveInBrowser(
   mics: readonly string[],
 ) {
   await page.goto("/data-sources");
-  await page
-    .getByLabel("Provider", { exact: true })
-    .selectOption({ label: provider });
+  await page.getByLabel("Provider", { exact: true }).selectOption(provider);
   await page
     .getByLabel("Vendor symbols", { exact: true })
     .fill(symbols.join(", "));
