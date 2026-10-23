@@ -2,8 +2,9 @@
 
 import hashlib
 import json
+import re
 
-from backend.app.models import Candidate, StrategyVersion
+from backend.app.models import Candidate, ExecutionAttempt, StrategyVersion
 from backend.app.research_services import bounded_json
 from backend.app.services import DomainError
 from packages.tradegrad_adapter.config import RunConfig
@@ -106,6 +107,39 @@ def _native_request(run, evaluation):
     }
 
 
+def _provenance_image(session, run, evaluation, artifact):
+    if evaluation is not None:
+        return evaluation.image_digest
+    if run.config.get("schema_version") is not None:
+        return run.research_image_digest
+    # Legacy seed runs predate research-image pinning. Their committed result is
+    # the persisted image authority, but only for the exact finished generation.
+    # Never borrow a later retry's image for an older attempt or accept a filename
+    # as proof. Unknown/failed legacy provenance remains unavailable, not guessed.
+    attempt = session.get(ExecutionAttempt, artifact.attempt_id)
+    result = run.result
+    if (
+        attempt is None
+        or attempt.id != artifact.attempt_id
+        or attempt.run_id != run.id
+        or run.active_attempt_id != attempt.id
+        or attempt.generation != run.generation
+        or run.status != "succeeded"
+        or attempt.status != "succeeded"
+        or attempt.exit_code != 0
+        or not attempt.sandbox_stopped
+        or attempt.finished_at is None
+        or not isinstance(result, dict)
+        or result.get("execution_mode") != "seed_evaluation"
+        or result.get("evaluation_mode") != "native_akquant"
+        or result.get("result_trust") != "native_strategy_and_engine_share_process"
+        or not isinstance(result.get("image_digest"), str)
+        or not re.fullmatch(r"sha256:[0-9a-f]{64}", result["image_digest"])
+    ):
+        raise ValueError("Legacy provenance lacks its exact committed image binding")
+    return result["image_digest"]
+
+
 def validate_non_result_artifact(session, run, evaluation, artifact, suffix, content):
     """Known metadata/source must have both a bounded shape and an owned binding.
 
@@ -133,9 +167,7 @@ def validate_non_result_artifact(session, run, evaluation, artifact, suffix, con
                 "execution_mode": run.config.get("execution_mode", "seed_evaluation"),
                 "evaluation_mode": "native_akquant",
                 "result_trust": "native_strategy_and_engine_share_process",
-                "image_digest": evaluation.image_digest
-                if evaluation is not None
-                else run.research_image_digest,
+                "image_digest": _provenance_image(session, run, evaluation, artifact),
             }
             if value != expected or type(value.get("schema_version")) is not int:
                 raise ValueError("Provenance differs from the fixed publisher shape")
