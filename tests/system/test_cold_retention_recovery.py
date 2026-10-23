@@ -419,11 +419,16 @@ def _exercise_cold_resume(h):
     }
     plan = cold_retention(**arguments)
     require(
-        plan["dry_run"]
-        and plan["deleted_files"] == 0
-        and [entry["path"] for entry in plan["temporary_candidates"]] == [temporary_key]
-        and plan["aged_run_logs_retained"] > 0,
+        plan["dry_run"] and plan["deleted_files"] == 0,
+        "Cold preview must not delete any file",
+    )
+    require(
+        [entry["path"] for entry in plan["temporary_candidates"]] == [temporary_key],
         "Cold plan did not select only the one explicitly abandoned fixture",
+    )
+    require(
+        plan["aged_run_logs_retained"] > 0,
+        "Cold plan did not account for retained real configured-attempt logs",
     )
     receipt = h.root / "cold-resume-receipt.jsonl"
     report = cold_retention(

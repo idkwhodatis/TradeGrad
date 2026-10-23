@@ -44,7 +44,10 @@ TEMPORARIES = re.compile(
     r"\.[a-f0-9]{32}\.tmp\Z"
 )
 RUN_LOGS = re.compile(
-    rf"runs/{UUID}/{UUID}/(?:artifacts/logs\.txt"
+    # M1 uses the direct attempt layout; configured native/portable research
+    # uses the explicit attempts/ segment. This is retained-log accounting,
+    # not an expansion of TEMPORARIES or any deletion authority.
+    rf"runs/{UUID}/(?:attempts/)?{UUID}/(?:artifacts/logs\.txt"
     rf"|evaluations/{UUID}/artifacts/(?:logs\.txt|engine\.log|policy\.log))\Z"
 )
 

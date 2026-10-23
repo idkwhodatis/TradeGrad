@@ -170,6 +170,23 @@ def test_preview_age_configurable_and_uses_recent_ctime_not_only_forged_old_mtim
     assert preview(source)["temporary_review_candidates"]
 
 
+@pytest.mark.parametrize("name", ["logs.txt", "engine.log", "policy.log"])
+def test_configured_attempt_logs_are_counted_but_never_deleted(source, name):
+    # Actual configured workers publish beneath runs/<run>/attempts/<attempt>.
+    key = f"runs/{RUN}/attempts/{ATTEMPT}/evaluations/{EVALUATION}/artifacts/{name}"
+    path = source[0] / key
+    path.parent.mkdir(parents=True, exist_ok=True)
+    content = b"inert configured attempt diagnostics, not a disposable temporary"
+    path.write_bytes(content)
+    source[1][key] = content
+    result = preview(source)
+    assert result["aged_run_logs_retained"] == 2
+    assert [item["path"] for item in result["temporary_review_candidates"]] == [TEMP]
+    assert not retention.TEMPORARIES.fullmatch(key)
+    assert result["deleted_files"] == 0 and result["log_cleanup_supported"] is False
+    assert_unchanged(source)
+
+
 @pytest.mark.parametrize(
     "field,value",
     [
