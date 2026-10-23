@@ -53,6 +53,13 @@ from packages.tradegrad_adapter.config import (
     evaluation_windows,
 )
 from packages.tradegrad_adapter.model_calls import OptimizerStop, RecordedModel
+from script.ci_owned_group import (
+    admit_owned_group,
+    peek_owned_group,
+    signal_owned_group,
+    signal_owned_process,
+    wait_owned_group,
+)
 
 pytestmark = pytest.mark.skipif(
     not hosted_model_gate_enabled(),
@@ -627,7 +634,8 @@ def owned_sdk_child(h):
     require(len(h.workers) == 1, "SDK containment proof requires one owned worker")
     worker = h.workers[0]
     require(
-        worker.poll() is None and os.getpgid(worker.pid) == worker.pid != os.getpgrp(),
+        peek_owned_group(worker) is None
+        and os.getpgid(worker.pid) == worker.pid != os.getpgrp(),
         "Worker process group is not exclusively owned",
     )
     require(
@@ -707,9 +715,9 @@ def test_real_sdk_child_dies_on_worker_sigkill_but_missing_receipt_blocks_recove
     )
     worker, sdk_pid, identity = owned_sdk_child(h)
     h.expected_alive.discard(worker)
-    os.killpg(worker.pid, signal.SIGKILL)
+    signal_owned_group(worker, signal.SIGKILL)
     require(
-        worker.wait(timeout=h.remaining(5)) == -signal.SIGKILL,
+        wait_owned_group(worker, timeout=h.remaining(5)) == -signal.SIGKILL,
         "Owned worker did not stop on SIGKILL",
     )
     h.processes = [
@@ -795,7 +803,7 @@ def test_stale_living_worker_blocks_recovery_until_confirmed_sdk_stop_receipt(
     worker, _sdk_pid, _sdk_identity = owned_sdk_child(h)
     worker_identity = process_identity(worker.pid)
     require(worker_identity is not None, "Owned worker exited before SIGSTOP")
-    os.killpg(worker.pid, signal.SIGSTOP)
+    signal_owned_group(worker, signal.SIGSTOP)
     try:
         blocked = h.until(
             lambda: blocked_recovery(h, run_id),
@@ -829,9 +837,9 @@ def test_stale_living_worker_blocks_recovery_until_confirmed_sdk_stop_receipt(
         if (
             current is not None
             and current[1] == worker_identity[1]
-            and worker.poll() is None
+            and peek_owned_group(worker) is None
         ):
-            os.killpg(worker.pid, signal.SIGCONT)
+            signal_owned_group(worker, signal.SIGCONT)
     final = h.until(
         lambda: h.terminal(run_id),
         "Confirmed SDK stop receipt did not unblock reconciliation",
@@ -915,15 +923,16 @@ def test_real_chromium_synthetic_profile_seed_only_without_model_calls(model_har
         start_new_session=True,
     )
     h.processes.append(("owned-browser-supervisor", process))
+    admit_owned_group(process)
     try:
-        result = process.wait(timeout=h.remaining(355))
-    except subprocess.TimeoutExpired:
+        result = wait_owned_group(process, timeout=h.remaining(355))
+    except (subprocess.TimeoutExpired, TimeoutError):
         # Ask the supervisor to finish its own bounded descendant cleanup first.
         # An outer hard timeout is failure, never browser-containment evidence.
-        process.terminate()
+        signal_owned_process(process, signal.SIGTERM)
         try:
-            process.wait(timeout=30)
-        except subprocess.TimeoutExpired:
+            wait_owned_group(process, timeout=30)
+        except (subprocess.TimeoutExpired, TimeoutError):
             pytest.fail(
                 "Owned browser supervision exceeded its cleanup bound", pytrace=False
             )

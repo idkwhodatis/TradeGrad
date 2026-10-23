@@ -29,6 +29,13 @@ from psycopg import sql
 from sqlalchemy.engine import make_url
 
 from runtimes.evaluator.runner import DockerEvaluator
+from script.ci_owned_group import (
+    admit_owned_group,
+    peek_owned_group,
+    signal_owned_group,
+    stop_owned_groups,
+    wait_owned_group,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 SLOW_SEED = "E2E slow cn_time seed (20s import delay)"
@@ -110,6 +117,7 @@ class ProcessHarness:
             start_new_session=True,
         )
         self.processes.append((label, process))
+        admit_owned_group(process)
         if persistent:
             self.expected_alive.add(process)
         return process
@@ -117,14 +125,17 @@ class ProcessHarness:
     def command(self, label, arguments, *, extra_env=None):
         process = self.spawn(label, arguments, persistent=False, extra_env=extra_env)
         require(
-            process.wait(timeout=self.remaining(30)) == 0,
+            wait_owned_group(process, timeout=self.remaining(30)) == 0,
             f"Owned {label} command failed; child output is intentionally suppressed",
         )
 
     def alive(self):
         for label, process in self.processes:
             if process in self.expected_alive:
-                require(process.poll() is None, f"Owned {label} process exited early")
+                require(
+                    peek_owned_group(process) is None,
+                    f"Owned {label} process exited early",
+                )
 
     def until(self, predicate, message, *, timeout):
         deadline = time.monotonic() + self.remaining(timeout)
@@ -367,12 +378,15 @@ class ProcessHarness:
     def crash_workers(self):
         # Signal both owned process groups before waiting: no graceful finally blocks.
         for process in self.workers:
-            require(process.poll() is None, "Worker exited before fault injection")
+            require(
+                peek_owned_group(process) is None,
+                "Worker exited before fault injection",
+            )
             self.expected_alive.remove(process)
-            os.killpg(process.pid, signal.SIGKILL)
+            signal_owned_group(process, signal.SIGKILL)
         for process in self.workers:
             require(
-                process.wait(timeout=self.remaining(5)) == -signal.SIGKILL,
+                wait_owned_group(process, timeout=self.remaining(5)) == -signal.SIGKILL,
                 "Worker was not killed with SIGKILL",
             )
 
@@ -503,6 +517,26 @@ class ProcessHarness:
                 "Completed retry container remains present",
             )
 
+    def stop_processes(self, *, initial_signal=signal.SIGTERM):
+        """Stop only admitted roots; retain failed identities for cleanup retry."""
+        try:
+            stop_owned_groups(
+                [process for _, process in self.processes],
+                initial_signal=initial_signal,
+            )
+        finally:
+            stopped = {
+                process
+                for _, process in self.processes
+                if getattr(process, "_tradegrad_group", {}).get("verified", False)
+            }
+            self.processes = [
+                (label, process)
+                for label, process in self.processes
+                if process not in stopped
+            ]
+            self.expected_alive.difference_update(stopped)
+
     def cleanup(self):
         errors = []
         for client in self.clients:
@@ -510,29 +544,10 @@ class ProcessHarness:
                 client.close()
             except Exception:  # noqa: BLE001 - process/database cleanup must still run
                 errors.append("owned HTTP client close failed")
-        # Stop only process groups whose leaders were created by this harness.
-        # Include groups whose leader exited early: inherited children (for example
-        # docker logs) still belong to the test-created session and must be killed.
-        for _, process in self.processes:
-            try:
-                os.killpg(process.pid, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-        deadline = time.monotonic() + 5
-        for _, process in self.processes:
-            try:
-                process.wait(timeout=max(0.01, deadline - time.monotonic()))
-            except subprocess.TimeoutExpired:
-                pass
-        for _, process in self.processes:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            try:
-                process.wait(timeout=5)
-            except (subprocess.TimeoutExpired, OSError):
-                errors.append("owned process group did not terminate")
+        try:
+            self.stop_processes()
+        except RuntimeError:
+            errors.append("owned process/session cleanup is unconfirmed")
         if self.creation_attempted:
             # Reconcile a lost CREATE response. The name was absent immediately
             # before this harness attempted creation and is a random UUID name.
