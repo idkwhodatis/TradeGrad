@@ -10,6 +10,8 @@
 !packages/tradegrad_adapter/
 !packages/tradegrad_adapter/results.py
 !packages/tradegrad_adapter/portable_results.py
+!packages/tradegrad_adapter/native_contract.py
+!packages/tradegrad_adapter/indicators.py
 !packages/strategy_sdk/
 !packages/strategy_sdk/*.py
 !packages/strategy_sdk/templates/
