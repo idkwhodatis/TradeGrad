@@ -1,9 +1,26 @@
 # M4: configured research workspace
 
-Status: **available local gate passed; real-stack browser acceptance deferred**.
+Status: **deterministic real-stack gate passed on the exact repaired M4 head**.
 The local-first instruction of 2026-10-22 permits continuing available checks,
 not treating unavailable PostgreSQL, Docker or Playwright execution as a pass.
-M4 does not establish end-to-end acceptance until the prepared hosted gates run.
+The local evidence below predates the later hosted acceptance recorded here.
+
+## Hosted acceptance, 2026-10-23 UTC
+
+Exact head `4dba3edc515a99345de806679f64091faddb8dd1`, tree
+`d4cee06014d193a48fbacc74aad77fc6b0038e39`, passed
+[run 39875412249](https://github.com/idkwhodatis/TradeGrad/actions/runs/39875412249).
+This includes the original four-task native baseline, actual TradeTGD contracts,
+native warm-up, real PostgreSQL/Procrastinate, Docker/kernel isolation,
+two-worker SIGKILL/recovery, configured optimization and the complete real
+Chromium workbench suite. Cleanup and outcome-artifact steps passed too.
+
+The preceding M4 run failed two detached ORM fixture receipts and one private
+cache-header assertion. The repair retained fixture attributes after session
+close, preserved route `private` while always enforcing `no-store`, and removed
+database/signing values from Settings representations and validation diagnostics.
+It did not weaken result-integrity assertions or replace the real integration
+gate with mocks. M5/M6, live data and real model providers are separate gates.
 
 ## Implemented workflow
 

@@ -23,8 +23,10 @@ class BodyLimitMiddleware:
                 return
             if message["type"] != "http.request":
                 continue
-            body.extend(message.get("body", b""))
-            if len(body) > self.max_bytes:
+            chunk = message.get("body", b"")
+            # The server already owns this chunk. Do not copy an oversized one
+            # into our bounded accumulator before rejecting the request.
+            if len(body) + len(chunk) > self.max_bytes:
                 correlation = str(uuid4())
                 content = json.dumps(
                     {
@@ -47,6 +49,7 @@ class BodyLimitMiddleware:
                 )
                 await send({"type": "http.response.body", "body": content})
                 return
+            body.extend(chunk)
             if not message.get("more_body", False):
                 break
         pending = True

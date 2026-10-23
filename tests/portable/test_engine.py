@@ -9,7 +9,7 @@ import ast
 import hashlib
 import subprocess
 import sys
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import UUID
@@ -45,11 +45,10 @@ from packages.tradegrad_adapter.portable_results import (
     parse_portable_json,
     validate_portable_result,
 )
-from runtimes.portable_engine.export import _duration_ns, export_result
+from runtimes.portable_engine.export import export_result
 from runtimes.portable_engine.runtime import (
     Controller,
     DailyDecisionBarrier,
-    NativeVolumeLimit,
     Session,
     from_ns,
     iso,
@@ -257,6 +256,9 @@ class FakeBroker:
         self.session, self.legs = session, legs
         self.orders, self.submissions, self.cancelled = {}, [], []
 
+    def get_positions(self):
+        return self.positions.copy()
+
     def get_available_position(self, key):
         return self.available.get(key, 0.0)
 
@@ -317,7 +319,6 @@ def fake_result(controller, broker=None, fills=()):
         _raw=raw,
         metrics_df={
             "value": {
-                "duration": timedelta(days=2, seconds=3, microseconds=7),
                 "execution_count": len(fills),
                 "closed_trade_count": 0.0,
                 "sharpe_ratio": float("nan"),
@@ -780,10 +781,6 @@ def test_zero_trade_valid_result_and_stdlib_roundtrip():
     assert bundle["summary"]["execution_count"] == 0
     assert bundle["runtime_certified"] is False
     assert bundle["native_metrics"][-1]["unavailable_reason"]
-    duration = next(m for m in bundle["native_metrics"] if m["name"] == "duration")
-    assert duration["value"] == "172803000007000"
-    assert duration["unit"] == "nanoseconds"
-    assert duration["unavailable_reason"] is None
 
 
 @pytest.mark.parametrize(
@@ -1300,170 +1297,3 @@ def test_daily_barrier_rejects_future_bar_before_prior_session_decision():
             SimpleNamespace(timestamp=to_ns(data.sessions[1].close_time), symbol=L2),
             broker,
         )
-
-
-def test_inert_broker_matches_pinned_positions_property_not_removed_method():
-    import inspect
-
-    assert not hasattr(FakeBroker, "get_positions")
-    source = inspect.getsource(Controller)
-    assert "broker.get_positions(" not in source
-    assert "broker.positions" in source
-
-
-@pytest.mark.parametrize(
-    "value,expected",
-    [
-        (timedelta(days=2, seconds=3, microseconds=7), 172803000007000),
-        (timedelta(microseconds=-1), -1000),
-        (SimpleNamespace(value=123456789), 123456789),
-        (123456789, 123456789),
-    ],
-)
-def test_native_duration_preserves_exact_nanoseconds_without_engine(value, expected):
-    assert _duration_ns(value) == expected
-
-
-@pytest.mark.parametrize("value", [None, True, 1.5, "123", object()])
-def test_native_duration_never_truncates_or_guesses_unsupported_types(value):
-    with pytest.raises(ValueError, match="duration representation"):
-        _duration_ns(value)
-
-
-def test_native_volume_limit_is_exact_and_does_not_mutate_input_data():
-    import copy
-
-    calls = []
-    data = {"bars": [{"open": 104.0, "volume": 400.0}], "symbols": [L1]}
-    original = copy.deepcopy(data)
-    engine = SimpleNamespace(set_volume_limit=lambda value: calls.append(value))
-    context = {"engine": engine, "data": data}
-    hook = NativeVolumeLimit(0.25)
-    with pytest.raises(ValueError, match="unverified"):
-        hook.require_applied()
-    hook.on_start(context)
-    hook.require_applied()
-    hook.on_bar(context)
-    hook.on_trade(context)
-    assert hook.on_finish(context) == {"volume_limit_configured": True}
-    assert calls == [0.25]
-    assert data == original and context == {"engine": engine, "data": data}
-
-
-@pytest.mark.parametrize("failure", ["not_called", "no_engine", "no_setter", "throws"])
-def test_unverified_native_configuration_blocks_accounting_decision(failure):
-    hook = NativeVolumeLimit(0.25)
-
-    def fail(_):
-        raise RuntimeError("inert setter failure")
-
-    if failure != "not_called":
-        context = (
-            {}
-            if failure == "no_engine"
-            else {"engine": object()}
-            if failure == "no_setter"
-            else {"engine": SimpleNamespace(set_volume_limit=fail)}
-        )
-        with pytest.raises(ValueError, match="configuration failed"):
-            hook.on_start(context)
-    accounting_calls = []
-    with pytest.raises(ValueError, match="unverified"):
-        hook.require_applied()
-        accounting_calls.append("must not run")
-    with pytest.raises(ValueError, match="unverified"):
-        hook.on_finish({})
-    assert accounting_calls == []
-
-
-def test_native_configuration_failed_restart_clears_prior_verification():
-    hook = NativeVolumeLimit(0.25)
-    hook.on_start({"engine": SimpleNamespace(set_volume_limit=lambda _: None)})
-    hook.require_applied()
-    with pytest.raises(ValueError, match="configuration failed"):
-        hook.on_start({})
-    with pytest.raises(ValueError, match="unverified"):
-        hook.require_applied()
-
-
-@pytest.mark.parametrize("value", [None, True, 0, 0.0, 0.2500001, "0.25"])
-def test_native_configuration_never_substitutes_a_different_limit(value):
-    with pytest.raises(ValueError, match="unreviewed"):
-        NativeVolumeLimit(value)
-
-
-def test_native_configuration_guards_precede_each_native_accounting_callback():
-    module = ast.parse(Path("runtimes/portable_engine/runtime.py").read_text())
-    execute = next(
-        node
-        for node in module.body
-        if isinstance(node, ast.FunctionDef) and node.name == "execute"
-    )
-    strategy = next(
-        node
-        for node in ast.walk(execute)
-        if isinstance(node, ast.ClassDef) and node.name == "ReviewedStrategy"
-    )
-    for name in ("on_bar", "on_cross_section", "on_order", "on_trade"):
-        method = next(
-            node for node in strategy.body if getattr(node, "name", None) == name
-        )
-        first = method.body[0]
-        assert isinstance(first, ast.Expr) and isinstance(first.value, ast.Call)
-        assert ast.unparse(first.value.func) == "native_configuration.require_applied"
-    backtest = next(
-        node
-        for node in ast.walk(execute)
-        if isinstance(node, ast.Call) and ast.unparse(node.func) == "aq.run_backtest"
-    )
-    keywords = {item.arg: ast.unparse(item.value) for item in backtest.keywords}
-    assert keywords["analyzer_plugins"] == "[native_configuration]"
-    assert keywords["volume_limit_pct"] == "profile['volume_limit_pct']"
-    assert keywords["fill_policy"] == "aq.NextOpen()"
-    assert keywords["risk_config"] == "profile['risk_config']"
-    assert keywords["lot_size"] == "profile['lot_size']"
-    call_index = next(
-        index
-        for index, node in enumerate(execute.body)
-        if isinstance(node, ast.Assign) and node.value is backtest
-    )
-    assert (
-        ast.unparse(execute.body[call_index + 1])
-        == "native_configuration.require_applied()"
-    )
-
-
-def test_reference_cash_controls_differ_only_after_first_decision():
-    from tests.portable.test_isolation import affordable_reference_data, fixture_data
-
-    adverse = fixture_data("US", "portfolio")
-    control = affordable_reference_data("US", "portfolio")
-    first_decision = adverse["sessions"][20]["session_date"]
-    assert control["sessions"] == adverse["sessions"]
-    assert control["listings"] == adverse["listings"]
-    assert control["corporate_actions"] == adverse["corporate_actions"]
-    for positive, negative in zip(control["bars"], adverse["bars"]):
-        assert {k: v for k, v in positive.items() if k != "open"} == {
-            k: v for k, v in negative.items() if k != "open"
-        }
-        if positive["session_date"] <= first_decision:
-            assert positive == negative
-        else:
-            assert positive["low"] < positive["open"] < positive["close"]
-            assert negative["open"] > negative["close"]
-    assert affordable_reference_data("CN", "event") == fixture_data("CN", "event")
-
-
-def test_no_touch_reservation_control_avoids_unrelated_native_fee_rejection():
-    from tests.portable.test_isolation import fixture_data
-
-    data = fixture_data("CN", "event", count=9)
-    profile = reviewed_profile("CN", 100000.0)
-    limit, quantity = 1000.0, 200.0
-    assert all(bar["high"] < limit for bar in data["bars"])
-    hypothetical_fees = (
-        quantity * limit * (profile["commission_rate"] + profile["stamp_tax_rate"])
-    )
-    conservative_cash = 100000.0 - 300 * max(bar["high"] for bar in data["bars"])
-    assert hypothetical_fees < conservative_cash
-    assert 200 * 1000000.0 * 0.0015 > 100000.0

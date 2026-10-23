@@ -5,13 +5,14 @@
 > all nine real-browser gates. A separate actual two-worker SIGKILL/recovery
 > acceptance check also passed. M2 passed its complete deterministic PostgreSQL,
 > Docker/recovery and Chromium gate on `0f6e8359`; live providers remain unverified.
-> M3–M5 research, browser workflows, portable execution and
-> frozen final-evaluation code are prepared under the local-first allowance, with
-> their separate hosted gates still pending. The original M1 seed-only mode remains
+> M3 configured research passed its complete real-stack gate on `5f9125ca`.
+> M4's full browser/workbench gate passed on `4dba3edc`; M5 portable/final
+> acceptance is pending its separate hosted gate. M6 release-hardening and private restore drills
+> are in preparation. The original M1 seed-only mode remains
 > cold-start; configured research has an explicit warm-up contract.
 > This is not complete V1 and has no live trading. See
 > [staged validation](docs/M1_VALIDATION.md), [M2 limitations](docs/M2_VALIDATION.md),
-> [development setup](docs/M1_OPERATIONS.md), [M5 boundaries](docs/M5_VALIDATION.md)
+> [current development setup](docs/V1_OPERATIONS.md), [M5 boundaries](docs/M5_VALIDATION.md)
 > and [remaining gates](docs/V1_IMPLEMENTATION.md).
 
 This is the implementation of our paper *Trading Strategy Optimization via Textual Gradient*.

@@ -386,70 +386,23 @@ class PortableDockerEvaluator(DockerEvaluator):
         ):
             raise IsolationUnavailable("Unexpected portable sibling mount")
 
-    def _attachment_exitcode(self, process):
-        """Observe an owned child without releasing its PID/group identity."""
-        with self._attachment_lock:
-            if process.returncode is not None:
-                return process.returncode
-            try:
-                status = os.waitid(
-                    os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT
-                )
-            except ChildProcessError:
-                raise IsolationUnavailable(
-                    "Portable attach CLI identity no longer reserved"
-                ) from None
-            if status is None:
-                return None
-            return (
-                status.si_status
-                if status.si_code == os.CLD_EXITED
-                else -status.si_status
-            )
-
     def _kill_attachments(self, evaluation_id):
-        # Serialize observation, signalling and reap across controller/watchdog
-        # stop calls. A reaped PID is NEVER a safe signal target.
-        stopped = True
         with self._attachment_lock:
-            for process in self._attachments.get(evaluation_id, ()):
-                deadline = time.monotonic() + 3
-                if process.returncode is None:
-                    try:
-                        # WNOWAIT reserves even an exited leader while its
-                        # descendants may still hold the protocol pipes.
-                        os.waitid(
-                            os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT
-                        )
-                    except (ChildProcessError, OSError):
-                        stopped = False
-                        continue
-                    try:
-                        os.killpg(process.pid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
-                    except OSError:
-                        stopped = False
-                    try:
-                        process.wait(timeout=max(0, deadline - time.monotonic()))
-                    except (OSError, subprocess.SubprocessError):
-                        stopped = False
-                        continue
-                # After reap only an absence probe is safe. An uncertain group
-                # blocks retry; never signal a possibly reused group identifier.
-                while True:
-                    try:
-                        os.killpg(process.pid, 0)
-                    except ProcessLookupError:
-                        break
-                    except OSError:
-                        stopped = False
-                        break
-                    remaining = deadline - time.monotonic()
-                    if remaining <= 0:
-                        stopped = False
-                        break
-                    time.sleep(min(remaining, 0.05))
+            processes = list(self._attachments.get(evaluation_id, ()))
+        stopped = True
+        for process in processes:
+            # Kill the process group even when the leader has exited: an attach
+            # helper descendant may still hold pipes and outlive that leader.
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            except OSError:
+                stopped = False
+            try:
+                process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                stopped = False
         return stopped
 
     def _stop_role(self, evaluation_id, role):
@@ -824,8 +777,10 @@ class PortableDockerEvaluator(DockerEvaluator):
                     raise IsolationUnavailable(
                         "Portable lease/cancellation callback blocked"
                     )
-                exits = [self._attachment_exitcode(p) for p in processes.values()]
-                if all(code is not None for code in exits) and len(eof) == 4:
+                if (
+                    all(p.poll() is not None for p in processes.values())
+                    and len(eof) == 4
+                ):
                     if (
                         bundle is None
                         or any(buffers.values())
@@ -835,7 +790,7 @@ class PortableDockerEvaluator(DockerEvaluator):
                         raise ValueError(
                             "Portable channels ended without exactly one complete trusted result"
                         )
-                    if any(code != 0 for code in exits):
+                    if any(p.returncode != 0 for p in processes.values()):
                         raise IsolationUnavailable("Portable attach CLI failed")
                     return bundle
                 for key, _ in selector.select(

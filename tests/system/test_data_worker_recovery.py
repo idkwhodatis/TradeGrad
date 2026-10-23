@@ -26,13 +26,6 @@ import pytest
 from psycopg.rows import dict_row
 from test_worker_recovery import ROOT, ProcessHarness, require
 
-from script.ci_owned_group import (
-    admit_owned_group,
-    peek_owned_group,
-    signal_owned_group,
-    wait_owned_group,
-)
-
 START, END = "2024-01-02", "2024-07-01"
 BLOCK_DAYS = 7
 BLOCK_COUNT = 2 * math.ceil(
@@ -133,7 +126,6 @@ class DataProcessHarness(ProcessHarness):
             start_new_session=True,
         )
         self.processes.append((f"data-{role}", process))
-        admit_owned_group(process)
         self.expected_alive.add(process)
         return process
 
@@ -259,7 +251,7 @@ class DataProcessHarness(ProcessHarness):
     def crash_data_worker(self):
         process = self.data_worker
         require(
-            process in self.expected_alive and peek_owned_group(process) is None,
+            process in self.expected_alive and process.poll() is None,
             "Owned data worker exited before SIGKILL",
         )
         group = os.getpgid(process.pid)
@@ -269,9 +261,9 @@ class DataProcessHarness(ProcessHarness):
         )
         self.expected_alive.remove(process)
         self.killed_at = time.monotonic()
-        signal_owned_group(process, signal.SIGKILL)
+        os.killpg(group, signal.SIGKILL)
         require(
-            wait_owned_group(process, timeout=self.remaining(5)) == -signal.SIGKILL,
+            process.wait(timeout=self.remaining(5)) == -signal.SIGKILL,
             "Data worker was not killed with SIGKILL",
         )
         # The exact group received SIGKILL and its leader is reaped. Do not retain

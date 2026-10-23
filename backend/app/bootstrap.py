@@ -8,7 +8,6 @@ import argparse
 import hashlib
 import json
 import os
-import shutil
 from datetime import date, timedelta
 from pathlib import Path
 from uuid import uuid4
@@ -16,6 +15,11 @@ from uuid import uuid4
 from pydantic import EmailStr, TypeAdapter
 from sqlalchemy import select
 
+from backend.app.core.atomic_storage import (
+    provision_directory,
+    publish_bytes,
+    sync_tree,
+)
 from backend.app.core.config import get_settings
 from backend.app.core.db import create_db_engine, session_factory
 from backend.app.core.security import get_password_hash
@@ -30,6 +34,9 @@ FIXTURES = ROOT / "tests" / "baseline" / "fixtures"
 def seed_fixtures(
     session, user: User, storage_root: Path, source_root: Path = FIXTURES
 ):
+    # Installation owns this boundary and its ancestry. Never infer an existing
+    # ancestor or silently create the storage root during bootstrap.
+    provision_directory(storage_root, durable_parent=storage_root)
     source_manifest = json.loads((source_root / "manifest.json").read_text())
     datasets = []
     for market in ("CN", "US"):
@@ -59,27 +66,44 @@ def seed_fixtures(
             )
         )
         if existing:
+            # An immutable DB identity is not evidence that its backup/restored
+            # bytes still exist or match. Fail rather than repair it in place.
+            read_verified(
+                storage_root,
+                f"{existing.storage_key}/manifest.json",
+                content_hash,
+                len(canonical),
+            )
+            for name, (_, digest) in files.items():
+                read_verified(
+                    storage_root, f"{existing.storage_key}/{name}", digest, 10_000_000
+                )
+            # Legacy bootstrap versions did not flush their published trees.
+            # After verifying all promised bytes, establish that same durability
+            # contract without replacing or repairing any immutable file.
+            existing_root = safe_path(storage_root, existing.storage_key)
+            provision_directory(existing_root, durable_parent=storage_root)
+            sync_tree(existing_root)
             datasets.append(existing)
             continue
         dataset_id = uuid4()
         key = f"datasets/{user.id}/{dataset_id}"
         target = safe_path(storage_root, key)
-        staging = target.with_name(target.name + ".staging")
-        staging.mkdir(parents=True, mode=0o700)
-        try:
-            for name, (source, digest) in files.items():
-                content = read_verified(source_root, source, digest, 10_000_000)
-                destination = staging / name
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                destination.write_bytes(content)
-                destination.chmod(0o444)
-            (staging / "manifest.json").write_bytes(canonical)
-            (staging / "manifest.json").chmod(0o444)
-            # Rename publishes the complete directory. DB reference commits afterward.
-            staging.rename(target)
-        except Exception:
-            shutil.rmtree(staging, ignore_errors=True)
-            raise
+        for name, (source, digest) in files.items():
+            content = read_verified(source_root, source, digest, 10_000_000)
+            publish_bytes(
+                target / name, content, sha256=digest, durable_root=storage_root
+            )
+        # Publish the manifest last, and add a DB reference only after every
+        # immutable file and all entries below the durable root have flushed.
+        # Failure can leave unreferenced complete files, never a partial final
+        # file or a committed dataset. Do not overwrite or delete an orphan.
+        publish_bytes(
+            target / "manifest.json",
+            canonical,
+            sha256=content_hash,
+            durable_root=storage_root,
+        )
         dataset = DatasetVersion(
             id=dataset_id,
             owner_id=user.id,

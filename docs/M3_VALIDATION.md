@@ -97,3 +97,15 @@ historical-membership equivalence. Unsupported corporate-action/price semantics
 remain fail-closed. Native arbitrary strategies may inspect staged prior/current
 window data; this is not point-in-time execution enforcement. M5's separate
 portable ledger and M4's research UI are not included in this M3 milestone.
+
+## Hosted exact-head acceptance
+
+The complete deterministic M3 gate passed at head
+`5f9125caa47107824f75094dcec08b799a829b8f`, tree
+`510cede360c36a0746542fb45fa29c993eb5f80c`, in
+[run 39870319437](https://github.com/idkwhodatis/TradeGrad/actions/runs/39870319437).
+This includes the original four-task engine baseline, configured warm-up bridge,
+actual upstream TradeTGD with frozen responses, PostgreSQL/Procrastinate, Docker
+isolation, worker recovery, configured optimization through the real application,
+and Chromium. It does not validate live upstream market data or live model calls.
+Earlier local-only counts above remain historical evidence, not the hosted total.

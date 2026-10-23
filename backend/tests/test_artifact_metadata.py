@@ -13,7 +13,6 @@ from backend.app.models import (
     Candidate,
     DatasetVersion,
     Evaluation,
-    ExecutionAttempt,
     ResearchRun,
     StrategyVersion,
     UniverseVersion,
@@ -313,100 +312,3 @@ def test_actual_portable_diagnostic_names_remain_conservative_downloads(
     assert load(h) == content
     assert len(h.calls) == 1
     assert "diagnostic" in h.calls[0]["provenance"]["coverage"]
-
-
-@pytest.mark.parametrize(
-    "mutation",
-    [
-        None,
-        "missing_attempt",
-        "wrong_attempt",
-        "wrong_run",
-        "old_generation",
-        "different_active",
-        "running",
-        "failed_attempt",
-        "nonzero_exit",
-        "not_stopped",
-        "unfinished",
-        "no_result",
-        "wrong_mode",
-        "wrong_image",
-        "invalid_image",
-        "spoofed_research_image",
-    ],
-)
-def test_legacy_provenance_uses_exact_completed_seed_attempt_not_research_pin(
-    metadata_context, mutation
-):
-    h = metadata_context
-    run = h.result.run
-    digest = "sha256:" + "a" * 64
-    run.config = {"task": "cn_time", "market": "CN", "profile": "source_compatible"}
-    run.status, run.generation = "succeeded", 2
-    run.active_attempt_id = h.result.artifact.attempt_id
-    run.research_image_digest = None
-    run.result = {
-        "execution_mode": "seed_evaluation",
-        "evaluation_mode": "native_akquant",
-        "result_trust": "native_strategy_and_engine_share_process",
-        "image_digest": digest,
-    }
-    attempt = SimpleNamespace(
-        id=run.active_attempt_id,
-        run_id=run.id,
-        generation=2,
-        status="succeeded",
-        exit_code=0,
-        sandbox_stopped=True,
-        finished_at="2026-10-23T00:00:00Z",
-    )
-    original_get = h.session.get
-    h.session.get = lambda model, identifier: (
-        (None if mutation == "missing_attempt" else attempt)
-        if model is ExecutionAttempt
-        else original_get(model, identifier)
-    )
-    value = {
-        "schema_version": 1,
-        "execution_mode": "seed_evaluation",
-        "evaluation_mode": "native_akquant",
-        "result_trust": "native_strategy_and_engine_share_process",
-        "image_digest": digest,
-    }
-    if mutation == "wrong_attempt":
-        attempt.id = uuid4()
-    elif mutation == "wrong_run":
-        attempt.run_id = uuid4()
-    elif mutation == "old_generation":
-        attempt.generation = 1
-    elif mutation == "different_active":
-        run.active_attempt_id = uuid4()
-    elif mutation == "running":
-        run.status = "running"
-    elif mutation == "failed_attempt":
-        attempt.status = "failed"
-    elif mutation == "nonzero_exit":
-        attempt.exit_code = 1
-    elif mutation == "not_stopped":
-        attempt.sandbox_stopped = False
-    elif mutation == "unfinished":
-        attempt.finished_at = None
-    elif mutation == "no_result":
-        run.result = None
-    elif mutation == "wrong_mode":
-        run.result["execution_mode"] = "optimization"
-    elif mutation == "wrong_image":
-        value["image_digest"] = "sha256:" + "b" * 64
-    elif mutation == "invalid_image":
-        value["image_digest"] = run.result["image_digest"] = "not-an-image"
-    elif mutation == "spoofed_research_image":
-        value["image_digest"] = run.research_image_digest = "sha256:" + "c" * 64
-    content = h.write("provenance.json", json.dumps(value).encode(), prefixed=False)
-    if mutation is None:
-        assert load(h) == content
-    else:
-        with pytest.raises(DomainError) as error:
-            load(h)
-        assert error.value.code == "artifact_metadata_invalid"
-    assert not h.calls

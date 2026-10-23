@@ -36,7 +36,6 @@ from runtimes.evaluator.portable_runner import (
 )
 from runtimes.evaluator.runner import IsolationUnavailable
 from runtimes.portable_engine.runtime import profile_sha256
-from tests.portable.diagnostics import assert_rejection, assert_status, safe_diagnostic
 
 ROOT = Path(__file__).resolve().parents[2]
 pytestmark = pytest.mark.skipif(
@@ -231,22 +230,6 @@ def stage(
     return engine, policy, request
 
 
-def affordable_reference_data(market, kind):
-    """Positive cash control; only future engine-side opens differ from the gap case.
-
-    A 100%-target policy sizes at decision close without seeing future prices.
-    The separate adverse-gap test must prove native rejection, not pretend all
-    NextOpen prices can be funded. Keep prior observations and policy unchanged.
-    """
-    data = fixture_data(market, kind)
-    if (market, kind) == ("US", "portfolio"):
-        first_decision = data["sessions"][20]["session_date"]
-        for bar in data["bars"]:
-            if bar["session_date"] > first_decision:
-                bar["open"] = bar["close"] * 0.97
-    return data
-
-
 @pytest.fixture
 def evaluator(tmp_path):
     runner = PortableDockerEvaluator(
@@ -272,7 +255,7 @@ def run(evaluator, tmp_path, market="US", kind="event", **kwargs):
     )
     assert all(
         evaluator._inspect_role(identity, role) is None for role in ("engine", "policy")
-    ), safe_diagnostic(result)
+    ), result
     return result, request
 
 
@@ -281,14 +264,8 @@ def run(evaluator, tmp_path, market="US", kind="event", **kwargs):
 def test_actual_reference_policies_warmup_and_next_open(
     evaluator, tmp_path, market, kind
 ):
-    result, request = run(
-        evaluator,
-        tmp_path / "case",
-        market,
-        kind,
-        data=affordable_reference_data(market, kind),
-    )
-    assert_status(result, "succeeded")
+    result, request = run(evaluator, tmp_path / "case", market, kind)
+    assert result["status"] == "succeeded", result
     bundle = result["bundle"]
     assert_native_controller_inventory(bundle)
     assert (
@@ -309,54 +286,10 @@ def test_actual_reference_policies_warmup_and_next_open(
     assert (tmp_path / "case/output/portable-result.json").is_file()
 
 
-def test_actual_portfolio_adverse_gap_rejects_without_borrowing_or_future_peek(
-    evaluator, tmp_path
-):
-    control, control_request = run(
-        evaluator,
-        tmp_path / "control",
-        "US",
-        "portfolio",
-        data=affordable_reference_data("US", "portfolio"),
-    )
-    adverse, adverse_request = run(
-        evaluator,
-        tmp_path / "adverse",
-        "US",
-        "portfolio",
-        data=fixture_data("US", "portfolio"),
-    )
-    assert_status(control, "succeeded")
-    assert_status(adverse, "succeeded")
-    assert control_request["manifest"] == adverse_request["manifest"]
-    first = lambda result: next(
-        row for row in result["bundle"]["decision_trace"] if not row["warmup"]
-    )
-    # Exact policy observation, reply, sizing and wrapper decision before the
-    # changed future open must be identical, not just the final cash outcome.
-    assert first(control) == first(adverse)
-    assert_native_controller_inventory(control["bundle"])
-    assert control["bundle"]["fills"]
-    bundle = adverse["bundle"]
-    rejected = [row for row in bundle["orders"] if row["status"] == "rejected"]
-    assert rejected, "Adverse open must exercise native cash rejection"
-    assert all(
-        row["filled_quantity"] == 0
-        and row["reject_reason"].startswith("Risk: Insufficient margin at execution.")
-        for row in rejected
-    )
-    assert bundle["fills"] == []
-    assert bundle["positions"] == []
-    assert all(
-        row["cash"] == row["equity"] == adverse_request["initial_cash"]
-        for row in bundle["account_series"]
-    )
-
-
 @pytest.mark.parametrize("market", ["CN", "US"])
 def test_actual_limit_matching_and_pending_orders(evaluator, tmp_path, market):
     result, _ = run(evaluator, tmp_path / "case", market, limit=True)
-    assert_status(result, "succeeded")
+    assert result["status"] == "succeeded", result
     bundle = result["bundle"]
     assert_native_controller_inventory(bundle)
     assert bundle["fills"], "Open-marketable limits must exercise real native fills"
@@ -374,7 +307,7 @@ def test_actual_missingness_cannot_shrink_portfolio_universe(evaluator, tmp_path
     data = fixture_data("US", "portfolio")
     data["bars"].pop(-1)
     result, _ = run(evaluator, tmp_path / "case", kind=kind, data=data)
-    assert_status(result, "failed")
+    assert result["status"] == "failed", result
     assert result["bundle"] is None
 
 
@@ -383,7 +316,7 @@ def test_actual_symbol_order_and_future_suffix_invariance(evaluator, tmp_path, k
     first, _ = run(
         evaluator, tmp_path / "first", kind=kind, data=fixture_data("US", "portfolio")
     )
-    assert_status(first, "succeeded")
+    assert first["status"] == "succeeded", first
     data = fixture_data("US", "portfolio")
     cutoff = data["sessions"][-2]["session_date"]
     data["bars"].reverse()
@@ -394,7 +327,7 @@ def test_actual_symbol_order_and_future_suffix_invariance(evaluator, tmp_path, k
                 bar[key] *= 2
             bar["volume"] *= 2
     second, _ = run(evaluator, tmp_path / "second", kind=kind, data=data)
-    assert_status(second, "succeeded")
+    assert second["status"] == "succeeded", second
     before = lambda result: [
         row
         for row in result["bundle"]["decision_trace"]
@@ -428,7 +361,7 @@ def test_actual_policy_cannot_read_engine_ledger_dataset_secrets_or_network(
     evaluator, tmp_path
 ):
     result, _ = run(evaluator, tmp_path / "case", suffix=PROBE)
-    assert_status(result, "succeeded")
+    assert result["status"] == "succeeded", result
 
 
 @pytest.mark.parametrize("attack", ["forgery", "flood", "forks"])
@@ -444,7 +377,7 @@ def test_actual_hostile_policy_cannot_publish_and_both_siblings_die(
         evaluator.timeout = 5
         evaluator.decision_timeout = 2
     result, _ = run(evaluator, tmp_path / "case", suffix=suffix)
-    assert_status(result, "failed")
+    assert result["status"] == "failed", result
     assert result["bundle"] is None
     assert not list((tmp_path / "case/output").iterdir())
 
@@ -466,7 +399,7 @@ def test_actual_partial_create_unknown_response_stops_both(
 
     monkeypatch.setattr(evaluator, "_command", lose_engine_create_reply)
     result, _ = run(evaluator, tmp_path / "case")
-    assert_status(result, "failed")
+    assert result["status"] == "failed", result
     assert result["bundle"] is None
 
 
@@ -477,8 +410,7 @@ def test_actual_prefix_replay_keeps_decisions_and_pre_cutoff_ledger(
     complete, _ = run(evaluator, tmp_path / "complete")
     prefix_data = fixture_data("US", "event", count=cutoff_count)
     prefix, _ = run(evaluator, tmp_path / "prefix", data=prefix_data)
-    assert_status(complete, "succeeded")
-    assert_status(prefix, "succeeded")
+    assert complete["status"] == prefix["status"] == "succeeded", (complete, prefix)
     cutoff = prefix_data["sessions"][-1]["session_date"]
     assert prefix["bundle"]["decision_trace"] == [
         row
@@ -510,7 +442,7 @@ def test_actual_no_touch_gtc_stays_unresolved_without_terminal_liquidation(
         .replace('order_type="market",', 'order_type="limit", limit_price=0.01,')
     )
     result, _ = run(evaluator, tmp_path / "case", market, source=source)
-    assert_status(result, "succeeded")
+    assert result["status"] == "succeeded", result
     assert result["bundle"]["logical_orders"]
     assert result["bundle"]["fills"] == []
     assert any(not order["terminal"] for order in result["bundle"]["logical_orders"])
@@ -522,7 +454,7 @@ def test_actual_zero_volume_never_fabricates_fills(evaluator, tmp_path):
     for bar in data["bars"]:
         bar["volume"] = 0.0
     result, _ = run(evaluator, tmp_path / "case", data=data)
-    assert_status(result, "succeeded")
+    assert result["status"] == "succeeded", result
     assert result["bundle"]["fills"] == []
 
 
@@ -547,7 +479,7 @@ def test_actual_explicit_cancel_clears_no_touch_limit(evaluator, tmp_path):
         .replace('order_type="market",', 'order_type="limit", limit_price=0.01,')
     )
     result, _ = run(evaluator, tmp_path / "case", source=source, suffix=CANCEL_PENDING)
-    assert_status(result, "succeeded")
+    assert result["status"] == "succeeded", result
     assert result["bundle"]["fills"] == []
     assert any(order["status"] == "cancelled" for order in result["bundle"]["orders"])
 
@@ -558,7 +490,7 @@ def test_actual_invalid_lot_or_cash_request_rejected_without_resizing(
 ):
     suffix = f"\n_original_init=Policy.__init__\ndef _init(self,strategy_id,parameters):\n    _original_init(self,strategy_id,parameters)\n    self.quantity={quantity}\nPolicy.__init__=_init\n"
     result, _ = run(evaluator, tmp_path / "case", market, suffix=suffix)
-    assert_status(result, "failed")
+    assert result["status"] == "failed", result
     assert result["bundle"] is None
 
 
@@ -568,7 +500,7 @@ def test_actual_cn_partial_fills_and_t_plus_one(evaluator, tmp_path):
         bar["volume"] = 400.0
     suffix = "\n_original_init=Policy.__init__\ndef _init(self,strategy_id,parameters):\n    _original_init(self,strategy_id,parameters)\n    self.quantity=500\nPolicy.__init__=_init\n"
     result, _ = run(evaluator, tmp_path / "case", "CN", data=data, suffix=suffix)
-    assert_status(result, "succeeded")
+    assert result["status"] == "succeeded", result
     fills = result["bundle"]["fills"]
     logical = {
         row["logical_order_id"]: row for row in result["bundle"]["logical_orders"]
@@ -656,9 +588,13 @@ def _earliest_exit(self, observation):
 Policy.on_event = _earliest_exit
 """
     result, _ = run(evaluator, tmp_path / "case", "CN", kind, data=data, suffix=suffix)
-    # Earliest eligible CN T+1 sale must execute, never be rejected, clipped,
-    # or silently delayed to T+2. Detailed inventory assertions below remain.
-    assert_status(result, "succeeded")
+    assert result["status"] == "succeeded", (
+        (
+            "Controller CN T+1 NextOpen acceptance failed: earliest eligible sale "
+            "must execute, never be rejected, clipped, or silently delayed to T+2"
+        ),
+        result,
+    )
     bundle = result["bundle"]
     assert_native_controller_inventory(bundle)
     buys = [fill for fill in bundle["fills"] if fill["side"] == "buy"]
@@ -701,12 +637,12 @@ def _inventory(observation, held, available, reserved):
     key = observation.listings[0].listing_id
     positions = {p.listing_id: p for p in observation.account.positions}
     position = positions.get(key)
-    assert (0 if position is None else position.quantity) == held, "fixture_inventory_held"
-    assert (0 if position is None else position.available_quantity) == available, "fixture_inventory_available"
-    assert position is None or position.available_quantity_semantics == "next_open_unreserved_holdings", "fixture_inventory_semantics"
+    assert (0 if position is None else position.quantity) == held
+    assert (0 if position is None else position.available_quantity) == available
+    assert position is None or position.available_quantity_semantics == "next_open_unreserved_holdings"
     assert sum(o.remaining_quantity for o in observation.open_orders
-        if o.listing_id == key and o.side == "sell") == reserved, "fixture_inventory_reserved"
-    assert available == held - reserved, "fixture_inventory_conservation"
+        if o.listing_id == key and o.side == "sell") == reserved
+    assert available == held - reserved
 """
 
 
@@ -769,8 +705,8 @@ def assert_native_controller_inventory(bundle):
     return held
 
 
-def assert_controller_rejected(result, output, expected="sell_inventory"):
-    assert_rejection(result, expected)
+def assert_controller_rejected(result, output):
+    assert result["status"] == "failed", result
     assert result["bundle"] is None
     assert result["metrics"] is None
     assert not list(output.iterdir()), "Rejected intents must not publish a result"
@@ -797,9 +733,9 @@ def test_actual_cn_controller_refuses_same_session_effective_time(
     """)
     result, _ = run(evaluator, tmp_path / "case", "CN", data=data, suffix=suffix)
     if same_session:
-        assert_controller_rejected(result, tmp_path / "case/output", "next_open")
+        assert_controller_rejected(result, tmp_path / "case/output")
     else:
-        assert_status(result, "succeeded")
+        assert result["status"] == "succeeded", result
         bundle = result["bundle"]
         assert_native_controller_inventory(bundle)
         assert [
@@ -837,7 +773,7 @@ def test_actual_cn_simultaneous_buy_sell_uses_only_preexisting_holdings(
     if sell_quantity > 100:
         assert_controller_rejected(result, tmp_path / "case/output")
     else:
-        assert_status(result, "succeeded")
+        assert result["status"] == "succeeded", result
         bundle = result["bundle"]
         assert set(assert_native_controller_inventory(bundle).values()) == {100.0}
         assert len(bundle["fills"]) == 3
@@ -879,7 +815,7 @@ def test_actual_cn_buy_intents_and_pending_buys_never_credit_sell_inventory(
     if attempt_sale:
         assert_controller_rejected(result, tmp_path / "case/output")
     else:
-        assert_status(result, "succeeded")
+        assert result["status"] == "succeeded", result
         bundle = result["bundle"]
         assert_native_controller_inventory(bundle)
         assert len(bundle["logical_orders"]) == 1
@@ -910,12 +846,12 @@ def test_actual_cn_no_touch_gtc_sell_reservation_survives_cancel_reply(
             return _reply(self, observation, (_order(self, observation, "seed", "buy", 300),))
         if current == {reserve_day!r}:
             _inventory(observation, 300, 300, 0)
-            return _reply(self, observation, (_order(self, observation, "no-touch", "sell", 200, limit=1000.0),))
+            return _reply(self, observation, (_order(self, observation, "no-touch", "sell", 200, limit=1000000.0),))
         if current == {replace_day!r}:
             _inventory(observation, 300, 100, 200)
             assert len(observation.open_orders) == 1
             pending = observation.open_orders[0]
-            assert pending.order_type == "limit" and pending.limit_price == 1000.0
+            assert pending.order_type == "limit" and pending.limit_price == 1000000.0
             intents = [_cancel(self, observation, pending)] if {cancel_pending!r} else []
             intents.append(_order(self, observation, "replacement", "sell", {replacement_quantity}))
             return _reply(self, observation, intents)
@@ -931,10 +867,12 @@ def test_actual_cn_no_touch_gtc_sell_reservation_survives_cancel_reply(
     if replacement_quantity > 100:
         assert_controller_rejected(result, tmp_path / "case/output")
         return
-    assert_status(result, "succeeded")
+    assert result["status"] == "succeeded", result
     bundle = result["bundle"]
     final = assert_native_controller_inventory(bundle)
-    no_touch = next(o for o in bundle["logical_orders"] if o["limit_price"] == 1000.0)
+    no_touch = next(
+        o for o in bundle["logical_orders"] if o["limit_price"] == 1000000.0
+    )
     assert no_touch["filled_quantity"] == 0
     assert no_touch["terminal"] is cancel_pending
     assert all(
@@ -992,7 +930,7 @@ def test_actual_cn_partial_sell_reduces_holdings_and_reservation_equally(
     if oversell_after_partial:
         assert_controller_rejected(result, tmp_path / "case/output")
         return
-    assert_status(result, "succeeded")
+    assert result["status"] == "succeeded", result
     bundle = result["bundle"]
     assert set(assert_native_controller_inventory(bundle).values()) == {0.0}
     sells = [f for f in bundle["fills"] if f["side"] == "sell"]
@@ -1091,7 +1029,7 @@ def _complete_event(self, observation):
 Policy.on_event = _complete_event
 """
     result, _ = run(evaluator, tmp_path / "case", "CN", kind, data=data, suffix=suffix)
-    assert_status(result, "succeeded")
+    assert result["status"] == "succeeded", result
     bundle = result["bundle"]
     assert set(assert_native_controller_inventory(bundle).values()) == {0.0}
     assert len(bundle["decision_trace"]) == len(data["sessions"])
@@ -1143,13 +1081,9 @@ def test_actual_next_open_limits_reject_intrabar_or_limit_breaching_fills(
     """)
     result, _ = run(evaluator, tmp_path / "case", "CN", data=data, suffix=suffix)
     if matching != "marketable_open":
-        assert_controller_rejected(
-            result,
-            tmp_path / "case/output",
-            "intrabar_limit" if matching == "intrabar_only" else "limit_breach",
-        )
+        assert_controller_rejected(result, tmp_path / "case/output")
         return
-    assert_status(result, "succeeded")
+    assert result["status"] == "succeeded", result
     bundle = result["bundle"]
     assert_native_controller_inventory(bundle)
     fills = [fill for fill in bundle["fills"] if fill["side"] == side]

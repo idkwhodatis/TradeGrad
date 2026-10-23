@@ -6,7 +6,7 @@ This branch implements the research workbench described in the supplied 2026-10-
 
 The existing upstream research baseline is `baf73ee56353de8996731139f6721b62f4b26da7`. The original source has no root license at this revision. This branch does not invent a license or imply redistribution permission. Public product distribution requires resolving upstream licensing independently.
 
-The application skeleton will adapt the MIT-licensed FastAPI full-stack template, pinned to `b1125d8839482cb7bbae603ddc6d0081bf87532e`. The API runtime and evaluation runtime are pinned separately rather than forcing quant dependencies onto the template's newest Python runtime.
+The application adapts the MIT-licensed FastAPI full-stack template, pinned to `b1125d8839482cb7bbae603ddc6d0081bf87532e`. The API runtime and evaluation runtime are pinned separately rather than forcing quant dependencies onto the template's newest Python runtime.
 
 ## Sequential acceptance gates
 
@@ -32,24 +32,34 @@ M0 and M1 passed their hosted gates on exact head
 This includes the actual four-task engine, PostgreSQL/Procrastinate, Docker
 isolation, two-worker SIGKILL/recovery and nine real Chromium scenarios.
 Downloaded outcome artifacts were hash-verified. See
-[staged evidence](M1_VALIDATION.md) and [development operations](M1_OPERATIONS.md).
+[staged evidence](M1_VALIDATION.md) and [current operations](V1_OPERATIONS.md).
 
 M2 data integration passed its deterministic hosted gate on `0f6e8359` in
 [run 39868584582](https://github.com/idkwhodatis/TradeGrad/actions/runs/39868584582). See
 [M2 acceptance and limitations](M2_VALIDATION.md), including the transitional
 cold-start seed behavior and still-incomplete short-optimization slice.
-M3's available local gate passed 518 tests, including actual unchanged upstream
-TradeTGD and native AKQuant component integrations; its new PostgreSQL/Docker
-application and browser acceptance remains pending. See [M3 evidence](M3_VALIDATION.md)
-and the [separate research runtime](../runtimes/research/README.md). The user's
-2026-10-22 local-first instruction permits further locally verifiable preparation
-while retaining, rather than silently passing, unavailable integration gates.
+M3 passed the complete deterministic hosted gate at
+`5f9125caa47107824f75094dcec08b799a829b8f` in
+[run 39870319437](https://github.com/idkwhodatis/TradeGrad/actions/runs/39870319437).
+This includes actual upstream TradeTGD, configured native warm-up, real
+PostgreSQL/Docker optimization, recovery and Chromium. See [M3 evidence](M3_VALIDATION.md)
+and the [separate research runtime](../runtimes/research/README.md). The earlier
+local-first permission allowed preparation, not silently passing unavailable gates.
 M4's available local gate passed 780 tests, including real native-result-to-query
 component checks and 184 frontend contracts. Its complete browser/queue/database
-acceptance remains deferred. See [M4 evidence](M4_VALIDATION.md). M5 portable
+acceptance subsequently passed on exact repaired head
+`4dba3edc515a99345de806679f64091faddb8dd1` in
+[run 39875412249](https://github.com/idkwhodatis/TradeGrad/actions/runs/39875412249).
+See [M4 evidence](M4_VALIDATION.md). M5 portable
 research, frozen selection and separate final-evaluation workflows passed the
 available local gate and scoped review; real paired-container/application/browser acceptance
-remains pending. See [M5 boundaries and gates](M5_VALIDATION.md). M6 has not started.
+remains pending. See [M5 boundaries and gates](M5_VALIDATION.md).
+M6 local preparation adds a private cold backup/empty-target restore and genuine
+M3-to-M5 migration drill, bootstrap durability/resource regressions, and bounded
+reference performance drivers. Its real restore/upgrade and measured workload
+acceptance has not run yet. See [operations](V1_OPERATIONS.md),
+[M6 evidence and remaining gates](M6_VALIDATION.md),
+[failure matrix](M6_FAILURE_MATRIX.md) and [restore profile](M6_BACKUP_RESTORE.md).
 Live provider verification is separate from deterministic
 synthetic SDK-response fixtures. An absent or pending report means the relevant
 phase has not passed.

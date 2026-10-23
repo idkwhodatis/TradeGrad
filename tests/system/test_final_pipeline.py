@@ -33,8 +33,6 @@ from packages.tradegrad_adapter.config import MarketConfig, RunConfig
 from packages.tradegrad_adapter.final_config import FinalEvaluationConfig
 from packages.tradegrad_adapter.results import validate_result_bundle
 from packages.tradegrad_adapter.strategy_package import validate_environment_evidence
-from script.ci_owned_group import peek_owned_group, signal_owned_group, wait_owned_group
-from script.ci_research_selection import selected_candidate
 
 GATE_SECONDS = 420
 
@@ -119,14 +117,14 @@ class FinalProcessHarness(ResearchProcessHarness):
                 any(item is process for _, item in self.processes),
                 "Worker is not owned",
             )
-            require(peek_owned_group(process) is None, "Owned worker already exited")
+            require(process.poll() is None, "Owned worker already exited")
             require(
                 os.getpgid(process.pid) == process.pid != os.getpgrp(),
                 "Worker group is not exclusive",
             )
             self.expected_alive.discard(process)
-            signal_owned_group(process, signal.SIGTERM)
-            wait_owned_group(process, timeout=self.remaining(10))
+            os.killpg(process.pid, signal.SIGTERM)
+            process.wait(timeout=self.remaining(10))
         self.workers = []
 
 
@@ -173,9 +171,11 @@ def test_real_frozen_final_result_export_and_cancelled_retry(final_harness):
         all(row["split"] != "holdout" for row in before["evaluations"]),
         "Optimizer executed holdout",
     )
-    # The HTTP result identifies the persisted Candidate UUID; the optimizer's
-    # private key is a separate field and must agree, not be substituted.
-    chosen = selected_candidate(source, before["candidates"])
+    chosen = next(
+        row
+        for row in before["candidates"]
+        if row["candidate_key"] == source["result"]["best_candidate_id"]
+    )
     selected = h.request(
         client,
         "POST",

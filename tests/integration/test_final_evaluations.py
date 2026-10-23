@@ -450,27 +450,25 @@ def test_cancel_retains_exposure_retry_new_generation_and_exact_replay(
     migrated_engine, owner, settings, frozen_selection
 ):
     run = submit_final(migrated_engine, owner.user.id, settings, frozen_selection.id)
-    # Carry immutable scalar identity across transactions, not an expired ORM row.
-    run_id = run.id
     with Session(migrated_engine) as session:
-        request_cancel(session, run_id, owner.user.id)
+        request_cancel(session, run.id, owner.user.id)
         session.commit()
     with Session(migrated_engine) as session:
         run = retry_final_evaluation(
-            session, run_id, owner.user.id, settings, idempotency_key="retry-once"
+            session, run.id, owner.user.id, settings, idempotency_key="retry-once"
         )
         assert run.generation == 2
         session.commit()
-        request_cancel(session, run_id, owner.user.id)
+        request_cancel(session, run.id, owner.user.id)
         session.commit()
     with Session(migrated_engine) as session:
         replay = retry_final_evaluation(
-            session, run_id, owner.user.id, settings, idempotency_key="retry-once"
+            session, run.id, owner.user.id, settings, idempotency_key="retry-once"
         )
         assert replay.generation == 2 and replay.status == "cancelled"
         session.commit()
         rows = session.scalars(
-            select(DataUsageExposure).where(DataUsageExposure.run_id == run_id)
+            select(DataUsageExposure).where(DataUsageExposure.run_id == run.id)
         ).all()
         assert len(rows) == 2
         assert sorted(
