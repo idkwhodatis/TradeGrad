@@ -62,7 +62,10 @@ def test_real_recorded_indicators_reconstruct_from_artifact_after_worker_complet
         "dataset": {"id": dataset["id"], "sha256": dataset["content_sha256"]},
         "seed_strategy": {"id": strategy["id"], "sha256": strategy["content_sha256"]},
         "universe": {"id": universe["id"], "sha256": universe["content_sha256"]},
-        "windows": {"train": {"start": "2024-02-01", "end": "2024-04-20"}},
+        "windows": {
+            "train": {"start": "2024-02-01", "end": "2024-03-15"},
+            "validation": {"start": "2024-03-15", "end": "2024-04-20"},
+        },
         "warmup": {"sessions": 20},
         "market_profile": MarketConfig.for_market("CN").model_dump(mode="json"),
         "optimizer": {"max_iterations": 0},
@@ -86,7 +89,13 @@ def test_real_recorded_indicators_reconstruct_from_artifact_after_worker_complet
     evaluations = h.request(
         client, "GET", f"/research-runs/{run['id']}/evaluations"
     ).json()["data"]
-    evaluation = evaluations[0]
+    assert len(evaluations) == 2
+    assert {item["split"] for item in evaluations} == {"train", "validation"}
+    assert all(
+        item["status"] == "succeeded" and item["sandbox_stopped"]
+        for item in evaluations
+    )
+    [evaluation] = [item for item in evaluations if item["split"] == "validation"]
     assert evaluation["status"] == "succeeded" and evaluation["sandbox_stopped"]
     base = f"/research-evaluations/{evaluation['id']}"
     raw = h.request(client, "GET", base + "/results/download").content
