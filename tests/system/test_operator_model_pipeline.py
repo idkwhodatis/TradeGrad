@@ -15,13 +15,17 @@ import json
 import os
 import secrets
 import select
+import shutil
 import signal
+import subprocess
+import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from operator_browser_launcher import browser_environment
 from synthetic_model_server import (
     Reply,
     SyntheticModelServer,
@@ -221,6 +225,7 @@ class OperatorModelHarness(ResearchProcessHarness):
         self.server = server
         self.profile_timeout = profile_timeout
         self.account_emails = []
+        self.browser_accounts = []
         # Disallow an inherited deployment registry or key from changing this gate.
         self.env.update(
             MODEL_PROFILES_ENABLED="true",
@@ -231,7 +236,11 @@ class OperatorModelHarness(ResearchProcessHarness):
 
     def spawn(self, label, arguments, *, persistent=True, extra_env=None):
         if label == "bootstrap":
-            self.account_emails.append(arguments[arguments.index("--email") + 1])
+            email = arguments[arguments.index("--email") + 1]
+            self.account_emails.append(email)
+            self.browser_accounts.append(
+                (email, (extra_env or {})["PROCESS_TEST_PASSWORD"])
+            )
         if label == "api":
             with self.connection(private=True) as connection:
                 owner = connection.execute(
@@ -847,3 +856,89 @@ def test_stale_living_worker_blocks_recovery_until_confirmed_sdk_stop_receipt(
         "Unfenced cleanup did not publish the exact admitted call's stop receipt",
     )
     h.inspect_privacy(run_id)
+
+
+@pytest.mark.skipif(
+    os.getenv("TRADEGRAD_REQUIRE_MODEL_BROWSER") != "1",
+    reason="Configured-profile Chromium launcher requires its separate hosted opt-in",
+)
+def test_real_chromium_synthetic_profile_seed_only_without_model_calls(model_harness):
+    h = model_harness
+    # This one case has a separate finite browser/setup budget; the original 17
+    # SDK/application cases retain their unchanged 240-second harness bounds.
+    h.deadline = time.monotonic() + 390
+    require(len(h.browser_accounts) == 2, "Generated browser accounts are unavailable")
+    node = shutil.which("node", path=os.environ.get("PATH", ""))
+    require(node is not None, "The installed Node runtime is required")
+    require(
+        (ROOT / "frontend/node_modules/playwright/cli.js").is_file(),
+        "The locked installed Playwright CLI is required",
+    )
+    for role in ("dispatcher", "worker"):
+        h.spawn(f"browser-data-{role}", ["-m", "workers.data", role])
+    require(h.base_url.endswith("/api/v1"), "Owned API origin is malformed")
+    origin = h.base_url.removesuffix("/api/v1")
+    source = {
+        **{key: os.environ[key] for key in ("PATH", "HOME") if key in os.environ},
+        "CI": "true",
+        "E2E_EMAIL": h.browser_accounts[0][0],
+        "E2E_PASSWORD": h.browser_accounts[0][1],
+        "E2E_OTHER_EMAIL": h.browser_accounts[1][0],
+        "E2E_OTHER_PASSWORD": h.browser_accounts[1][1],
+        "E2E_API_URL": origin,
+        "API_PROXY_TARGET": origin,
+        "E2E_MODEL_PROFILES": "1",
+        "E2E_MODEL_PROFILE_ID": "hosted-synthetic",
+    }
+    # The dedicated subreaper owns detached Chromium/Vite children. It performs
+    # normal Playwright teardown before exact-pidfd bounded cleanup. No DB URL,
+    # model registry/reference/key, proxy or Node injection setting is inherited.
+    process = subprocess.Popen(
+        [
+            sys.executable,
+            "-I",
+            str(ROOT / "tests/system/operator_browser_launcher.py"),
+            node,
+            str(ROOT),
+            str(os.getpid()),
+        ],
+        cwd=ROOT,
+        env={
+            **browser_environment(source),
+            "GITHUB_ACTIONS": "true",
+            "TRADEGRAD_REQUIRE_MODEL_INTEGRATION": "1",
+            "TRADEGRAD_REQUIRE_MODEL_BROWSER": "1",
+        },
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    h.processes.append(("owned-browser-supervisor", process))
+    try:
+        result = process.wait(timeout=h.remaining(355))
+    except subprocess.TimeoutExpired:
+        # Ask the supervisor to finish its own bounded descendant cleanup first.
+        # An outer hard timeout is failure, never browser-containment evidence.
+        process.terminate()
+        try:
+            process.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            pytest.fail(
+                "Owned browser supervision exceeded its cleanup bound", pytrace=False
+            )
+        pytest.fail(
+            "Owned browser acceptance exceeded its outer time bound", pytrace=False
+        )
+    finally:
+        if process.returncode is not None:
+            # Do not leave a reaped numeric group ID for later harness cleanup.
+            h.processes = [
+                (label, item) for label, item in h.processes if item is not process
+            ]
+    require(
+        result == 0, "Configured-profile Chromium case or owned-child cleanup failed"
+    )
+    require(
+        h.server.request_count == 0, "Seed-only browser case issued a model request"
+    )

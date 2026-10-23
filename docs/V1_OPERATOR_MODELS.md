@@ -164,11 +164,11 @@ exactly-once billing or external-provider cancellation is claimed.
 
 ### Local evidence and hosted commands
 
-The available local checks passed: 544 API/runner pure tests, 256 adapter pure
+The available local checks passed: 544 API/runner pure tests, 269 adapter pure
 tests, and 408 frontend unit tests. The adapter command excludes the four
 engine-executing result/window suites, and the runner command excludes the real
 research-result protocol suite. Formatting, typecheck, frontend production build,
-29-case Playwright discovery and collection of the 26 new hosted cases also
+29-case Playwright discovery and collection of the 27 new hosted cases also
 passed. These counts do not include executed hosted or browser acceptance.
 Independent read-only review checked the profile/secret/process/recovery boundary,
 old fixture serialization and generated-credential diagnostic hygiene.
@@ -202,3 +202,33 @@ E2E settings, and its own API/research process configuration containing only an
 owner-allowlisted synthetic profile. See `frontend/README.md` for its command and
 zero-model-call acceptance boundary. No production endpoint or credential is an
 input to any of these tests.
+
+The same system module also prepares one browser launcher case, enabled only by
+the additional step-scoped `TRADEGRAD_REQUIRE_MODEL_BROWSER=1`. With both flags
+set it collects 18 cases: the original 17 plus the real Chromium selector flow.
+Install the locked frontend dependencies and Chromium first. The launcher reuses
+its own `OperatorModelHarness` synthetic server, disposable database, generated
+accounts and API/research/data workers. Node receives only `PATH`, `HOME`, `CI`,
+the generated E2E account values, local API/proxy origins and fixed profile flags;
+never model keys, registry settings or database credentials. No surrounding
+fixture browser/benchmark process is reconfigured.
+
+A test-only Linux subreaper gives Playwright a 300-second global timeout, 15 seconds
+for ordinary completion, then up to 15 seconds of SIGINT teardown and 10 seconds
+of exact-pidfd descendant cleanup. Only ECHILD proves cleanup complete; detached
+Chromium/Vite children are adopted and reaped. The parent allows 355 seconds and
+a separate bounded cleanup request if that outer limit fails. A custom silent
+reporter requires exactly one passed, non-skipped case; raw child output is
+discarded. Success also requires zero synthetic HTTP model requests. Pure
+launcher tests validate environment shaping, command selection and mocked
+containment/deadline transitions, not actual detached-browser containment. That
+proof remains part of the unexecuted hosted case.
+
+After integration on top of the M6 preparation and M5 fixture repair, the
+available cumulative suites passed 1903 API/runner/portable tests (69 explicit
+skips), 1139 research/portable tests (one skip), and 408 frontend tests. These
+overlap and must not be summed. The 331 PostgreSQL/system cases and 29 Playwright
+cases were collected, not executed locally. All 36 workflow shell blocks parsed;
+model integration/browser flags remain scoped to their dedicated hosted step.
+The broad legacy baseline lint command still reports three pre-existing findings
+in baseline fixture scripts/tests; changed model Python files pass scoped Ruff.

@@ -253,6 +253,17 @@ jobs:
         run: |
           export API_PYTHON=$(command -v python)
           .venv-research/bin/python -m pytest tests/system/test_research_optimization.py -q --junitxml=m3-configured-application-junit.xml
+      - name: Verify synthetic operator SDK application and isolated profile browser
+        env:
+          # The harness owns a bounded loopback synthetic endpoint and generated
+          # test credentials. No production endpoint/key or paid call is enabled.
+          TRADEGRAD_REQUIRE_MODEL_INTEGRATION: "1"
+          TRADEGRAD_REQUIRE_MODEL_BROWSER: "1"
+          DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
+          RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
+        run: |
+          export API_PYTHON=$(command -v python)
+          .venv-research/bin/python -m pytest tests/system/test_operator_model_pipeline.py -q --junitxml=v1-operator-model-application-junit.xml
       - name: Verify frozen native final holdout without optimizer feedback
         env:
           TRADEGRAD_REQUIRE_FINAL_INTEGRATION: "1"
@@ -365,7 +376,7 @@ jobs:
         run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
       - name: Export outcome-only evidence without diagnostic payloads
         if: always()
-        run: python script/summarize_ci_junit.py m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml m3-research-contracts-junit.xml m3-window-engine-junit.xml m3-configured-application-junit.xml m5-portable-contracts-junit.xml m5-portable-calendar-junit.xml m5-portable-isolation-junit.xml m5-native-final-application-junit.xml m5-portable-application-junit.xml m5-portable-final-application-junit.xml m6-backup-upgrade-junit.xml frontend/test-results/junit.xml
+        run: python script/summarize_ci_junit.py m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml m3-research-contracts-junit.xml m3-window-engine-junit.xml m3-configured-application-junit.xml m5-portable-contracts-junit.xml m5-portable-calendar-junit.xml m5-portable-isolation-junit.xml m5-native-final-application-junit.xml m5-portable-application-junit.xml m5-portable-final-application-junit.xml m6-backup-upgrade-junit.xml v1-operator-model-application-junit.xml frontend/test-results/junit.xml
       - name: Preserve bounded test evidence (no traces, credentials or source data)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
