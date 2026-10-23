@@ -1,8 +1,9 @@
 """Hosted-only, bounded owner of the Playwright tree, including detached children.
 
 This stdlib-only subprocess is a Linux subreaper. It never receives database or
-model credentials. Node receives only the explicit generated E2E login material
-and public local origins. All child output is discarded, not stored as evidence.
+model credentials. Node receives only the explicit generated E2E login material,
+public local origins and an owned private report path. Child output is discarded;
+only allowlisted source coordinates are projected before private report cleanup.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ ENV_KEYS = (
     "API_PROXY_TARGET",
     "E2E_MODEL_PROFILES",
     "E2E_MODEL_PROFILE_ID",
+    "PLAYWRIGHT_JUNIT_OUTPUT_FILE",
 )
 
 
@@ -63,7 +65,9 @@ def browser_command(node, root, mode="native_akquant"):
         "--workers=1",
         "--retries=0",
         "--forbid-only",
-        "--reporter=" + str(Path(root) / "tests/system/operator_profile_reporter.cjs"),
+        "--reporter="
+        + str(Path(root) / "tests/system/operator_profile_reporter.cjs")
+        + ",junit",
         f"--global-timeout={BROWSER_SECONDS * 1000}",
     ]
 

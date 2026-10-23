@@ -53,6 +53,7 @@ from packages.tradegrad_adapter.config import (
     evaluation_windows,
 )
 from packages.tradegrad_adapter.model_calls import OptimizerStop, RecordedModel
+from script.ci_browser_diagnostics import failure_diagnostic, private_browser_report
 from script.ci_owned_group import (
     admit_owned_group,
     peek_owned_group,
@@ -876,6 +877,11 @@ def test_real_chromium_synthetic_profile_seed_only_without_model_calls(model_har
 
 def run_synthetic_profile_browser(h, *, mode="native_akquant"):
     """Same generated owner/API/server, secret filter and bounded subreaper in both modes."""
+    with private_browser_report(h.root) as report:
+        _run_synthetic_profile_browser(h, mode=mode, report=report)
+
+
+def _run_synthetic_profile_browser(h, *, mode, report):
     # This one case has a separate finite browser/setup budget; the original 17
     # SDK/application cases retain their unchanged 240-second harness bounds.
     h.deadline = time.monotonic() + 390
@@ -907,6 +913,7 @@ def run_synthetic_profile_browser(h, *, mode="native_akquant"):
         "API_PROXY_TARGET": origin,
         "E2E_MODEL_PROFILES": "1",
         "E2E_MODEL_PROFILE_ID": "hosted-synthetic",
+        "PLAYWRIGHT_JUNIT_OUTPUT_FILE": str(report),
     }
     # The dedicated subreaper owns detached Chromium/Vite children. It performs
     # normal Playwright teardown before exact-pidfd bounded cleanup. No DB URL,
@@ -956,6 +963,10 @@ def run_synthetic_profile_browser(h, *, mode="native_akquant"):
             "Owned browser acceptance exceeded its outer time bound", pytrace=False
         )
     finally:
+        if process.returncode != 0:
+            # The raw report stays in an owned private temporary directory.
+            # Print only known repository source coordinates before its cleanup.
+            print(failure_diagnostic(report, ROOT))
         if process.returncode is not None:
             # Do not leave a reaped numeric group ID for later harness cleanup.
             h.processes = [

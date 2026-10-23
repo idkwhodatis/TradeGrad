@@ -607,7 +607,7 @@ test("synthetic owner-profile selection survives reload and seed-only submit wit
     profile!.synthetic,
     "This browser gate never admits a paid model profile",
   ).toBe(true);
-  expect(profile!.strategy_modes).toEqual(["native_akquant"]);
+  expect(profile!.strategy_modes).toEqual(["native_akquant", "portable"]);
   expect(profile!.config.credential_ref).toBeNull();
   expect(profile!.config.profile_sha256).toMatch(/^[0-9a-f]{64}$/);
   body.model = profile!.config;

@@ -1,8 +1,29 @@
 """Project only repository-allowlisted browser source locations from private XML."""
 
+import json
 import re
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from xml.etree import ElementTree as ET
+
+
+@contextmanager
+def private_browser_report(root: Path):
+    """Keep raw browser evidence outside uploaded paths and delete it on exit."""
+    with tempfile.TemporaryDirectory(
+        prefix="operator-browser-report-", dir=root
+    ) as folder:
+        yield Path(folder) / "junit.xml"
+
+
+def failure_diagnostic(source: Path, root: Path) -> str:
+    """Diagnostic failure can reveal neither report content nor exception text."""
+    try:
+        detail = json.dumps(failure_sites(source, root), sort_keys=True)
+    except Exception:  # noqa: BLE001 - report/exception payloads are private
+        detail = "unavailable"
+    return "BROWSER_SOURCE_DIAGNOSTICS_V1:" + detail
 
 
 def failure_sites(source: Path, root: Path) -> list[dict]:

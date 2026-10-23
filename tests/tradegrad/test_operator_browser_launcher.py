@@ -34,13 +34,23 @@ def test_node_environment_is_explicit_and_never_inherits_private_settings():
         "GITHUB_ACTIONS": "true",
         "TRADEGRAD_REQUIRE_MODEL_INTEGRATION": "1",
         "E2E_MODEL_BROWSER_MODE": "forged selector",
+        "PLAYWRIGHT_JUNIT_OUTPUT_FILE": "/tmp/owned-report/junit.xml",
+        "PLAYWRIGHT_HTML_OUTPUT_DIR": private,
     }
     result = launcher.browser_environment(source)
     if private in result.values() or result.get("E2E_PASSWORD") != password:
         pytest.fail(
             "Browser environment violated generated-secret separation", pytrace=False
         )
-    assert set(result) == {"PATH", "HOME", "CI", "E2E_PASSWORD", "E2E_API_URL"}
+    assert set(result) == {
+        "PATH",
+        "HOME",
+        "CI",
+        "E2E_PASSWORD",
+        "E2E_API_URL",
+        "PLAYWRIGHT_JUNIT_OUTPUT_FILE",
+    }
+    assert result["PLAYWRIGHT_JUNIT_OUTPUT_FILE"] == "/tmp/owned-report/junit.xml"
 
 
 @pytest.mark.parametrize(
@@ -63,7 +73,10 @@ def test_command_is_one_fixed_browser_case_without_shell_or_install(
     assert command[4:6] == ["--grep", tag]
     assert "--retries=0" in command
     assert "--global-timeout=300000" in command
-    assert "--reporter=/approved/tests/system/operator_profile_reporter.cjs" in command
+    assert (
+        "--reporter=/approved/tests/system/operator_profile_reporter.cjs,junit"
+        in command
+    )
 
 
 @pytest.mark.parametrize("mode", ["", "native", "all", "../path", ".*"])
