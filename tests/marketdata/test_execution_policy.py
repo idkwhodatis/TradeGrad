@@ -26,7 +26,7 @@ def test_matching_policy_accepted(mode):
     assert execution_policy_compatible(policy(mode), mode)
 
 
-@pytest.mark.parametrize("revision", [None, "synthetic-daily.v1"])
+@pytest.mark.parametrize("revision", [None, "synthetic-daily.v1", "synthetic-daily.v2"])
 def test_old_fixture_prices_cannot_mix_with_new_checkpoints(revision):
     previous = {**policy(), "fixture_version": revision}
     assert not execution_policy_compatible(previous, "fixture")
@@ -62,4 +62,10 @@ def test_portable_fixture_has_independent_generation_fence():
     assert not execution_policy_compatible(current, "fixture")
     assert not execution_policy_compatible(
         policy("live"), "live", provider_name="portable_fixture"
+    )
+
+
+def test_new_probe_and_repair_contract_is_explicitly_admitted():
+    assert execution_policy_compatible(
+        {**policy("live"), "worker_contract": "data-import.v2"}, "live"
     )

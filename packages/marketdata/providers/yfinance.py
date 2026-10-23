@@ -28,6 +28,17 @@ _EXCHANGES = {
 }
 
 
+def repair_flags(value):
+    import numpy as np
+
+    status = (
+        ("yahoo_repaired" if bool(value) else "yahoo_repair_not_flagged")
+        if isinstance(value, (bool, np.bool_))
+        else "yahoo_repair_status_unknown"
+    )
+    return ["yahoo_repair_requested", status]
+
+
 class YFinanceProvider:
     def __init__(self, *, mode="live", client=None, policy: CallPolicy | None = None):
         if mode not in {"live", "fixture"} or (
@@ -49,7 +60,10 @@ class YFinanceProvider:
                 fixtures.yfinance_resolve(params["symbol"])
                 if operation == "yfinance_resolve"
                 else fixtures.yfinance_bars(
-                    params["symbol"], params["start"], params["end"]
+                    params["symbol"],
+                    params["start"],
+                    params["end"],
+                    repair=params["repair"],
                 )
             )
         else:
@@ -141,10 +155,11 @@ class YFinanceProvider:
         return result
 
     def fetch_bars(self, request: BarsRequest) -> ProviderResult:
-        if request.price_mode != "provider_native":
+        if request.price_mode not in {"provider_native", "repair"}:
             raise ValueError(
-                "Yahoo supports provider_native only; raw/unadjusted would be misleading"
+                "Yahoo supports provider_native or explicit parent-derived repair only"
             )
+        repair = request.price_mode == "repair"
         result = ProviderResult(
             price_semantics=PriceSemantics(
                 native_mode="yahoo_split_adjusted_ohlc",
@@ -153,12 +168,19 @@ class YFinanceProvider:
                 adjustment_as_of=None,
                 adj_close_split_basis="adjusted",
                 adj_close_dividend_basis="adjusted",
-                algorithm_version="yahoo-native;repair=False",
+                algorithm_version=f"yahoo-native;repair={repair}",
                 note="OHLC is already split-adjusted, not true unadjusted prices. "
                 "Adjustment-state timestamp is unknown: request.as_of is only a coverage cutoff, "
                 "not historical adjustment or point-in-time evidence. Provenance fetched_at is acquisition time.",
             )
         )
+        if repair:
+            result.warnings.append(
+                WarningRecord(
+                    code="explicit_yahoo_repair_refetch",
+                    message="New repair=True SDK acquisition linked to an immutable parent. Upstream revisions may also differ; this is not an offline replay of the parent's raw bytes.",
+                )
+            )
         for listing in request.listings:
             try:
                 if (
@@ -173,7 +195,7 @@ class YFinanceProvider:
                     "interval": "1d",
                     "auto_adjust": False,
                     "back_adjust": False,
-                    "repair": False,
+                    "repair": repair,
                     "actions": True,
                     "keepna": True,
                     "rounding": False,
@@ -266,6 +288,7 @@ class YFinanceProvider:
                             volume=row["Volume"],
                             currency=listing.currency,
                             volume_unit="shares",
+                            flags=repair_flags(row.get("Repaired?")) if repair else [],
                         )
                     )
             except Exception as exc:  # noqa: BLE001 - redact SDK failures at the trust boundary

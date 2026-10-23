@@ -44,6 +44,15 @@ def package_versions(names: list[str]) -> dict[str, str]:
     return result
 
 
+# Authoritative public upstream pointers, not SDK licences or legal acceptance.
+# These identify a terms source only; rights for a particular use remain unverified.
+UPSTREAM_TERMS = {
+    "eastmoney": "https://about.eastmoney.com/home/protocol",
+    "yahoo": "https://legal.yahoo.com/us/en/yahoo/terms/otos/index.html",
+    "nasdaq": "https://www.nasdaq.com/legal",
+}
+
+
 def provenance(
     connector: str,
     provider: str,
@@ -73,6 +82,7 @@ def provenance(
         evidence=evidence,
         package_versions=package_versions(package_names or []),
         fetched_at=stamp,
+        terms_url=UPSTREAM_TERMS.get(provider),
         **kwargs,
     )
 

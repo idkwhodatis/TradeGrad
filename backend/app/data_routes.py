@@ -21,6 +21,7 @@ from backend.app.data_schemas import (
     ImportPublic,
     ListingPublic,
     PreviewPage,
+    ProviderProbeCreate,
     ProviderPublic,
     ResolveCreate,
     UniverseCreate,
@@ -71,7 +72,7 @@ def paginate(session, model, owner_id, offset, limit):
     response_model=list[ProviderPublic],
     operation_id="list_data_providers",
 )
-def providers(user: CurrentUser, request: Request):
+def providers(user: CurrentUser, request: Request, session: SessionDep):
     from packages.marketdata.catalog import provider_catalog
 
     catalog = [
@@ -80,9 +81,25 @@ def providers(user: CurrentUser, request: Request):
         for item in provider_catalog()
     ]
     mode = request.app.state.settings.data_provider_mode
+    latest = {}
+    for p in catalog:
+        job = session.scalar(
+            select(DataImport)
+            .where(
+                DataImport.owner_id == user.id,
+                DataImport.provider == p["id"],
+                DataImport.kind == "probe",
+                DataImport.status.in_(["ready", "partial", "failed"]),
+                DataImport.progress.has_key("probe_receipt"),
+            )
+            .order_by(DataImport.created_at.desc(), DataImport.id)
+            .limit(1)
+        )
+        latest[p["id"]] = job.progress["probe_receipt"] if job else None
     return [
         {
             **p,
+            "latest_test": latest[p["id"]],
             "runtime_mode": mode,
             "fixture_notice": "Explicit synthetic SDK-schema fixture mode; not live provider evidence or investment data."
             if mode == "fixture"
@@ -91,6 +108,52 @@ def providers(user: CurrentUser, request: Request):
         for p in catalog
         if p["id"] != "portable_fixture" or mode == "fixture"
     ]
+
+
+@router.post(
+    "/data/providers/{provider}/test",
+    response_model=ImportPublic,
+    status_code=202,
+    operation_id="test_data_provider",
+)
+def test_provider(
+    provider: str,
+    body: ProviderProbeCreate,
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+    idempotency_key: IdempotencyKey,
+):
+    allowed = {
+        "akshare": {"600000", "000001"},
+        "yfinance": {"AAPL", "MSFT"},
+        "openbb": {"AAPL", "MSFT"},
+    }
+    if provider not in allowed or body.symbol not in allowed[provider]:
+        raise DomainError(
+            "unsupported_probe",
+            "Choose a supported public test symbol: AKShare 600000/000001 or Yahoo/Nasdaq AAPL/MSFT",
+            422,
+        )
+    value = ImportCreate(
+        provider=provider,
+        market="CN" if provider == "akshare" else "US",
+        name="Bounded provider connection test",
+        symbols=[body.symbol],
+        start_date=body.start_date,
+        end_date=body.end_date,
+        price_mode="provider_native",
+    )
+    item = submit_import(
+        session,
+        user.id,
+        value,
+        idempotency_key,
+        request.app.state.settings,
+        kind="probe",
+    )
+    session.commit()
+    return item
 
 
 @router.post(
@@ -343,6 +406,89 @@ async def upload(
     return item
 
 
+def repair_parent_reference(dataset, settings):
+    from packages.marketdata.contracts import RepairSource
+
+    manifest = dataset.manifest
+    config = manifest.get("import_request")
+    prices = manifest.get("price_semantics", {})
+    if (
+        dataset.source != "yfinance"
+        or not config
+        or config.get("price_mode") != "provider_native"
+        or prices.get("algorithm_version") != "yahoo-native;repair=False"
+    ):
+        raise DomainError(
+            "repair_unavailable",
+            "Select an original, unrepaired Yahoo provider-native snapshot",
+            422,
+        )
+    content = read_verified(
+        settings.storage_root,
+        f"{dataset.storage_key}/manifest.json",
+        dataset.content_sha256,
+        10_000_000,
+    )
+    if json.loads(content) != manifest:
+        raise DomainError(
+            "snapshot_integrity",
+            "Parent manifest disagrees with its immutable artifact",
+            409,
+        )
+    files = manifest.get("artifact_files", {})
+    try:
+        return RepairSource(
+            dataset_version_id=dataset.id,
+            manifest_sha256=dataset.content_sha256,
+            content_hash=manifest["content_hash"],
+            raw_sha256=files["raw.json"],
+            provenance_sha256=files["provenance.json"],
+        )
+    except (KeyError, ValueError):
+        raise DomainError(
+            "repair_parent_incomplete",
+            "Parent lacks immutable raw/provenance references",
+            422,
+        ) from None
+
+
+@router.post(
+    "/datasets/{dataset_id}/yahoo-repair",
+    response_model=ImportPublic,
+    status_code=202,
+    operation_id="repair_yahoo_snapshot",
+)
+def repair_yahoo(
+    dataset_id: UUID,
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+    idempotency_key: IdempotencyKey,
+):
+    dataset = owned_dataset(session, dataset_id, user.id)
+    settings = request.app.state.settings
+    reference = repair_parent_reference(dataset, settings)
+    config = dict(dataset.manifest["import_request"])
+    config.update(
+        price_mode="repair",
+        name=dataset.name[:235] + " · Yahoo repair",
+        symbols=[],
+        listing_ids=[item["listing_id"] for item in dataset.manifest["listings"]],
+    )
+    body = ImportCreate.model_validate(config)
+    item = submit_import(
+        session,
+        user.id,
+        body,
+        idempotency_key,
+        settings,
+        parent_version_id=dataset.id,
+        derivation=reference.model_dump(mode="json"),
+    )
+    session.commit()
+    return item
+
+
 @router.post(
     "/datasets/{dataset_id}/refresh",
     response_model=ImportPublic,
@@ -358,10 +504,10 @@ def refresh(
 ):
     dataset = owned_dataset(session, dataset_id, user.id)
     config = dataset.manifest.get("import_request")
-    if not config or dataset.source == "upload":
+    if not config or dataset.source == "upload" or config.get("price_mode") == "repair":
         raise DomainError(
             "refresh_unavailable",
-            "This snapshot cannot be provider-refreshed; upload a new file instead",
+            "This snapshot cannot be provider-refreshed; upload a new file or explicitly repair its original Yahoo parent instead",
             422,
         )
     body = ImportCreate.model_validate(config)

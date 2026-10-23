@@ -172,16 +172,30 @@ class PriceSemantics(Contract):
     note: str | None = None
 
 
+class RepairSource(Contract):
+    """Immutable reference, not a claim of replaying the old upstream bytes."""
+
+    kind: Literal["yahoo_repair_refetch.v1"] = "yahoo_repair_refetch.v1"
+    dataset_version_id: UUID
+    manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    raw_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    provenance_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
 class BarsRequest(Contract):
     listings: list[Listing] = Field(min_length=1, max_length=100)
     start: date
     end: date
     interval: Literal["1d"] = "1d"
     price_mode: str = "provider_native"
+    repair_source: RepairSource | None = None
     as_of: datetime = Field(default_factory=utc_now)
 
     @model_validator(mode="after")
     def valid_range(self):
+        if (self.price_mode == "repair") != (self.repair_source is not None):
+            raise ValueError("Repair requires an explicit immutable parent reference")
         if self.end <= self.start:
             raise ValueError("end must be after start; dates use [start, end)")
         if (self.end - self.start).days > 36525:
@@ -205,6 +219,7 @@ class Provenance(Contract):
     package_versions: dict[str, str] = Field(default_factory=dict)
     transformation_version: str = TRANSFORM_VERSION
     evidence: Evidence = "none"
+    terms_url: str | None = None
     source_url: str | None = None
     note: str | None = None
 
@@ -346,7 +361,7 @@ class UploadMapping(Contract):
 
 # Generated fixture prices are versioned independently of live transformations.
 # A retry must not combine checkpointed bars from different fixture algorithms.
-FIXTURE_VERSION = "synthetic-daily.v2"
+FIXTURE_VERSION = "synthetic-daily.v3"
 PORTABLE_FIXTURE_VERSION = "portable.synthetic.daily.v1"
 
 
@@ -363,7 +378,7 @@ def execution_policy_compatible(
     return (
         policy.get("schema_version") == SCHEMA_VERSION
         and policy.get("transform_version") == TRANSFORM_VERSION
-        and policy.get("worker_contract") == "data-import.v1"
+        and policy.get("worker_contract") in {"data-import.v1", "data-import.v2"}
         and policy.get("provider_mode") == provider_mode
         and policy.get("fixture_version")
         == (fixture if provider_mode == "fixture" else None)

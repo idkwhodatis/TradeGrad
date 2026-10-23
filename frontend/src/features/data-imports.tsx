@@ -145,6 +145,10 @@ function ImportContent({
       ]);
     }
   });
+  useEffect(() => {
+    if (job.kind === "probe" && importTerminal.has(job.status))
+      void queryClient.invalidateQueries({ queryKey: ["data-providers"] });
+  }, [job.id, job.kind, job.status]);
   const completed = job.blocks.filter(
     (block) => block.status === "ready",
   ).length;
@@ -168,6 +172,26 @@ function ImportContent({
               }}
             />
             <JsonDetails title="Worker progress" value={job.progress} />
+            {job.kind === "probe" && (
+              <>
+                <p className="notice mt-3">
+                  Connection tests do not publish datasets. Fixture success
+                  never verifies live connectivity.
+                </p>
+                <JsonDetails
+                  title="Scoped connection test receipt"
+                  value={
+                    job.progress.probe_receipt || {
+                      status: job.status,
+                      evidence: "pending or unavailable",
+                    }
+                  }
+                />
+                <Link className="text-link mt-3" to="/data-sources">
+                  Return to data sources
+                </Link>
+              </>
+            )}
             {job.blocks.length > 0 && (
               <div className="mt-4">
                 <label htmlFor="import-progress" className="text-xs muted">
@@ -214,15 +238,16 @@ function ImportContent({
                   Cancel import
                 </Button>
               )}
-              {["failed", "partial", "cancelled"].includes(job.status) && (
-                <Button
-                  disabled={action.pending}
-                  onClick={() => void action.run("retry")}
-                >
-                  <RefreshCw />
-                  Retry incomplete blocks
-                </Button>
-              )}
+              {job.kind !== "probe" &&
+                ["failed", "partial", "cancelled"].includes(job.status) && (
+                  <Button
+                    disabled={action.pending}
+                    onClick={() => void action.run("retry")}
+                  >
+                    <RefreshCw />
+                    Retry incomplete blocks
+                  </Button>
+                )}
               {job.dataset_version_id && (
                 <Button asChild>
                   <Link

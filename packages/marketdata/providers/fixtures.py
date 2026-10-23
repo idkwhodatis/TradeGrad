@@ -36,7 +36,23 @@ def akshare_bars(
     if symbol not in {"600000", "000001"}:
         return pd.DataFrame()
     factor = {"": 1.0, "qfq": 0.9, "hfq": 1.1}[adjust]
-    rows = []
+    from . import research_fixture
+
+    rows = [
+        {
+            "日期": r["date"],
+            "股票代码": symbol,
+            "开盘": r["open"] * factor,
+            "最高": r["high"] * factor,
+            "最低": r["low"] * factor,
+            "收盘": r["close"] * factor,
+            "成交量": r["volume"],
+            "成交额": r["close"] * r["volume"] * 100,
+        }
+        for r in research_fixture.rows("XSHG", symbol)
+        if start_date <= r["date"].replace("-", "") <= end_date
+    ]
+    extension = bool(rows)
     for i, day in enumerate(fixture_days("XSHG")):
         # Use the absolute fixed-window session index, never the request-relative
         # offset: retry/date-block overlaps must return exactly the same prices.
@@ -68,7 +84,10 @@ def akshare_bars(
                 "成交额": 1000000 + i,
             }
         )
-    return pd.DataFrame(rows)
+    frame = pd.DataFrame(rows)
+    if extension:
+        frame.attrs["research_fixture"] = research_fixture.metadata()
+    return frame
 
 
 def yfinance_resolve(symbol: str):
@@ -88,11 +107,17 @@ def yfinance_resolve(symbol: str):
     }
 
 
-def yfinance_bars(symbol: str, start: str = "2024-01-02", end: str = "2024-07-01"):
+def yfinance_bars(
+    symbol: str,
+    start: str = "2024-01-02",
+    end: str = "2024-07-01",
+    *,
+    repair: bool = False,
+):
     if symbol not in {"AAPL", "MSFT"}:
         return pd.DataFrame()
     days = [day for day in DAYS if start <= day < end]
-    return pd.DataFrame(
+    frame = pd.DataFrame(
         [
             {
                 "Open": 100 + i,
@@ -109,3 +134,32 @@ def yfinance_bars(symbol: str, start: str = "2024-01-02", end: str = "2024-07-01
         ],
         index=pd.DatetimeIndex(days, tz="America/New_York", name="Date"),
     )
+    from . import research_fixture
+
+    extra = [
+        r for r in research_fixture.rows("XNYS", symbol) if start <= r["date"] < end
+    ]
+    if extra:
+        prefix = pd.DataFrame(
+            [
+                {
+                    "Open": r["open"],
+                    "High": r["high"],
+                    "Low": r["low"],
+                    "Close": r["close"],
+                    "Adj Close": r["close"],
+                    "Volume": r["volume"],
+                    "Dividends": 0.0,
+                    "Stock Splits": 0.0,
+                }
+                for r in extra
+            ],
+            index=pd.DatetimeIndex(
+                [r["date"] for r in extra], tz="America/New_York", name="Date"
+            ),
+        )
+        frame = pd.concat([prefix, frame]) if not frame.empty else prefix
+        frame.attrs["research_fixture"] = research_fixture.metadata()
+    if repair:
+        frame["Repaired?"] = False
+    return frame

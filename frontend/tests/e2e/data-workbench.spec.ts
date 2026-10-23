@@ -403,7 +403,7 @@ for (const scenario of scenarios) {
       "cold-start windows with no pre-start warm-up",
     );
     await expect(page.getByTestId("native-window-warning")).toContainText(
-      "M3 gate, not available now",
+      "For corrected warm-up-aware optimization, use New Experiment",
     );
     await expect(page.getByLabel("Market & task", { exact: true })).toHaveValue(
       scenario.task,

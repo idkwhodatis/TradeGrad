@@ -32,6 +32,39 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ProviderTestReceipt(StrictModel):
+    schema_version: Literal["provider-test.v1"] = "provider-test.v1"
+    import_id: UUID
+    provider: str
+    outcome: Literal["verified", "fixture_passed", "failed", "incomplete"]
+    capability_status: Literal["verified", "documented", "unknown"]
+    evidence: Literal["live", "fixture", "none"]
+    symbol: str
+    start_date: date
+    end_date: date
+    checked_at: datetime
+    endpoints: list[str]
+    package_versions: dict[str, str]
+    error_codes: list[str]
+    note: str
+
+
+class ProviderProbeCreate(StrictModel):
+    symbol: str = Field(min_length=1, max_length=10)
+    start_date: date
+    end_date: date
+
+    @model_validator(mode="after")
+    def bounded_window(self):
+        from datetime import UTC
+
+        if not 0 < (self.end_date - self.start_date).days <= 14:
+            raise ValueError("Connection tests require 1 to 14 calendar days")
+        if self.end_date >= datetime.now(UTC).date():
+            raise ValueError("Connection tests use completed historical days only")
+        return self
+
+
 class ProviderPublic(StrictModel):
     id: ProviderName
     name: str
@@ -41,6 +74,7 @@ class ProviderPublic(StrictModel):
     capabilities: list[Capability]
     runtime_mode: Literal["live", "fixture"]
     fixture_notice: str | None = None
+    latest_test: ProviderTestReceipt | None = None
 
 
 class ResolveCreate(StrictModel):
@@ -94,7 +128,7 @@ class BlockPublic(PublicModel):
 
 class ImportPublic(PublicModel):
     id: UUID
-    kind: Literal["resolve", "import", "upload"]
+    kind: Literal["resolve", "import", "upload", "probe"]
     provider: str
     status: ImportStatus
     generation: int

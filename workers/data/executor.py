@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 import threading
 from datetime import date, timedelta
@@ -75,6 +76,17 @@ def _resolve(factory, item_id, generation, token, settings, provider):
         item = session.get(DataImport, item_id)
         request = item.request
         owner_id = item.owner_id
+        if request.get("_derivation"):
+            from packages.marketdata.contracts import Listing as ListingContract
+
+            parent = session.get(DatasetVersion, item.parent_version_id)
+            if parent is None or parent.owner_id != owner_id:
+                raise ValueError("Repair parent unavailable")
+            # Resolve from the immutable parent, not today's vendor mapping.
+            return [
+                ListingContract.model_validate(value)
+                for value in parent.manifest["listings"]
+            ], []
         if request.get("listing_ids"):
             return listing_contracts(session, owner_id, request["listing_ids"]), []
     resolved = []
@@ -86,6 +98,7 @@ def _resolve(factory, item_id, generation, token, settings, provider):
             fence_import(session, item_id, generation, token, settings)
         try:
             result = provider.resolve_instruments([symbol])
+            provenance.extend([p.model_dump(mode="json") for p in result.provenance])
             if result.unresolved or len(result.data) != 1:
                 failures.append(symbol)
                 warnings.extend([w.model_dump(mode="json") for w in result.warnings])
@@ -104,7 +117,6 @@ def _resolve(factory, item_id, generation, token, settings, provider):
                     "resolved": len(resolved),
                     "requested_symbols": len(request["symbols"]),
                 }
-            provenance.extend([p.model_dump(mode="json") for p in result.provenance])
             warnings.extend([w.model_dump(mode="json") for w in result.warnings])
         except FenceLost:
             raise
@@ -142,7 +154,7 @@ def _make_blocks(factory, item_id, generation, token, settings, listings):
                 # Parse once and checkpoint one whole-window result to avoid raw duplication.
                 block_end = (
                     end
-                    if item.kind == "upload"
+                    if item.kind in {"upload", "probe"}
                     else min(
                         end,
                         cursor
@@ -217,6 +229,7 @@ def _fetch_blocks(factory, item_id, generation, token, settings, provider, listi
                 start=block.start_date,
                 end=block.end_date,
                 price_mode=config.get("price_mode", "provider_native"),
+                repair_source=config.get("_derivation"),
                 as_of=as_of,
             )
         try:
@@ -276,7 +289,9 @@ def _fetch_blocks(factory, item_id, generation, token, settings, provider, listi
             raise
         except Exception as exc:  # noqa: BLE001 - provider failures are reduced to bounded safe codes
             code = getattr(exc, "code", "data_block_failed")
-            if not isinstance(code, str) or len(code) > 100:
+            if not isinstance(code, str) or not re.fullmatch(
+                r"[A-Za-z_][A-Za-z0-9_.-]{0,79}", code
+            ):
                 code = "data_block_failed"
             with factory.begin() as session:
                 item = fence_import(session, item_id, generation, token, settings)
@@ -371,6 +386,7 @@ def _publish(factory, item_id, generation, token, settings, listings, results):
             start=date.fromisoformat(config["start_date"]),
             end=date.fromisoformat(config["end_date"]),
             price_mode=config.get("price_mode", "provider_native"),
+            repair_source=config.get("_derivation"),
             as_of=item.created_at,
         )
         universe = (
@@ -532,7 +548,9 @@ def _publish(factory, item_id, generation, token, settings, listings, results):
             resolution_provenance=resolution_provenance,
             import_execution_policy=config.get("_execution"),
             import_request={
-                k: v for k, v in config.items() if k not in {"upload", "_execution"}
+                k: v
+                for k, v in config.items()
+                if k not in {"upload", "_execution", "_derivation"}
             }
             if source != "upload"
             else None,
@@ -582,6 +600,85 @@ def _publish(factory, item_id, generation, token, settings, listings, results):
             shutil.rmtree(staging)
 
 
+def _record_probe(
+    factory,
+    item_id,
+    generation,
+    token,
+    settings,
+    results=(),
+    *,
+    complete=False,
+    error=None,
+):
+    from packages.marketdata.probes import build_probe_receipt
+
+    with factory.begin() as session:
+        item = fence_import(session, item_id, generation, token, settings)
+        if item.kind != "probe":
+            return
+        sources = [
+            *item.progress.get("resolution_provenance", []),
+            *[
+                source.model_dump(mode="json")
+                for result in results
+                for source in result.provenance
+            ],
+        ]
+        warnings = [
+            *item.warnings,
+            *[
+                warning.model_dump(mode="json")
+                for result in results
+                for warning in result.warnings
+            ],
+        ]
+        blocks = session.scalars(
+            select(DataBlock).where(DataBlock.import_id == item.id)
+        ).all()
+        for block in blocks:
+            if block.error:
+                warnings.append({"code": block.error, "severity": "error"})
+        if error:
+            warnings.append({"code": error, "severity": "error"})
+        receipt = build_probe_receipt(
+            import_id=item.id,
+            provider=item.provider,
+            request=item.request,
+            provenance=sources,
+            warnings=warnings,
+            complete=complete,
+        )
+        item.progress = {**item.progress, "probe_receipt": receipt}
+        return receipt
+
+
+def _verify_repair_parent(factory, item_id, settings):
+    """Recheck persisted hashes before any repair fetch; never amend parent files."""
+    from backend.app.data_routes import repair_parent_reference
+
+    with factory() as session:
+        item = session.get(DataImport, item_id)
+        if item.request.get("price_mode") != "repair":
+            return
+        parent = session.get(DatasetVersion, item.parent_version_id)
+        if parent is None or parent.owner_id != item.owner_id:
+            raise ValueError("Repair parent unavailable")
+        current = repair_parent_reference(parent, settings)
+        if current.model_dump(mode="json") != item.request.get("_derivation"):
+            raise ValueError("Repair parent changed")
+        for name, expected in (
+            ("raw.json", current.raw_sha256),
+            ("provenance.json", current.provenance_sha256),
+        ):
+            read_verified(
+                settings.storage_root,
+                f"{parent.storage_key}/{name}",
+                expected,
+                100_000_000,
+            )
+
+
 def execute(import_id, generation, settings=None, factory=None):
     settings = settings or get_settings()
     factory = factory or session_factory(create_db_engine(settings))
@@ -619,6 +716,14 @@ def execute(import_id, generation, settings=None, factory=None):
         if not execution_policy_compatible(
             execution_policy, settings.data_provider_mode, provider_name=provider_name
         ):
+            _record_probe(
+                factory,
+                item_id,
+                generation,
+                token,
+                settings,
+                error="incompatible_execution_policy",
+            )
             _set_status(
                 factory,
                 item_id,
@@ -629,6 +734,7 @@ def execute(import_id, generation, settings=None, factory=None):
                 error="Pinned import execution policy is incompatible with this worker; no data was fetched or reused",
             )
             return
+        _verify_repair_parent(factory, item_id, settings)
         with budget_scope(lambda key: reserve_budget(factory, key, 1.0)):
             provider = (
                 None
@@ -657,6 +763,14 @@ def execute(import_id, generation, settings=None, factory=None):
                     factory, item_id, generation, token, settings, provider
                 )
             if unresolved or not listings:
+                _record_probe(
+                    factory,
+                    item_id,
+                    generation,
+                    token,
+                    settings,
+                    error="resolution_incomplete",
+                )
                 _set_status(
                     factory,
                     item_id,
@@ -678,6 +792,36 @@ def execute(import_id, generation, settings=None, factory=None):
                 factory, item_id, generation, token, settings, provider, listings
             )
             _set_status(factory, item_id, generation, token, settings, "normalizing")
+            if kind == "probe":
+                complete = (
+                    bool(results)
+                    and not failed
+                    and all(r.data for r in results)
+                    and sum(len(r.coverage) for r in results) == len(listings)
+                    and all(c.status == "complete" for r in results for c in r.coverage)
+                )
+                receipt = _record_probe(
+                    factory,
+                    item_id,
+                    generation,
+                    token,
+                    settings,
+                    results,
+                    complete=complete,
+                )
+                complete = receipt["outcome"] in {"verified", "fixture_passed"}
+                _set_status(
+                    factory,
+                    item_id,
+                    generation,
+                    token,
+                    settings,
+                    "ready" if complete else "partial",
+                    error=None
+                    if complete
+                    else "Bounded provider test did not return complete data; inspect the scoped receipt",
+                )
+                return
             if failed or not results:
                 _set_status(
                     factory,
@@ -694,6 +838,14 @@ def execute(import_id, generation, settings=None, factory=None):
         return
     except Exception:  # noqa: BLE001 - failure is fenced and safely classified, never logged with credentials
         try:
+            _record_probe(
+                factory,
+                item_id,
+                generation,
+                token,
+                settings,
+                error="provider_test_failed",
+            )
             _set_status(
                 factory,
                 item_id,

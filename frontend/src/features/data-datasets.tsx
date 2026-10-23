@@ -164,6 +164,29 @@ function SnapshotContent({ dataset }: { dataset: DatasetPublic }) {
       params: { importId: result.id },
     });
   });
+  const repair = useDataAction(async () => {
+    if (!user.data) return;
+    const scope = `yahoo-repair:${dataset.id}`;
+    const result = (
+      await sdk.repairYahooSnapshot({
+        path: { dataset_id: dataset.id },
+        headers: {
+          "Idempotency-Key": dataSubmissionKey(user.data.id, scope, {
+            dataset_id: dataset.id,
+          }),
+        },
+      })
+    ).data;
+    clearDataSubmission(user.data.id, scope);
+    await navigate({
+      to: "/imports/$importId",
+      params: { importId: result.id },
+    });
+  });
+  const repairAvailable =
+    dataset.source === "yfinance" &&
+    prices.algorithm_version === "yahoo-native;repair=False" &&
+    Boolean(dataset.manifest.import_request);
   return (
     <>
       <PageHeader
@@ -202,12 +225,37 @@ function SnapshotContent({ dataset }: { dataset: DatasetPublic }) {
             title="Inspect snapshot manifest"
             value={dataset.manifest}
           />
-          {Boolean(dataset.manifest.import_request) &&
-          dataset.source !== "upload" ? (
+          {repairAvailable && (
             <div className="mt-5">
               <Button
                 variant="outline"
-                disabled={refresh.pending || !user.data}
+                disabled={repair.pending || refresh.pending || !user.data}
+                onClick={() => void repair.run()}
+              >
+                Create Yahoo repair-derived snapshot
+              </Button>
+              <p className="mt-3 text-xs muted">
+                Explicit repair=True re-fetch with the same listings and dates,
+                not a replay of old bytes. Preserves this original snapshot and
+                pins its raw/provenance hashes. Yahoo OHLC remains
+                split-adjusted; per-row repair flags are retained.
+              </p>
+              {Boolean(repair.error) && <ErrorState error={repair.error} />}
+            </div>
+          )}
+          {Boolean(dataset.manifest.derivation) && (
+            <JsonDetails
+              title="Immutable repair parent and source hashes"
+              value={dataset.manifest.derivation}
+            />
+          )}
+          {Boolean(dataset.manifest.import_request) &&
+          dataset.source !== "upload" &&
+          !dataset.manifest.derivation ? (
+            <div className="mt-5">
+              <Button
+                variant="outline"
+                disabled={refresh.pending || repair.pending || !user.data}
                 onClick={() => void refresh.run()}
               >
                 <RefreshCw />
@@ -222,7 +270,9 @@ function SnapshotContent({ dataset }: { dataset: DatasetPublic }) {
             <p className="mt-4 text-xs muted">
               {dataset.source === "upload"
                 ? "To revise uploaded data, upload a new file. This version cannot be overwritten."
-                : "This synthetic M1 snapshot has no provider refresh or normalized preview."}
+                : dataset.manifest.derivation
+                  ? "To repeat Yahoo repair, open the preserved original parent and explicitly create another derived snapshot."
+                  : "This synthetic M1 snapshot has no provider refresh or normalized preview."}
             </p>
           )}
           {Boolean(refresh.error) && (

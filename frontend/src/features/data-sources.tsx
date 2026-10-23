@@ -66,7 +66,11 @@ export function DataSourcesPage() {
           <>
             <div className="catalog mb-6">
               {providers.data.map((provider) => (
-                <ProviderCard key={provider.id} provider={provider} />
+                <ProviderCard
+                  key={provider.id}
+                  provider={provider}
+                  owner={user.data.id}
+                />
               ))}
             </div>
             <SourceForm providers={providers.data} owner={user.data.id} />
@@ -76,7 +80,13 @@ export function DataSourcesPage() {
     </>
   );
 }
-function ProviderCard({ provider }: { provider: ProviderPublic }) {
+function ProviderCard({
+  provider,
+  owner,
+}: {
+  provider: ProviderPublic;
+  owner: string;
+}) {
   return (
     <article
       className="panel panel-body"
@@ -113,9 +123,129 @@ function ProviderCard({ provider }: { provider: ProviderPublic }) {
         title="Inspect endpoints, versions and verification scope"
         value={provider.capabilities}
       />
+      {provider.id !== "portable_fixture" && (
+        <ProviderConnectionTest provider={provider} owner={owner} />
+      )}
     </article>
   );
 }
+function ProviderConnectionTest({
+  provider,
+  owner,
+}: {
+  provider: ProviderPublic;
+  owner: string;
+}) {
+  const navigate = useNavigate();
+  const [symbol, setSymbol] = useState(
+    provider.id === "akshare" ? "600000" : "AAPL",
+  );
+  const [start, setStart] = useState("2024-01-02");
+  const [end, setEnd] = useState("2024-01-06");
+  const action = useDataAction(async () => {
+    const body = { symbol, start_date: start, end_date: end };
+    const scope = `provider-test:${provider.id}`;
+    const result = (
+      await sdk.testDataProvider({
+        path: { provider: provider.id },
+        body,
+        headers: { "Idempotency-Key": dataSubmissionKey(owner, scope, body) },
+      })
+    ).data;
+    clearDataSubmission(owner, scope);
+    await queryClient.invalidateQueries({ queryKey: ["data-imports"] });
+    await navigate({
+      to: "/imports/$importId",
+      params: { importId: result.id },
+    });
+  });
+  const receipt = provider.latest_test;
+  return (
+    <section className="mt-5" aria-label={`${provider.id} connection test`}>
+      <h3>Bounded public connection test</h3>
+      <p className="text-xs muted mt-2">
+        No account or new credentials. Tests one symbol for at most 14 closed
+        calendar days. No data-use permission or whole-provider verification is
+        established.
+      </p>
+      {receipt ? (
+        <>
+          <p
+            className="notice mt-3"
+            data-testid={`provider-test-${provider.id}`}
+          >
+            Last completed test: {receipt.outcome} · {receipt.evidence} ·{" "}
+            {receipt.checked_at}. Scope: {receipt.symbol} [{receipt.start_date},{" "}
+            {receipt.end_date}).
+          </p>
+          <JsonDetails
+            title="Inspect scoped connection receipt"
+            value={receipt}
+          />
+          <Link
+            className="text-link"
+            to="/imports/$importId"
+            params={{ importId: receipt.import_id }}
+          >
+            Open connection test record
+          </Link>
+        </>
+      ) : (
+        <p className="notice mt-3">
+          No connection test receipt. Live connectivity is unknown.
+        </p>
+      )}
+      <form
+        className="form mt-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void action.run();
+        }}
+      >
+        <Field label="Test symbol" id={`${provider.id}-test-symbol`}>
+          <select
+            id={`${provider.id}-test-symbol`}
+            value={symbol}
+            onChange={(event) => setSymbol(event.target.value)}
+            disabled={action.pending}
+          >
+            {(provider.id === "akshare"
+              ? ["600000", "000001"]
+              : ["AAPL", "MSFT"]
+            ).map((value) => (
+              <option key={value}>{value}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Test start · inclusive" id={`${provider.id}-test-start`}>
+          <Input
+            id={`${provider.id}-test-start`}
+            type="date"
+            required
+            value={start}
+            onChange={(event) => setStart(event.target.value)}
+            disabled={action.pending}
+          />
+        </Field>
+        <Field label="Test end · exclusive" id={`${provider.id}-test-end`}>
+          <Input
+            id={`${provider.id}-test-end`}
+            type="date"
+            required
+            value={end}
+            onChange={(event) => setEnd(event.target.value)}
+            disabled={action.pending}
+          />
+        </Field>
+        <Button type="submit" variant="outline" disabled={action.pending}>
+          {action.pending ? "Submitting test…" : "Test connection"}
+        </Button>
+        {Boolean(action.error) && <ErrorState error={action.error} />}
+      </form>
+    </section>
+  );
+}
+
 function SourceForm({
   providers,
   owner,

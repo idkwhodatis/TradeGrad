@@ -146,5 +146,7 @@ it("transitional seed execution discloses cold starts without claiming M3 warm-u
     "cold-start windows with no pre-start warm-up",
   );
   expect(nativeWindowWarning).toContain("original-source behavior");
-  expect(nativeWindowWarning).toContain("M3 gate, not available now");
+  expect(nativeWindowWarning).toContain(
+    "For corrected warm-up-aware optimization, use New Experiment",
+  );
 });

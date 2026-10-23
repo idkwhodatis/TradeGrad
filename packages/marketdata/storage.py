@@ -139,6 +139,9 @@ def write_bundle(directory: Path, request: BarsRequest, result: ProviderResult) 
         "request": request.model_dump(mode="json"),
         "listings": [x.model_dump(mode="json") for x in request.listings],
         "price_semantics": result.price_semantics.model_dump(mode="json"),
+        "derivation": request.repair_source.model_dump(mode="json")
+        if request.repair_source
+        else None,
         "coverage": [x.model_dump(mode="json") for x in result.coverage],
         "warnings": [x.model_dump(mode="json") for x in result.warnings],
         "provenance": [x.model_dump(mode="json") for x in result.provenance],

@@ -2857,7 +2857,8 @@
             "enum": [
               "resolve",
               "import",
-              "upload"
+              "upload",
+              "probe"
             ],
             "title": "Kind",
             "type": "string"
@@ -2994,7 +2995,8 @@
             "enum": [
               "resolve",
               "import",
-              "upload"
+              "upload",
+              "probe"
             ],
             "title": "Kind",
             "type": "string"
@@ -7533,6 +7535,34 @@
         "title": "ProfileDefault",
         "type": "object"
       },
+      "ProviderProbeCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "symbol": {
+            "maxLength": 10,
+            "minLength": 1,
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "start_date",
+          "end_date"
+        ],
+        "title": "ProviderProbeCreate",
+        "type": "object"
+      },
       "ProviderPublic": {
         "additionalProperties": false,
         "properties": {
@@ -7563,6 +7593,16 @@
             ],
             "title": "Id",
             "type": "string"
+          },
+          "latest_test": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProviderTestReceipt"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "markets": {
             "items": {
@@ -7605,6 +7645,115 @@
           "runtime_mode"
         ],
         "title": "ProviderPublic",
+        "type": "object"
+      },
+      "ProviderTestReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "capability_status": {
+            "enum": [
+              "verified",
+              "documented",
+              "unknown"
+            ],
+            "title": "Capability Status",
+            "type": "string"
+          },
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "endpoints": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Endpoints",
+            "type": "array"
+          },
+          "error_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Error Codes",
+            "type": "array"
+          },
+          "evidence": {
+            "enum": [
+              "live",
+              "fixture",
+              "none"
+            ],
+            "title": "Evidence",
+            "type": "string"
+          },
+          "import_id": {
+            "format": "uuid",
+            "title": "Import Id",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "verified",
+              "fixture_passed",
+              "failed",
+              "incomplete"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "package_versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Package Versions",
+            "type": "object"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "provider-test.v1",
+            "default": "provider-test.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "import_id",
+          "provider",
+          "outcome",
+          "capability_status",
+          "evidence",
+          "symbol",
+          "start_date",
+          "end_date",
+          "checked_at",
+          "endpoints",
+          "package_versions",
+          "error_codes",
+          "note"
+        ],
+        "title": "ProviderTestReceipt",
         "type": "object"
       },
       "QuotaPublic": {
@@ -11787,6 +11936,101 @@
         "summary": "Providers"
       }
     },
+    "/api/v1/data/providers/{provider}/test": {
+      "post": {
+        "operationId": "test_data_provider",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "title": "Provider",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderProbeCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Test Provider"
+      }
+    },
     "/api/v1/data/resolve": {
       "post": {
         "operationId": "resolve_data_instruments",
@@ -12731,6 +12975,92 @@
           }
         ],
         "summary": "Refresh"
+      }
+    },
+    "/api/v1/datasets/{dataset_id}/yahoo-repair": {
+      "post": {
+        "operationId": "repair_yahoo_snapshot",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Dataset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Repair Yahoo"
       }
     },
     "/api/v1/evaluations/{evaluation_id}": {

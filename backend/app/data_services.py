@@ -164,6 +164,7 @@ def submit_import(
     kind="import",
     parent_version_id=None,
     upload=None,
+    derivation=None,
 ):
     if (
         not idempotency_key
@@ -178,6 +179,8 @@ def submit_import(
     request = body.model_dump(mode="json")
     if upload is not None:
         request["upload"] = upload
+    if derivation is not None:
+        request["_derivation"] = derivation
     fingerprint = digest(
         {
             "kind": kind,
@@ -238,7 +241,7 @@ def submit_import(
                 )
         modes = {
             "akshare": {"provider_native", "raw", "qfq", "hfq"},
-            "yfinance": {"provider_native"},
+            "yfinance": {"provider_native", "repair"},
             "openbb": {"provider_native"},
             "portable_fixture": {"raw"},
         }
@@ -251,6 +254,24 @@ def submit_import(
                 "Provider does not support this price mode",
                 422,
             )
+    if request.get("price_mode") == "repair":
+        if provider != "yfinance" or parent_version_id is None or derivation is None:
+            raise DomainError(
+                "repair_parent_required",
+                "Use the explicit Yahoo parent-snapshot repair action",
+                422,
+            )
+        from packages.marketdata.contracts import RepairSource
+
+        reference = RepairSource.model_validate(derivation)
+        if str(reference.dataset_version_id) != str(parent_version_id):
+            raise DomainError(
+                "repair_parent_mismatch", "Repair parent reference disagrees", 422
+            )
+    elif derivation is not None:
+        raise DomainError(
+            "repair_mode_required", "Repair reference requires repair mode", 422
+        )
     ids = request.get("listing_ids", [])
     if ids:
         listings = listing_contracts(session, owner_id, ids)
@@ -307,7 +328,11 @@ def submit_import(
         "block_days": settings.data_block_days,
         "schema_version": SCHEMA_VERSION,
         "transform_version": TRANSFORM_VERSION,
-        "worker_contract": "data-import.v1",
+        # Older workers must reject probe/repair jobs rather than treating a
+        # connection test as an ordinary publishing import.
+        "worker_contract": "data-import.v2"
+        if kind == "probe" or derivation
+        else "data-import.v1",
         "fixture_version": (
             PORTABLE_FIXTURE_VERSION
             if provider == "portable_fixture"
@@ -354,6 +379,12 @@ def cancel_import(session, import_id, owner_id):
 def retry_import(session, import_id, owner_id, settings):
     advisory_lock(session, "data-submit:" + str(owner_id))
     item = owned_import(session, import_id, owner_id, True)
+    if item.kind == "probe":
+        raise DomainError(
+            "new_probe_required",
+            "Create a new connection test to preserve this receipt",
+            422,
+        )
     if item.status not in {"failed", "partial", "cancelled"}:
         raise DomainError(
             "import_not_retryable",
