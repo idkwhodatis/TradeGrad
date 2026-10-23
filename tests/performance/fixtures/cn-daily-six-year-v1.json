@@ -1,0 +1,37 @@
+{
+  "calendar": "XSHG",
+  "calendar_version": "4.13.2",
+  "csv_bytes": 80119,
+  "csv_sha256": "bae7a1e660c4db02b60fd731754de3a1b66964cee70a05850c021503f54980f3",
+  "end": "2025-01-01",
+  "engineering_reference_only": true,
+  "listings": 1,
+  "market_data_evidence": false,
+  "maximum_imports": 1,
+  "maximum_physical_evaluations": 15,
+  "maximum_runs": 3,
+  "maximum_universes": 1,
+  "model_calls": 0,
+  "physical_evaluations_per_run": 5,
+  "profile_id": "cn-one-listing-six-year-v1",
+  "rows": 1456,
+  "schema_version": "tradegrad.daily-reference-profile.v1",
+  "seed_sha256": "09600e5e14cb293dfd0411b697d4ff95774c045845884620d4686f11485401ba",
+  "series_window": {
+    "end": "2024-04-01",
+    "start": "2024-01-01"
+  },
+  "session_dates_sha256": "4a361e8bd0651456511a0c919c8c63e6ae5c656258928fb021f46d636178b512",
+  "start": "2019-01-01",
+  "synthetic": true,
+  "train": {
+    "end": "2024-01-01",
+    "start": "2020-01-01"
+  },
+  "user_agreed_capacity": false,
+  "validation": {
+    "end": "2025-01-01",
+    "start": "2024-01-01"
+  },
+  "warmup_sessions": 20
+}

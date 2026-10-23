@@ -305,6 +305,13 @@ class FakeOwner:
                     "status": "complete",
                 }
             ).encode()
+        if "script.benchmark_v1_daily_reference" in arguments:
+            return json.dumps(
+                {
+                    "schema_version": "tradegrad.daily-reference-performance.v1",
+                    "status": "succeeded",
+                }
+            ).encode()
         if "script.benchmark_v1_workloads" in arguments:
             return json.dumps(
                 {
@@ -339,10 +346,11 @@ def test_fixture_preserves_every_gate_live_is_explicit_and_never_falls_back(
     assert not any(key.startswith("E2E_") for key in value.spawned[6][1]["env"])
     assert ("--grep" in browser) is (mode == "live")
     if mode == "fixture":
-        assert len(value.ran) == 4
+        assert len(value.ran) == 5
         assert "script.benchmark_v1" in value.ran[1][0]
         assert "script.benchmark_v1_workloads" in value.ran[2][0]
-        assert "tests/system/test_operations_pipeline.py" in value.ran[3][0]
+        assert "script.benchmark_v1_daily_reference" in value.ran[3][0]
+        assert "tests/system/test_operations_pipeline.py" in value.ran[4][0]
         assert (tmp_path / "var/ci-evidence/m6-workload-performance.json").exists()
     else:
         assert browser[-2:] == ["--grep", "@provider-flow"]
@@ -554,7 +562,7 @@ def test_main_emits_only_fixed_diagnostic_on_private_exception(monkeypatch, caps
     assert "unconfirmed" in captured.err
 
 
-@pytest.mark.parametrize("stage,commands", [("m5", 1), ("m6", 3), ("completion", 4)])
+@pytest.mark.parametrize("stage,commands", [("m5", 1), ("m6", 3), ("completion", 5)])
 def test_explicit_stage_preserves_only_that_stage_acceptance(
     tmp_path, monkeypatch, stage, commands
 ):

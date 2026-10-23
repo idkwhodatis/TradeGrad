@@ -408,6 +408,30 @@ def exercise(owner, root, source, private, node, mode):
     )
     if acceptance_stage(source) == "m6":
         return
+    result = owner.run(
+        [
+            sys.executable,
+            "-m",
+            "script.benchmark_v1_daily_reference",
+            "--origin",
+            API,
+            "--allow-representative-workload-mutations",
+            "--timeout-seconds",
+            "5",
+            "--total-timeout-seconds",
+            "600",
+        ],
+        cwd=root,
+        env=environment,
+        seconds=630,
+        maximum=1_048_576,
+    )
+    benchmark_evidence(
+        result,
+        evidence / "v1-daily-reference-performance.json",
+        "tradegrad.daily-reference-performance.v1",
+        "succeeded",
+    )
     report = private / "operations.xml"
     try:
         owner.run(
