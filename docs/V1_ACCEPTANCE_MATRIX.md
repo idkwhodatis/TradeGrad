@@ -22,9 +22,9 @@ not added into a fabricated unique-test total.
 | H2 | `0f6e83599ce3251dcdda1a97345d314271c53f3c`, [39868584582](https://github.com/idkwhodatis/TradeGrad/actions/runs/39868584582) | Three real adapter implementations with frozen SDK responses, immutable snapshots and original seed evaluation passed. Not live upstream acceptance. |
 | H3 | `5f9125caa47107824f75094dcec08b799a829b8f`, [39870319437](https://github.com/idkwhodatis/TradeGrad/actions/runs/39870319437) | Actual source TradeTGD, corrected warm-up, frozen model, durable recovery and real browser passed. |
 | H4 | `4dba3edc515a99345de806679f64091faddb8dd1`, [39875412249](https://github.com/idkwhodatis/TradeGrad/actions/runs/39875412249) | Configured primary research, persistent results/comparison/ownership and full then-current real browser suite passed. |
-| P5 | `e976a1b2a613069b2cdbc2af4441aa4692344820`, [39889731625](https://github.com/idkwhodatis/TradeGrad/actions/runs/39889731625) | M5 repair gate failed: all 52 paired-container cases passed, but both real worker recovery cases failed. Later final/browser gates were skipped; no failed or skipped result is relabelled passed. |
-| P6 | Prepared exact-tree M6 target `0f902765abd8860c6c9ab253ece8f6c3e8ee4227` | Full restore/upgrade/performance/recovery gate waits for P5, not accepted. |
-| PM | Prepared native operator target `49e838c85421657941ac173e2e786d96507dbf13` | Default-off allowlisted model admission; actual synthetic HTTP/SDK/kernel/browser gate waits for P6. No paid/live calls. |
+| P5 | `fd83d1f06dc5162652810081c57151e495820ac4`, [39892471923](https://github.com/idkwhodatis/TradeGrad/actions/runs/39892471923) | Narrow legacy-provenance repair is running, not accepted. Prior run39889731625 passed52 paired cases and reached both recovered artifact downloads, then failed provenance409; later final/browser gates were skipped. |
+| P6 | Prepared exact-tree M6 target `14049e338f1721bf3741fc95755f8c2756877fd4` | Full restore/upgrade/performance/recovery gate waits for P5, not accepted. |
+| PM | Prepared native operator target `e0736281bbb5d21e6904b9f2fe84c6ae18d6225c` | Default-off allowlisted model admission; actual synthetic HTTP/SDK/kernel/browser gate waits for P6. No paid/live calls. |
 | PC | Final cumulative completion target not yet frozen | All completion slices, portable operator admission, full independent Compose, three provider optimization flows, final browser/PG/recovery/performance gates required. |
 
 The prior unsafe ordinary-launcher run `39889096353` was superseded by the reviewed
