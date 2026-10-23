@@ -941,7 +941,7 @@ test("actual offline import failure retries the same request; narrow viewport re
   });
   await context.setOffline(false);
   await page
-    .getByRole("button", { name: "Import selected listings", exact: true })
+    .getByRole("button", { name: "Recover snapshot import", exact: true })
     .click();
   await expect(page).toHaveURL(/\/imports\/[0-9a-f-]{36}$/);
   expect(keys.length).toBe(2);

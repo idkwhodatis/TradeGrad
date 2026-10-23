@@ -93,7 +93,9 @@ test("owner connection preferences persist, reject stale edits and freeze real d
     const settings = page.getByRole("region", {
       name: "akshare connection settings",
     });
-    await expect(settings.getByText(/public_no_auth/)).toBeVisible();
+    await expect(
+      settings.getByText(/^Public access · public_no_auth\./),
+    ).toBeVisible();
     await expect(page.locator('input[type="password"]')).toHaveCount(0);
     await settings
       .getByLabel("Default price mode", { exact: true })
