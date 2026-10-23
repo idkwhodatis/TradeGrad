@@ -112,7 +112,15 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
         response = await call_next(request)
         response.headers["X-Correlation-ID"] = request.state.correlation_id
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Cache-Control"] = "no-store"
+        # Retain route-level privacy, never route-level permission to cache.
+        cache_directives = {
+            directive.partition("=")[0].strip().lower()
+            for value in response.headers.getlist("Cache-Control")
+            for directive in value.split(",")
+        }
+        response.headers["Cache-Control"] = (
+            "private, no-store" if "private" in cache_directives else "no-store"
+        )
         return response
 
     @app.exception_handler(DomainError)

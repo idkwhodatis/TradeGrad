@@ -65,7 +65,8 @@ def publish_view_result(
         path = settings.storage_root / result.artifact.storage_key
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(result.content)
-        with Session(migrated_engine) as session:
+        # Callers inspect the immutable artifact after this session has closed.
+        with Session(migrated_engine, expire_on_commit=False) as session:
             session.add(result.artifact)
             session.flush()
             completed = complete_evaluation(
