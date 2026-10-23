@@ -1,3 +1,9 @@
+import {
+  PriceReplayPanel,
+  ReturnAnalysisPanel,
+  type FillTarget,
+} from "@/components/result-exploration";
+import { fillNavigation } from "@/lib/result-exploration";
 import { BenchmarkResult } from "@/components/benchmark-result";
 import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
@@ -81,6 +87,11 @@ function BacktestContent({ result }: { result: ResultQueryPublic }) {
   const [filterError, setFilterError] = useState<string | null>(null);
   const [section, setSection] = useState<ResultSection>("positions");
   const [offset, setOffset] = useState(0);
+  const [sortBy, setSortBy] = useState("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [side, setSide] = useState<"" | "buy" | "sell">("");
+  const [orderStatus, setOrderStatus] = useState("");
+  const [replayTarget, setReplayTarget] = useState<FillTarget | null>(null);
   const [showCharts, setShowCharts] = useState(true);
   const snapshot = useQuery(datasetOptions(result.config.dataset.id));
   const listings = snapshot.data
@@ -101,6 +112,10 @@ function BacktestContent({ result }: { result: ResultQueryPublic }) {
   const rows = useQuery(
     resultsOptions(result.evaluation_id, {
       sections: [section],
+      sort_by: sortBy || undefined,
+      sort_direction: sortBy ? sortDirection : "asc",
+      side: side || undefined,
+      order_status: orderStatus || undefined,
       offset,
       limit: TABLE_LIMIT,
       max_points: MAX_POINTS,
@@ -137,6 +152,7 @@ function BacktestContent({ result }: { result: ResultQueryPublic }) {
       return;
     }
     setFilterError(null);
+    setReplayTarget(null);
     setFilter({ start, end, listing });
     setOffset(0);
   }
@@ -273,6 +289,7 @@ function BacktestContent({ result }: { result: ResultQueryPublic }) {
                   setStart("");
                   setEnd("");
                   setListing("");
+                  setReplayTarget(null);
                   setFilter({ start: "", end: "", listing: "" });
                   setOffset(0);
                   setFilterError(null);
@@ -356,6 +373,13 @@ function BacktestContent({ result }: { result: ResultQueryPublic }) {
           )}
           <BenchmarkResult value={charts.data?.benchmark ?? result.benchmark} />
         </Panel>
+        <PriceReplayPanel
+          result={result}
+          listings={listings}
+          filter={filter}
+          target={replayTarget}
+        />
+        <ReturnAnalysisPanel evaluationId={result.evaluation_id} />
         <Panel title="Positions, orders, fills and account series">
           <Field label="Persisted result table" id="result-section">
             <select
@@ -363,6 +387,10 @@ function BacktestContent({ result }: { result: ResultQueryPublic }) {
               value={section}
               onChange={(event) => {
                 setSection(event.target.value as ResultSection);
+                setSortBy("");
+                setSortDirection("asc");
+                setSide("");
+                setOrderStatus("");
                 setOffset(0);
               }}
             >
@@ -373,11 +401,93 @@ function BacktestContent({ result }: { result: ResultQueryPublic }) {
               ))}
             </select>
           </Field>
+          <div className="form-grid mt-4">
+            <Field label="Server sort column" id="result-sort">
+              <select
+                id="result-sort"
+                value={sortBy}
+                onChange={(event) => {
+                  setSortBy(event.target.value);
+                  setOffset(0);
+                }}
+              >
+                <option value="">Persisted row order</option>
+                {rows.data?.tables[section]?.sortable_columns?.map((column) => (
+                  <option key={column} value={column}>
+                    {column}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Server sort direction" id="result-sort-direction">
+              <select
+                id="result-sort-direction"
+                value={sortDirection}
+                disabled={!sortBy}
+                onChange={(event) => {
+                  setSortDirection(event.target.value as "asc" | "desc");
+                  setOffset(0);
+                }}
+              >
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+              </select>
+            </Field>
+            {["fills", "orders"].includes(section) && (
+              <Field label="Execution side filter" id="result-side">
+                <select
+                  id="result-side"
+                  value={side}
+                  onChange={(event) => {
+                    setSide(event.target.value as "" | "buy" | "sell");
+                    setOffset(0);
+                  }}
+                >
+                  <option value="">All sides</option>
+                  <option value="buy">Buy</option>
+                  <option value="sell">Sell</option>
+                </select>
+              </Field>
+            )}
+            {section === "orders" && (
+              <Field label="Order status filter" id="result-order-status">
+                <select
+                  id="result-order-status"
+                  value={orderStatus}
+                  onChange={(event) => {
+                    setOrderStatus(event.target.value);
+                    setOffset(0);
+                  }}
+                >
+                  <option value="">All statuses</option>
+                  {[
+                    "new",
+                    "pending",
+                    "submitted",
+                    "accepted",
+                    "partially_filled",
+                    "filled",
+                    "cancelled",
+                    "canceled",
+                    "rejected",
+                    "expired",
+                  ].map((status) => (
+                    <option value={status} key={status}>
+                      {label(status)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+          </div>
           <p className="text-xs muted mt-3">
-            Timestamps retain the engine's declared column units. Date windows
-            are [start, end). Orders filter by created_at, fills by timestamp,
-            positions by date, and closed trades by exit_time. An observable
-            order trace is not an internal strategy-decision trace.
+            Sorts and filters run on the complete verified table before bounded
+            pagination. Equal values preserve original row order; nulls are
+            last. Series stay chronological. Timestamps retain the engine's
+            declared column units. Date windows are [start, end). Orders filter
+            by created_at, fills by timestamp, positions by date, and closed
+            trades by exit_time. An observable order trace is not an internal
+            strategy-decision trace.
           </p>
           {rows.isPending ? (
             <Loading />
@@ -388,6 +498,27 @@ function BacktestContent({ result }: { result: ResultQueryPublic }) {
               <ResultTableView
                 table={rows.data.tables[section]}
                 title={`${label(section)} table`}
+                onReviewFill={
+                  section === "fills"
+                    ? (index) => {
+                        const navigation = fillNavigation(
+                          rows.data!.tables[section]!,
+                          index,
+                          (snapshot.data?.manifest.evaluator_symbol_mapping ??
+                            {}) as Record<string, unknown>,
+                        );
+                        if (navigation) {
+                          setReplayTarget(navigation);
+                          document
+                            .getElementById("replay-listing")
+                            ?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "center",
+                            });
+                        }
+                      }
+                    : undefined
+                }
               />
               {["equity", "drawdown", "cash", "margin"].includes(section) ? (
                 <p className="text-xs muted mt-3">
@@ -519,20 +650,42 @@ function ResultTableView({
   table,
   title,
   collapsed = false,
+  onReviewFill,
 }: {
   table: ResultTable;
   title: string;
   collapsed?: boolean;
+  onReviewFill?: (index: number) => void;
 }) {
   const columns: ColumnDef<ResultTable["rows"][number]>[] = useMemo(
-    () =>
-      table.columns.map((column, index) => ({
-        id: `${index}:${column.name}`,
-        accessorFn: (row) => row[index],
-        header: `${column.name} (${column.unit})`,
-        cell: ({ getValue }) => rawCell(getValue()),
-      })),
-    [table.columns],
+    () => [
+      ...(onReviewFill
+        ? [
+            {
+              id: "review-fill",
+              header: "Replay",
+              cell: ({ row }: { row: { index: number } }) => (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onReviewFill(row.index)}
+                >
+                  Review fill {table.row_indices?.[row.index] ?? row.index}
+                </Button>
+              ),
+            },
+          ]
+        : []),
+      ...table.columns.map<ColumnDef<ResultTable["rows"][number]>>(
+        (column, index) => ({
+          id: `${index}:${column.name}`,
+          accessorFn: (row) => row[index],
+          header: `${column.name} (${column.unit})`,
+          cell: ({ getValue }) => rawCell(getValue()),
+        }),
+      ),
+    ],
+    [table.columns, table.row_indices, onReviewFill],
   );
   const content = (
     <>

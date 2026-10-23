@@ -58,6 +58,13 @@ SECTIONS = (
 )
 
 
+def bundle_sections(bundle):
+    """Backward-compatible, explicitly allowlisted optional persisted sections."""
+    return SECTIONS + (
+        ("indicators",) if isinstance(bundle, dict) and "indicators" in bundle else ()
+    )
+
+
 def canonical_json_bytes(value: Any) -> bytes:
     return json.dumps(
         value, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False
@@ -512,6 +519,11 @@ def export_native_result(
             "trusted_ledger": False,
         },
     }
+    from .indicators import export_recorded_indicators
+
+    bundle["indicators"] = export_recorded_indicators(
+        getattr(result, "indicator_outputs", None)
+    )
     bundle["artifacts"] = [
         {
             "section": name,
@@ -519,7 +531,7 @@ def export_native_result(
             "sha256": _sha(bundle[name]),
             "bytes": len(canonical_json_bytes(bundle[name])),
         }
-        for name in SECTIONS
+        for name in bundle_sections(bundle)
     ]
     validate_result_bundle(bundle)
     return bundle
@@ -805,7 +817,13 @@ def _validate_native_observations(bundle: dict, start: date, end: date):
 def validate_result_bundle(bundle: Any) -> dict:
     _keys(
         bundle,
-        {"schema_version", "evaluation_mode", "result_trust", "artifacts", *SECTIONS},
+        {
+            "schema_version",
+            "evaluation_mode",
+            "result_trust",
+            "artifacts",
+            *bundle_sections(bundle),
+        },
         "ResultBundle",
     )
     _json_tree(bundle)
@@ -1020,15 +1038,20 @@ def validate_result_bundle(bundle: Any) -> dict:
     ):
         raise ValueError("Native trace cannot claim unobserved strategy intent")
     _validate_native_observations(bundle, start, end)
+    if "indicators" in bundle:
+        from .indicators import validate_indicators
+
+        validate_indicators(bundle["indicators"])
+    sections = bundle_sections(bundle)
     manifest = bundle["artifacts"]
-    if not isinstance(manifest, list) or len(manifest) != len(SECTIONS):
+    if not isinstance(manifest, list) or len(manifest) != len(sections):
         raise ValueError("Incomplete bundle artifact manifest")
     seen = set()
     for item in manifest:
         _keys(item, {"section", "media_type", "sha256", "bytes"}, "artifact")
         name = item["section"]
         if (
-            name not in SECTIONS
+            name not in sections
             or name in seen
             or item["media_type"] != "application/json"
         ):

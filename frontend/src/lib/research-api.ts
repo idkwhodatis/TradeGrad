@@ -211,3 +211,34 @@ export async function downloadResearchResult(
     );
   return data;
 }
+
+export const returnAnalysisOptions = (id: string) =>
+  queryOptions({
+    queryKey: ["research-return-analysis", id],
+    queryFn: async ({ signal }) =>
+      (
+        await sdk.readResearchReturnAnalysis({
+          path: { evaluation_id: id },
+          signal,
+        })
+      ).data,
+    enabled: Boolean(id),
+  });
+export const priceReplayOptions = (
+  id: string,
+  query: NonNullable<
+    import("@/client/types.gen").ReadResearchPriceReplayData["query"]
+  >,
+) =>
+  queryOptions({
+    queryKey: ["research-price-replay", id, query],
+    queryFn: async ({ signal }) =>
+      (
+        await sdk.readResearchPriceReplay({
+          path: { evaluation_id: id },
+          query,
+          signal,
+        })
+      ).data,
+    enabled: Boolean(id && query.listing_id),
+  });

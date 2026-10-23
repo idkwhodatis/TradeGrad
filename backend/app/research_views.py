@@ -66,6 +66,41 @@ TIME_COLUMNS = {
     "fills": "timestamp",
     "closed_trades": "exit_time",
 }
+SORT_COLUMNS = {
+    "positions": {"date", "symbol", "long_shares", "short_shares", "equity", "close"},
+    "orders": {
+        "created_at",
+        "updated_at",
+        "symbol",
+        "side",
+        "quantity",
+        "filled_quantity",
+        "commission",
+        "status",
+    },
+    "fills": {"timestamp", "symbol", "side", "quantity", "price", "commission"},
+    "closed_trades": {
+        "entry_time",
+        "exit_time",
+        "symbol",
+        "quantity",
+        "pnl",
+        "net_pnl",
+        "commission",
+    },
+}
+ORDER_STATUSES = {
+    "new",
+    "pending",
+    "submitted",
+    "accepted",
+    "partially_filled",
+    "filled",
+    "cancelled",
+    "canceled",
+    "rejected",
+    "expired",
+}
 MAX_POINTS = 5000
 MAX_TABLE_ROWS = 500
 MAX_OFFSET = 100_000
@@ -433,6 +468,10 @@ def query_result_table(
     offset=0,
     limit=100,
     timezone="UTC",
+    sort_by=None,
+    sort_direction="asc",
+    side=None,
+    order_status=None,
 ):
     if (
         section not in SECTIONS
@@ -449,6 +488,31 @@ def query_result_table(
             "invalid_result_query", "start must precede exclusive end", 422
         )
     columns = [item["name"] for item in table["columns"]]
+    allowed = SORT_COLUMNS.get(section, set()) & set(columns)
+    if (
+        (sort_by is not None and sort_by not in allowed)
+        or sort_direction not in {"asc", "desc"}
+        or (sort_by is None and sort_direction != "asc")
+    ):
+        raise DomainError(
+            "invalid_result_query",
+            "Unsupported sort column/direction for this result section",
+            422,
+        )
+    if side is not None and (
+        section not in {"orders", "fills"} or side not in {"buy", "sell"}
+    ):
+        raise DomainError(
+            "invalid_result_query",
+            "Side filtering supports only orders/fills and buy/sell",
+            422,
+        )
+    if order_status is not None and (
+        section != "orders" or order_status not in ORDER_STATUSES
+    ):
+        raise DomainError(
+            "invalid_result_query", "Unsupported order status filter", 422
+        )
     field = "timestamp" if section in SERIES else TIME_COLUMNS[section]
     rows = table["rows"]
     # Empty native positions are a supported no-observation case with no columns.
@@ -460,13 +524,40 @@ def query_result_table(
     )
     zone = ZoneInfo(timezone)
     filtered = []
-    for row in rows:
+    original_indices = {}
+    for index, row in enumerate(rows):
+        original_indices[id(row)] = index
         day = datetime.fromisoformat(row[time_index]).astimezone(zone).date()
         if start is not None and day < start or end is not None and day >= end:
             continue
         if symbol_index is not None and row[symbol_index] != symbol:
             continue
+        if side is not None and row[columns.index("side")] != side:
+            continue
+        if order_status is not None and row[columns.index("status")] != order_status:
+            continue
         filtered.append(row)
+    if sort_by is not None:
+        sort_index = columns.index(sort_by)
+        nonnull = [row for row in filtered if row[sort_index] is not None]
+        nulls = [row for row in filtered if row[sort_index] is None]
+
+        def sort_key(row):
+            value = row[sort_index]
+            if sort_by in {
+                "date",
+                "created_at",
+                "updated_at",
+                "timestamp",
+                "entry_time",
+                "exit_time",
+            }:
+                return (0, datetime.fromisoformat(value))
+            return (0, value) if type(value) in (int, float) else (1, str(value))
+
+        filtered = (
+            sorted(nonnull, key=sort_key, reverse=sort_direction == "desc") + nulls
+        )
     if section in SERIES:
         # Charts use the entire requested date window; table offset/limit do not
         # silently cut the chart before downsampling and lose extrema.
@@ -478,6 +569,12 @@ def query_result_table(
     sampled = section in SERIES and len(selected) < len(filtered)
     return ResultTable(
         columns=table["columns"],
+        row_indices=[original_indices[id(row)] for row in selected],
+        sortable_columns=sorted(allowed),
+        sort_by=sort_by,
+        sort_direction=sort_direction,
+        side=side,
+        order_status=order_status,
         rows=selected,
         total_rows=len(rows),
         filtered_rows=len(filtered),
@@ -537,6 +634,10 @@ def result_view(
     max_points=1000,
     offset=0,
     limit=100,
+    sort_by=None,
+    sort_direction="asc",
+    side=None,
+    order_status=None,
 ):
     sections = sections or ["equity", "drawdown"]
     if (
@@ -565,6 +666,7 @@ def result_view(
             symbol = "target_symbol"
     return ResultQueryPublic(
         **comparison_item(result).model_dump(),
+        engine_timezone=result.bundle["engine"]["resolved_config"]["timezone"],
         tables={
             section: query_result_table(
                 result.bundle[section],
@@ -576,6 +678,10 @@ def result_view(
                 offset=offset,
                 limit=limit,
                 timezone=result.bundle["engine"]["resolved_config"]["timezone"],
+                sort_by=sort_by,
+                sort_direction=sort_direction,
+                side=side,
+                order_status=order_status,
             )
             for section in sections
         },

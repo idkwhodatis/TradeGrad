@@ -47,8 +47,8 @@ from packages.tradegrad_adapter.config import (
 )
 from packages.tradegrad_adapter.results import (
     MAX_WIRE_BYTES,
-    SECTIONS,
     artifact_inventory,
+    bundle_sections,
     canonical_json_bytes,
     validate_result_bundle,
 )
@@ -146,7 +146,7 @@ def _refresh_sections(bundle):
             "sha256": _digest(canonical_json_bytes(bundle[section])),
             "bytes": len(canonical_json_bytes(bundle[section])),
         }
-        for section in SECTIONS
+        for section in bundle_sections(bundle)
     ]
 
 

@@ -37,6 +37,7 @@ INPUTS = (
     "packages/tradegrad_adapter/model_sdk_process.py",
     "workers/research/model_provider.py",
     "packages/tradegrad_adapter/results.py",
+    "packages/tradegrad_adapter/indicators.py",
     "packages/tradegrad_adapter/environment.py",
     "runtimes/evaluator/requirements.lock",
     "runtimes/research/requirements.lock",

@@ -1,7 +1,7 @@
 """Owner-scoped M3 research control and immutable provenance queries."""
 
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Header, Query, Request, Response
@@ -59,6 +59,8 @@ from backend.app.result_access import (
     record_result_access,
     record_verified_result_access,
 )
+from backend.app.result_exploration import price_replay, return_analysis
+from backend.app.result_exploration_schemas import PriceReplay, ReturnAnalysis
 from backend.app.schemas import AttemptPublic, Page
 from backend.app.services import DomainError, request_cancel
 
@@ -383,6 +385,10 @@ def read_research_results(
     max_points: int = Query(1000, ge=4, le=5000),
     offset: int = Query(0, ge=0, le=100000),
     limit: int = Query(100, ge=1, le=500),
+    sort_by: str | None = Query(None, max_length=40),
+    sort_direction: Literal["asc", "desc"] = "asc",
+    side: Literal["buy", "sell"] | None = None,
+    order_status: str | None = Query(None, max_length=40),
 ):
     result = load_owned_result(
         session, evaluation_id, user.id, request.app.state.settings
@@ -396,6 +402,10 @@ def read_research_results(
         max_points=max_points,
         offset=offset,
         limit=limit,
+        sort_by=sort_by,
+        sort_direction=sort_direction,
+        side=side,
+        order_status=order_status,
     )
     record_verified_result_access(session, result, user.id)
     session.commit()
@@ -496,3 +506,57 @@ def download_research_report(
 )
 def read_research_usage(run_id: UUID, user: CurrentUser, session: SessionDep):
     return research_usage(session, run_id, user.id)
+
+
+# These read paths use the same authorization, immutable byte/hash validation,
+# native trust checks and final-test exposure recording as all result views.
+
+
+@router.get(
+    "/research-evaluations/{evaluation_id}/return-analysis",
+    response_model=ReturnAnalysis,
+    operation_id="read_research_return_analysis",
+)
+def read_research_return_analysis(
+    evaluation_id: UUID, user: CurrentUser, session: SessionDep, request: Request
+):
+    result = load_owned_result(
+        session, evaluation_id, user.id, request.app.state.settings
+    )
+    response = return_analysis(result.bundle, result.dataset.manifest)
+    record_verified_result_access(session, result, user.id)
+    session.commit()
+    return response
+
+
+@router.get(
+    "/research-evaluations/{evaluation_id}/price-replay",
+    response_model=PriceReplay,
+    operation_id="read_research_price_replay",
+)
+def read_research_price_replay(
+    evaluation_id: UUID,
+    listing_id: UUID,
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+    start: date | None = None,
+    end: date | None = None,
+    offset: int = Query(0, ge=0, le=100000),
+    limit: int = Query(250, ge=1, le=500),
+):
+    result = load_owned_result(
+        session, evaluation_id, user.id, request.app.state.settings
+    )
+    response = price_replay(
+        result,
+        request.app.state.settings,
+        listing_id=listing_id,
+        start=start,
+        end=end,
+        offset=offset,
+        limit=limit,
+    )
+    record_verified_result_access(session, result, user.id)
+    session.commit()
+    return response

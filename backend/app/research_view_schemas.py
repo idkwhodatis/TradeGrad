@@ -134,6 +134,12 @@ class ResultColumn(ViewModel):
 
 class ResultTable(ViewModel):
     columns: list[ResultColumn]
+    row_indices: list[int] = Field(default_factory=list)
+    sortable_columns: list[str] = Field(default_factory=list)
+    sort_by: str | None = None
+    sort_direction: Literal["asc", "desc"] = "asc"
+    side: Literal["buy", "sell"] | None = None
+    order_status: str | None = None
     rows: list[list[Scalar]]
     total_rows: int
     filtered_rows: int
@@ -210,6 +216,7 @@ class ResultComparisonItem(ViewModel):
 
 class ResultQueryPublic(ResultComparisonItem):
     schema_version: Literal["tradegrad.result-query.v1"] = "tradegrad.result-query.v1"
+    engine_timezone: str
     tables: dict[ResultSection, ResultTable]
     capabilities: ResultCapabilities
     fees: ResultFees

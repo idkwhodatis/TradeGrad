@@ -23,6 +23,8 @@ import type {
   ResearchRunDetail,
   ResearchRunPublic,
   ResultQueryPublic,
+  PriceReplay,
+  ReturnAnalysis,
   StrategyDetail,
   StrategyPublic,
   Token,
@@ -177,6 +179,7 @@ async function fixture(
   slow = false,
   operatorProfiles = false,
   benchmarkEnd?: string,
+  recordedIndicators = false,
 ) {
   const [csv, metadataText, originalCode] = await Promise.all([
     readFile(new URL("../fixtures/research-cn.csv", import.meta.url)),
@@ -325,17 +328,26 @@ async function fixture(
   );
   expect(seed.code).toBe(originalCode);
   expect(seed.content_sha256).toBe(sha256(originalCode));
-  if (slow) {
+  if (slow || recordedIndicators) {
     // This source is only stored/syntax-parsed here; the sleep and strategy are
     // executed exclusively by the production Docker evaluator, never by Node/host.
-    const code = `import time as _e2e_time\n_e2e_time.sleep(5)\n${originalCode}`;
+    const recorded = recordedIndicators
+      ? originalCode.replace(
+          "    def on_bar(self, bar):",
+          `    def on_bar(self, bar):
+        self.record_indicator("observed_close", float(bar.close), symbol=bar.symbol, display_name="Declared observed close", unit="currency_per_share", pane=0)
+        self.record_indicator("observed_volume", float(bar.volume), symbol=bar.symbol, display_name="Declared observed volume", unit="shares", pane=1)
+`,
+        )
+      : originalCode;
+    const code = `${slow ? "import time as _e2e_time\n_e2e_time.sleep(5)\n" : ""}${recorded}`;
     const response = await request.post(api("/strategy-versions"), {
       headers: {
         ...authorization(auth),
         "Idempotency-Key": crypto.randomUUID(),
       },
       data: {
-        name: `E2E bounded 5s research seed ${crypto.randomUUID()}`,
+        name: `E2E ${slow ? "bounded 5s" : "recorded indicator"} research seed ${crypto.randomUUID()}`,
         task: "cn_time",
         parent_id: seed.id,
         code,
@@ -1377,4 +1389,140 @@ test("benchmark coverage error prevents submission and explicit None restores pr
   expect(await runsForDataset(request, owned.auth, body.dataset.id)).toEqual(
     [],
   );
+});
+
+test("persisted execution replay, declared indicators, monthly analysis and server sorts survive reload", async ({
+  page,
+  request,
+  owned,
+}) => {
+  test.setTimeout(360_000);
+  const { body, dataset } = await fixture(
+    request,
+    owned.auth,
+    false,
+    false,
+    undefined,
+    true,
+  );
+  body.optimizer = { ...body.optimizer, max_iterations: 0 };
+  await signIn(page);
+  await configure(page, body);
+  await preflight(page, body);
+  const accepted = await submit(page, owned);
+  await waitStatus(request, owned.auth, accepted.id, "succeeded");
+  await assertStopped(request, owned.auth, accepted.id);
+  const completed = (await evaluations(request, owned.auth, accepted.id)).find(
+    (item) => item.split === "train",
+  )!;
+  const base = `/research-evaluations/${completed.id}`;
+  const listing = String(
+    (dataset.manifest.listings as { listing_id: string }[])[0].listing_id,
+  );
+  const replay = await read<PriceReplay>(
+    request,
+    owned.auth,
+    `${base}/price-replay?listing_id=${listing}`,
+  );
+  expect(replay.markers.length).toBeGreaterThan(1);
+  expect(replay.indicators_status).toBe("available");
+  expect(replay.indicators.map((item) => item.name)).toEqual(
+    expect.arrayContaining([
+      "Declared observed close",
+      "Declared observed volume",
+    ]),
+  );
+  const analysis = await read<ReturnAnalysis>(
+    request,
+    owned.auth,
+    `${base}/return-analysis`,
+  );
+  expect(analysis.months.some((item) => item.status === "partial_period")).toBe(
+    true,
+  );
+  expect(analysis.valid_returns).toBeGreaterThan(0);
+  await page.goto(`/backtests/${completed.id}`);
+  await expect(
+    page.getByRole("img", {
+      name: "Pinned OHLCV, actual execution markers and declared recorded indicators",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: /^Monthly observed equity returns heatmap/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("img", {
+      name: /^Observed close-to-close return distribution/,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("table", { name: "Monthly return values and coverage" }),
+  ).toContainText("partial_period");
+  await page
+    .getByRole("button", {
+      name: `Select ${replay.markers[0].id}`,
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("region", { name: "Selected execution details" }),
+  ).toContainText(replay.markers[0].timestamp);
+  await page
+    .getByRole("button", { name: "Next execution", exact: true })
+    .click();
+  await expect(
+    page.getByRole("region", { name: "Selected execution details" }),
+  ).toContainText(replay.markers[1].timestamp);
+  await page.getByLabel("Persisted result table").selectOption("fills");
+  await expect(page.getByLabel("Server sort column")).toContainText("price");
+  await page.getByLabel("Server sort column").selectOption("price");
+  await page.getByLabel("Server sort direction").selectOption("desc");
+  const sorted = page.waitForResponse(
+    (response) =>
+      response.url().includes(`${base}/results`) &&
+      response.url().includes("side=buy"),
+  );
+  await page.getByLabel("Execution side filter").selectOption("buy");
+  expect((await sorted).status()).toBe(200);
+  const table = await read<ResultQueryPublic>(
+    request,
+    owned.auth,
+    `${base}/results?sections=fills&sort_by=price&sort_direction=desc&side=buy&limit=50`,
+  );
+  expect(table.tables.fills!.rows.length).toBeGreaterThan(0);
+  const fillIndex = table.tables.fills!.row_indices![0];
+  await page
+    .getByRole("button", { name: `Review fill ${fillIndex}`, exact: true })
+    .click();
+  await expect(
+    page.getByRole("region", { name: "Selected execution details" }),
+  ).toContainText(`fill:${fillIndex}`);
+  await expect(
+    page.getByRole("button", { name: "Reset trade focus" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Reset trade focus" }).click();
+  const original = await downloadedBytes(
+    page,
+    "Original result JSON",
+    `evaluation-${completed.id}.json`,
+  );
+  expect(sha256(original)).toBe(replay.artifact_sha256);
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Clear execution selection" }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("img", {
+      name: "Pinned OHLCV, actual execution markers and declared recorded indicators",
+    }),
+  ).toBeVisible();
+  const other = await token(request, true);
+  const denied = await request.get(
+    api(`${base}/price-replay?listing_id=${listing}`),
+    { headers: authorization(other) },
+  );
+  expect(denied.status()).toBe(404);
+  expect(
+    await read<ReturnAnalysis>(request, owned.auth, `${base}/return-analysis`),
+  ).toEqual(analysis);
 });

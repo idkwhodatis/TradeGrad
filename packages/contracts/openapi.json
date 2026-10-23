@@ -2685,6 +2685,10 @@
             ],
             "title": "End"
           },
+          "engine_timezone": {
+            "title": "Engine Timezone",
+            "type": "string"
+          },
           "evaluation_id": {
             "format": "uuid",
             "title": "Evaluation Id",
@@ -2823,6 +2827,7 @@
           "result_trust",
           "is_synthetic",
           "metrics",
+          "engine_timezone",
           "tables",
           "capabilities",
           "fees",
@@ -3458,6 +3463,118 @@
           "updated_at"
         ],
         "title": "ImportPublic",
+        "type": "object"
+      },
+      "IndicatorPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "session_date": {
+            "format": "date",
+            "title": "Session Date",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "session_date",
+          "value"
+        ],
+        "title": "IndicatorPoint",
+        "type": "object"
+      },
+      "IndicatorSeries": {
+        "additionalProperties": false,
+        "properties": {
+          "duplicate_session_points": {
+            "title": "Duplicate Session Points",
+            "type": "integer"
+          },
+          "instance_id": {
+            "title": "Instance Id",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Metadata",
+            "type": "object"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "pane": {
+            "title": "Pane",
+            "type": "integer"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/IndicatorPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "render_type": {
+            "title": "Render Type",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "available",
+              "unsupported_render",
+              "no_observations"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "total_points": {
+            "title": "Total Points",
+            "type": "integer"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "warmup_excluded": {
+            "title": "Warmup Excluded",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "instance_id",
+          "name",
+          "symbol",
+          "pane",
+          "render_type",
+          "unit",
+          "status",
+          "reason",
+          "metadata",
+          "points",
+          "total_points",
+          "warmup_excluded",
+          "duplicate_session_points"
+        ],
+        "title": "IndicatorSeries",
         "type": "object"
       },
       "JsonValue": {},
@@ -8243,6 +8360,132 @@
         "title": "PriceAssumptions",
         "type": "object"
       },
+      "PriceReplay": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_sha256": {
+            "title": "Artifact Sha256",
+            "type": "string"
+          },
+          "bar_count": {
+            "title": "Bar Count",
+            "type": "integer"
+          },
+          "bars": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewBar"
+            },
+            "title": "Bars",
+            "type": "array"
+          },
+          "dataset_sha256": {
+            "title": "Dataset Sha256",
+            "type": "string"
+          },
+          "end": {
+            "format": "date",
+            "title": "End",
+            "type": "string"
+          },
+          "evaluation_id": {
+            "format": "uuid",
+            "title": "Evaluation Id",
+            "type": "string"
+          },
+          "indicators": {
+            "items": {
+              "$ref": "#/components/schemas/IndicatorSeries"
+            },
+            "title": "Indicators",
+            "type": "array"
+          },
+          "indicators_reason": {
+            "title": "Indicators Reason",
+            "type": "string"
+          },
+          "indicators_status": {
+            "title": "Indicators Status",
+            "type": "string"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "listing_id": {
+            "format": "uuid",
+            "title": "Listing Id",
+            "type": "string"
+          },
+          "marker_count": {
+            "title": "Marker Count",
+            "type": "integer"
+          },
+          "markers": {
+            "items": {
+              "$ref": "#/components/schemas/TradeMarker"
+            },
+            "title": "Markers",
+            "type": "array"
+          },
+          "markers_truncated": {
+            "title": "Markers Truncated",
+            "type": "boolean"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "schema_version": {
+            "const": "tradegrad.price-replay.v1",
+            "default": "tradegrad.price-replay.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "evaluation_id",
+          "artifact_sha256",
+          "dataset_sha256",
+          "listing_id",
+          "symbol",
+          "timezone",
+          "start",
+          "end",
+          "bars",
+          "bar_count",
+          "offset",
+          "limit",
+          "markers",
+          "marker_count",
+          "markers_truncated",
+          "indicators_status",
+          "indicators_reason",
+          "indicators",
+          "warnings"
+        ],
+        "title": "PriceReplay",
+        "type": "object"
+      },
       "PriceSemantics": {
         "additionalProperties": false,
         "properties": {
@@ -10205,6 +10448,10 @@
             ],
             "title": "End"
           },
+          "engine_timezone": {
+            "title": "Engine Timezone",
+            "type": "string"
+          },
           "evaluation_id": {
             "format": "uuid",
             "title": "Evaluation Id",
@@ -10330,6 +10577,7 @@
           "result_trust",
           "is_synthetic",
           "metrics",
+          "engine_timezone",
           "tables",
           "capabilities",
           "fees",
@@ -10374,9 +10622,27 @@
             "title": "Offset",
             "type": "integer"
           },
+          "order_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Status"
+          },
           "returned_rows": {
             "title": "Returned Rows",
             "type": "integer"
+          },
+          "row_indices": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Row Indices",
+            "type": "array"
           },
           "rows": {
             "items": {
@@ -10412,6 +10678,48 @@
             "title": "Sampling",
             "type": "string"
           },
+          "side": {
+            "anyOf": [
+              {
+                "enum": [
+                  "buy",
+                  "sell"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Side"
+          },
+          "sort_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort By"
+          },
+          "sort_direction": {
+            "default": "asc",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "title": "Sort Direction",
+            "type": "string"
+          },
+          "sortable_columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sortable Columns",
+            "type": "array"
+          },
           "total_rows": {
             "title": "Total Rows",
             "type": "integer"
@@ -10430,6 +10738,248 @@
           "filter_status"
         ],
         "title": "ResultTable",
+        "type": "object"
+      },
+      "ReturnAnalysis": {
+        "additionalProperties": false,
+        "properties": {
+          "bins": {
+            "items": {
+              "$ref": "#/components/schemas/ReturnBin"
+            },
+            "title": "Bins",
+            "type": "array"
+          },
+          "collapsed_intraday_observations": {
+            "title": "Collapsed Intraday Observations",
+            "type": "integer"
+          },
+          "coverage_status": {
+            "default": "exchange_session_completeness_not_verified",
+            "enum": [
+              "exchange_session_completeness_not_verified",
+              "matches_pinned_session_dates",
+              "missing_pinned_sessions"
+            ],
+            "title": "Coverage Status",
+            "type": "string"
+          },
+          "definition_version": {
+            "const": "tradegrad.observed-equity-returns.v1",
+            "default": "tradegrad.observed-equity-returns.v1",
+            "title": "Definition Version",
+            "type": "string"
+          },
+          "distribution_definition": {
+            "title": "Distribution Definition",
+            "type": "string"
+          },
+          "excluded_returns": {
+            "title": "Excluded Returns",
+            "type": "integer"
+          },
+          "expected_sessions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Sessions"
+          },
+          "missing_sessions": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Missing Sessions",
+            "type": "array"
+          },
+          "monthly_definition": {
+            "title": "Monthly Definition",
+            "type": "string"
+          },
+          "months": {
+            "items": {
+              "$ref": "#/components/schemas/ReturnMonth"
+            },
+            "title": "Months",
+            "type": "array"
+          },
+          "observations": {
+            "title": "Observations",
+            "type": "integer"
+          },
+          "scope": {
+            "const": "full_persisted_evaluation_portfolio",
+            "default": "full_persisted_evaluation_portfolio",
+            "title": "Scope",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "available",
+              "insufficient_observations"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unexpected_observations": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Unexpected Observations",
+            "type": "array"
+          },
+          "unit": {
+            "const": "fraction",
+            "default": "fraction",
+            "title": "Unit",
+            "type": "string"
+          },
+          "valid_returns": {
+            "title": "Valid Returns",
+            "type": "integer"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "monthly_definition",
+          "distribution_definition",
+          "warnings",
+          "months",
+          "bins",
+          "observations",
+          "valid_returns",
+          "excluded_returns",
+          "collapsed_intraday_observations",
+          "status"
+        ],
+        "title": "ReturnAnalysis",
+        "type": "object"
+      },
+      "ReturnBin": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "lower": {
+            "title": "Lower",
+            "type": "number"
+          },
+          "upper": {
+            "title": "Upper",
+            "type": "number"
+          },
+          "upper_inclusive": {
+            "title": "Upper Inclusive",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lower",
+          "upper",
+          "count",
+          "upper_inclusive"
+        ],
+        "title": "ReturnBin",
+        "type": "object"
+      },
+      "ReturnMonth": {
+        "additionalProperties": false,
+        "properties": {
+          "baseline_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Date"
+          },
+          "first_observation": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Observation"
+          },
+          "last_observation": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Observation"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "observations": {
+            "title": "Observations",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "observed_month",
+              "partial_period",
+              "missing_observations",
+              "invalid_base"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "month",
+          "value",
+          "status",
+          "first_observation",
+          "last_observation",
+          "baseline_date",
+          "observations",
+          "reason"
+        ],
+        "title": "ReturnMonth",
         "type": "object"
       },
       "RiskConfig": {
@@ -11780,6 +12330,71 @@
           "expires_in"
         ],
         "title": "Token",
+        "type": "object"
+      },
+      "TradeMarker": {
+        "additionalProperties": false,
+        "properties": {
+          "commission": {
+            "title": "Commission",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "on_price_bar": {
+            "title": "On Price Bar",
+            "type": "boolean"
+          },
+          "order_id": {
+            "title": "Order Id",
+            "type": "string"
+          },
+          "price": {
+            "title": "Price",
+            "type": "number"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "number"
+          },
+          "row_index": {
+            "title": "Row Index",
+            "type": "integer"
+          },
+          "session_date": {
+            "format": "date",
+            "title": "Session Date",
+            "type": "string"
+          },
+          "side": {
+            "title": "Side",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "timestamp": {
+            "title": "Timestamp",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "row_index",
+          "session_date",
+          "timestamp",
+          "symbol",
+          "side",
+          "price",
+          "quantity",
+          "commission",
+          "order_id",
+          "on_price_bar"
+        ],
+        "title": "TradeMarker",
         "type": "object"
       },
       "UniverseAssumptions": {
@@ -19482,6 +20097,149 @@
         "summary": "Compare Research Results"
       }
     },
+    "/api/v1/research-evaluations/{evaluation_id}/price-replay": {
+      "get": {
+        "operationId": "read_research_price_replay",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 250,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceReplay"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Research Price Replay"
+      }
+    },
     "/api/v1/research-evaluations/{evaluation_id}/report": {
       "get": {
         "operationId": "download_research_report",
@@ -19688,6 +20446,74 @@
               "title": "Limit",
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "sort_by",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sort By"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort_direction",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Sort Direction",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "side",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "buy",
+                    "sell"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Side"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order_status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Order Status"
+            }
           }
         ],
         "responses": {
@@ -19824,6 +20650,81 @@
           }
         ],
         "summary": "Download Research Results"
+      }
+    },
+    "/api/v1/research-evaluations/{evaluation_id}/return-analysis": {
+      "get": {
+        "operationId": "read_research_return_analysis",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReturnAnalysis"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Research Return Analysis"
       }
     },
     "/api/v1/research-runs": {

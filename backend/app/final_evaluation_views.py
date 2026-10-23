@@ -233,6 +233,7 @@ def final_result_view(
         result_trust=bundle["result_trust"],
         is_synthetic=result.dataset.is_synthetic,
         metrics=bundle["metrics"],
+        engine_timezone=bundle["engine"]["resolved_config"]["timezone"],
         tables={
             section: query_result_table(
                 bundle[section],

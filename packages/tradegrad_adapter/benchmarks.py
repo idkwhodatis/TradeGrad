@@ -387,7 +387,7 @@ def attach_comparison(bundle, prepared):
     result = copy.deepcopy(bundle)
     result["benchmark"] = build_comparison(prepared, account_observations(bundle))
     if result.get("evaluation_mode") == "native_akquant":
-        from .results import SECTIONS, canonical_json_bytes
+        from .results import bundle_sections, canonical_json_bytes
 
         result["capabilities"]["benchmark"] = True
         result["artifacts"] = [
@@ -399,7 +399,7 @@ def attach_comparison(bundle, prepared):
                 ).hexdigest(),
                 "bytes": len(canonical_json_bytes(result[name])),
             }
-            for name in SECTIONS
+            for name in bundle_sections(result)
         ]
     return result
 

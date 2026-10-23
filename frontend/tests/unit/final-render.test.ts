@@ -328,6 +328,7 @@ describe("final UI render contracts with explicit local fixtures", () => {
       },
     } as FinalEvaluationDetail;
     const result: FinalResultQuery = {
+      engine_timezone: "Asia/Shanghai",
       artifact_sha256: sha,
       candidate_key: `final:${two}`,
       code_sha256: sha,
