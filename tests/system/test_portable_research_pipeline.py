@@ -109,7 +109,7 @@ class PortableProcessHarness(ResearchProcessHarness):
                 "state": "user_fixed",
                 "as_of": datetime.now(UTC).isoformat(),
                 "members": [
-                    {"listing_id": value, "member_from": None, "member_to": None}
+                    {"listing_id": value, "valid_from": None, "valid_to": None}
                     for value in imported["listing_ids"]
                 ],
                 "evidence": [],
@@ -294,7 +294,13 @@ def test_real_portable_api_queue_both_containers_lineage_results_and_ownership(
         "One smoke gate cannot certify a runtime",
     )
     h.request(other, "GET", f"/portable-runs/{run_id}", status=404)
-    h.request(client, "GET", f"/research-runs/{run_id}", status=404)
+    incompatible = h.request(
+        client, "GET", f"/research-runs/{run_id}", status=409
+    ).json()
+    require(
+        incompatible["code"] == "invalid_research_config",
+        "Owned cross-family research lookup did not reject the incompatible config",
+    )
     rows = {}
     for resource in ["candidates", "evaluations", "model-calls", "checkpoints"]:
         rows[resource] = h.request(
