@@ -27,6 +27,11 @@ class FakeSession:
         self.rows = []
         self.events = events if events is not None else []
         self.flushes = 0
+        self.admissions = 0
+
+    def connection(self):
+        self.admissions += 1  # inert stand-in; real PG ordering is a separate gate
+        return self
 
     def scalar(self, statement):
         model = statement.column_descriptions[0]["entity"]
@@ -431,3 +436,15 @@ def test_duplicate_legacy_tree_sync_failure_is_not_reported_as_success(
             seed(session, fixture_inputs)
     assert session.flushes == 1 and len(session.rows) == 6
     assert all(p.read_bytes() == content for p, content in before.items())
+
+
+def test_direct_seed_admits_transaction_before_storage(fixture_inputs, monkeypatch):
+    session = FakeSession()
+    original = bootstrap.provision_directory
+
+    def provision(*args, **kwargs):
+        assert session.admissions == 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(bootstrap, "provision_directory", provision)
+    seed(session, fixture_inputs)

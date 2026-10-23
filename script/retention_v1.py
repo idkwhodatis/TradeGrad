@@ -1,4 +1,4 @@
-"""Operator-only cold retention preview. Apply is deliberately unsupported."""
+"""Operator-only locked cold retention. Dry-run first; explicit narrow apply."""
 
 import argparse
 import json
@@ -6,12 +6,10 @@ import os
 import sys
 from pathlib import Path
 
+from backend.app.core.maintenance import MaintenanceBusy
 from backend.app.operations_backup import BackupLimits, PostgresDatabase
-from backend.app.operations_retention import (
-    APPLY_BLOCKER,
-    RetentionPolicy,
-    preview_retention,
-)
+from backend.app.operations_cold_retention import ACKNOWLEDGEMENT, cold_retention
+from backend.app.operations_retention import RetentionError, RetentionPolicy
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -34,7 +32,14 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument(
         "--apply",
         action="store_true",
-        help="Unsupported; fails before opening storage or the database",
+        help="Delete only freshly verified candidates matching a prior dry-run plan",
+    )
+    parser.add_argument(
+        "--plan-sha256", help="Exact hash returned by a completed dry-run"
+    )
+    parser.add_argument("--acknowledge-apply", choices=[ACKNOWLEDGEMENT])
+    parser.add_argument(
+        "--receipt", type=Path, help="New private JSONL receipt outside managed storage"
     )
     parser.add_argument("--temporary-days", type=int, default=7)
     parser.add_argument(
@@ -55,8 +60,15 @@ def main(argv: list[str] | None = None) -> int:
             "--" + name.replace("_", "-"), type=int, default=getattr(defaults, name)
         )
     args = parser.parse_args(argv)
-    if args.apply:
-        print(APPLY_BLOCKER, file=sys.stderr)
+    if args.apply and (
+        not args.plan_sha256
+        or args.acknowledge_apply != ACKNOWLEDGEMENT
+        or args.receipt is None
+    ):
+        print(
+            "Apply requires --plan-sha256, --acknowledge-apply and --receipt. Nothing was deleted.",
+            file=sys.stderr,
+        )
         return 2
     try:
         policy = RetentionPolicy(
@@ -84,21 +96,37 @@ def main(argv: list[str] | None = None) -> int:
         if not value:
             print("Database connection environment variable is unset.", file=sys.stderr)
             return 2
-        result = preview_retention(
+        result = cold_retention(
             database=PostgresDatabase(value),
             storage_root=args.storage,
             policy=policy,
             limits=limits,
             quiesced=True,
+            apply=args.apply,
+            expected_plan_sha256=args.plan_sha256,
+            acknowledgement=args.acknowledge_apply,
+            receipt_path=args.receipt,
         )
         print(json.dumps(result, sort_keys=True))
         return 0
+    except (MaintenanceBusy, RetentionError) as exc:
+        # These application errors contain only fixed safe operator messages.
+        print(str(exc), file=sys.stderr)
+        if args.apply:
+            print(
+                "Apply may be partial; inspect the private receipt. No rollback is implied.",
+                file=sys.stderr,
+            )
+        return 1
     except KeyboardInterrupt:
-        print("Preview interrupted. No deletion was attempted.", file=sys.stderr)
+        print(
+            "Cold operation interrupted; inspect the private receipt if apply was requested. No rollback is implied.",
+            file=sys.stderr,
+        )
         return 130
     except Exception:  # noqa: BLE001 -- database/path exceptions must not reveal private data
         print(
-            "Cold inspection failed; no complete preview. No deletion was attempted.",
+            "Cold operation failed; inspect the private receipt if apply was requested. No rollback is implied.",
             file=sys.stderr,
         )
         return 1

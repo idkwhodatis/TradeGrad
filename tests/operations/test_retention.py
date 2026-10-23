@@ -398,6 +398,13 @@ def test_cli_default_dry_run_and_apply_exit_code(source, monkeypatch, capsys):
     monkeypatch.setattr(
         retention_v1, "PostgresDatabase", lambda value: Database(source[2])
     )
+    # The old advisory helper is still tested here; actual locked apply is a
+    # separate real-PG gate, not silently simulated by this CLI-contract test.
+    monkeypatch.setattr(
+        retention_v1,
+        "cold_retention",
+        lambda **kwargs: {"dry_run": not kwargs["apply"]},
+    )
     args = [
         "--storage",
         str(source[0]),
@@ -415,7 +422,7 @@ def test_cli_default_dry_run_and_apply_exit_code(source, monkeypatch, capsys):
 
     monkeypatch.setattr(retention_v1, "PostgresDatabase", forbidden)
     assert retention_v1.main(args + ["--apply"]) == 2
-    assert "unsupported" in capsys.readouterr().err
+    assert "requires" in capsys.readouterr().err
     assert_unchanged(source)
 
 

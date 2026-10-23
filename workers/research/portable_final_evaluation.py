@@ -4,6 +4,7 @@ import socket
 import time
 from uuid import UUID, uuid4
 
+from backend.app.core.maintenance import guarded_worker
 from backend.app.models import Artifact, Evaluation, ResearchRun
 from backend.app.portable_final_services import (
     begin_final_evaluation,
@@ -24,6 +25,7 @@ from workers.research.portable_optimization import (
 )
 
 
+@guarded_worker
 def execute_portable_final(run_id, generation, settings, factory):
     from runtimes.evaluator.portable_runner import PortableDockerEvaluator
 

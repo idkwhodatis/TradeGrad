@@ -18,6 +18,7 @@ from pydantic import TypeAdapter
 from sqlalchemy.dialects.postgresql import insert
 
 from backend.app.core.config import Settings
+from backend.app.core.maintenance import guarded_worker
 from backend.app.models import (
     Artifact,
     DatasetVersion,
@@ -165,6 +166,7 @@ def confirm_stop(runner, evaluation_id: str) -> bool:
         return False
 
 
+@guarded_worker
 def execute_configured(run_id: str, generation: int, settings: Settings, factory):
     # Imports are deliberately lazy: API/dispatcher/M1 tests do not load research SDKs.
     from packages.tradegrad_adapter.model_calls import ModelProviderFailure

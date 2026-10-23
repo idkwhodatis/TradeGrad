@@ -21,6 +21,7 @@ import tempfile
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from functools import wraps
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO, Protocol
 
@@ -350,10 +351,10 @@ class PostgresDatabase:
         env["PGSSLMODE"] = str(self._url.query.get("sslmode", "prefer"))
         return env
 
-    def _inspect(self, function):
+    def _inspection_engine(self):
         _reject_ambient_libpq_settings()
         _effective_home()
-        engine = create_engine(
+        return create_engine(
             self._url,
             poolclass=NullPool,
             hide_parameters=True,
@@ -364,6 +365,9 @@ class PostgresDatabase:
                 "options": "-c statement_timeout=10000 -c search_path=public",
             },
         )
+
+    def _inspect(self, function):
+        engine = self._inspection_engine()
         try:
             with engine.connect() as connection:
                 connection.execute(text("SET TRANSACTION READ ONLY"))
@@ -798,6 +802,23 @@ def _application_ref(value: str):
         raise BackupError("Application reference must be an exact lowercase Git SHA")
 
 
+def _shared_storage_reader(function):
+    @wraps(function)
+    def guarded(*args, **kwargs):
+        from backend.app.core.storage_barrier import storage_guard
+
+        if kwargs.get("quiesced") is not True:
+            raise BackupError(
+                "Explicit acknowledgement that API, all workers and writers are stopped is required"
+            )
+        root = _directory(kwargs["storage_root"])
+        with storage_guard(root):
+            return function(*args, **kwargs)
+
+    return guarded
+
+
+@_shared_storage_reader
 def create_backup(
     *,
     database: Database,
@@ -1026,62 +1047,65 @@ def restore_backup(
     environment = database.environment()
     tools.check_versions(environment, major, limits)
     storage_root = _new_directory(storage_root, durable_parent)
-    _write_new(
-        storage_root / ".restore-incomplete",
-        b"Do not start services. Restore has not completed.\n",
-    )
-    for directory in manifest["storage_directories"]:
-        provision_directory(storage_root / directory, durable_parent=storage_root)
-    for item in manifest["files"]:
-        if item["path"].startswith("storage/"):
-            _copy(backup_root, storage_root / item["path"][8:], item, storage_root)
-    # Recheck all backup bytes and target emptiness immediately before SQL execution.
-    verify_backup(backup_root, application_ref=application_ref, limits=limits)
-    if database.empty_target_major() != major:
-        raise BackupError("Restore target changed")
-    dump_entry = next(
-        item for item in manifest["files"] if item["path"] == "database.dump"
-    )
-    # A private, unlinked spool prevents a changed archive path from changing the
-    # already-verified SQL stream. This costs up to max_dump_bytes extra disk.
-    original, _ = _open_file(backup_root, "database.dump")
-    with original, tempfile.TemporaryFile(dir=storage_root) as dump:
-        _copy_stream(original, dump, dump_entry)
-        dump.seek(0)
-        tools.runner(
-            tools.pg_restore
-            + (
-                "--exit-on-error",
-                "--single-transaction",
-                "--no-owner",
-                "--no-privileges",
-                "--no-tablespaces",
-                "--no-password",
-                "--dbname=" + database.database_name,
-            ),
-            env=environment,
-            stdin=dump,
-            stdout=io.BytesIO(),
-            timeout=limits.timeout_seconds,
-            max_output_bytes=1024 * 1024,
+    from backend.app.core.storage_barrier import storage_guard
+
+    with storage_guard(storage_root):
+        _write_new(
+            storage_root / ".restore-incomplete",
+            b"Do not start services. Restore has not completed.\n",
         )
-    snapshot = database.source_snapshot(limits)
-    if (
-        snapshot["schema_revision"] != manifest["schema_revision"]
-        or snapshot["postgres_major"] != major
-    ):
-        raise BackupError(
-            "Restored database version differs; target remains incomplete"
+        for directory in manifest["storage_directories"]:
+            provision_directory(storage_root / directory, durable_parent=storage_root)
+        for item in manifest["files"]:
+            if item["path"].startswith("storage/"):
+                _copy(backup_root, storage_root / item["path"][8:], item, storage_root)
+        # Recheck all backup bytes and target emptiness immediately before SQL execution.
+        verify_backup(backup_root, application_ref=application_ref, limits=limits)
+        if database.empty_target_major() != major:
+            raise BackupError("Restore target changed")
+        dump_entry = next(
+            item for item in manifest["files"] if item["path"] == "database.dump"
         )
-    entries = [
-        {**item, "path": item["path"][8:]}
-        for item in manifest["files"]
-        if item["path"].startswith("storage/")
-    ]
-    for item in entries:
-        if _hash_file(storage_root, item["path"], limits.max_file_bytes) != item:
-            raise BackupError("Restored storage failed integrity verification")
-    _validate_references(storage_root, entries, snapshot, limits)
-    (storage_root / ".restore-incomplete").unlink()
-    fsync_directory(storage_root)
-    return manifest
+        # A private, unlinked spool prevents a changed archive path from changing the
+        # already-verified SQL stream. This costs up to max_dump_bytes extra disk.
+        original, _ = _open_file(backup_root, "database.dump")
+        with original, tempfile.TemporaryFile(dir=storage_root) as dump:
+            _copy_stream(original, dump, dump_entry)
+            dump.seek(0)
+            tools.runner(
+                tools.pg_restore
+                + (
+                    "--exit-on-error",
+                    "--single-transaction",
+                    "--no-owner",
+                    "--no-privileges",
+                    "--no-tablespaces",
+                    "--no-password",
+                    "--dbname=" + database.database_name,
+                ),
+                env=environment,
+                stdin=dump,
+                stdout=io.BytesIO(),
+                timeout=limits.timeout_seconds,
+                max_output_bytes=1024 * 1024,
+            )
+        snapshot = database.source_snapshot(limits)
+        if (
+            snapshot["schema_revision"] != manifest["schema_revision"]
+            or snapshot["postgres_major"] != major
+        ):
+            raise BackupError(
+                "Restored database version differs; target remains incomplete"
+            )
+        entries = [
+            {**item, "path": item["path"][8:]}
+            for item in manifest["files"]
+            if item["path"].startswith("storage/")
+        ]
+        for item in entries:
+            if _hash_file(storage_root, item["path"], limits.max_file_bytes) != item:
+                raise BackupError("Restored storage failed integrity verification")
+        _validate_references(storage_root, entries, snapshot, limits)
+        (storage_root / ".restore-incomplete").unlink()
+        fsync_directory(storage_root)
+        return manifest

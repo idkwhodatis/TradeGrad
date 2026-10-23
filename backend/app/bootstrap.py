@@ -34,6 +34,7 @@ FIXTURES = ROOT / "tests" / "baseline" / "fixtures"
 def seed_fixtures(
     session, user: User, storage_root: Path, source_root: Path = FIXTURES
 ):
+    session.connection()  # PG shared admission before any storage publication
     # Installation owns this boundary and its ancestry. Never infer an existing
     # ancestor or silently create the storage root during bootstrap.
     provision_directory(storage_root, durable_parent=storage_root)

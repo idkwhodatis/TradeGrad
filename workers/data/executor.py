@@ -20,6 +20,7 @@ from backend.app.core.atomic_storage import (
 )
 from backend.app.core.config import get_settings
 from backend.app.core.db import create_db_engine, session_factory
+from backend.app.core.maintenance import guarded_worker
 from backend.app.data_services import (
     canonical,
     claim_import,
@@ -679,6 +680,7 @@ def _verify_repair_parent(factory, item_id, settings):
             )
 
 
+@guarded_worker
 def execute(import_id, generation, settings=None, factory=None):
     settings = settings or get_settings()
     factory = factory or session_factory(create_db_engine(settings))

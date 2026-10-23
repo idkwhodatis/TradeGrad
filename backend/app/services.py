@@ -14,6 +14,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
+from backend.app.core import maintenance  # noqa: F401 -- also guards direct Session callers
 from backend.app.core.config import Settings
 from backend.app.models import (
     Artifact,

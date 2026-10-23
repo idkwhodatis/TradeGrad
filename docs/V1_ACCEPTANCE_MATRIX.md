@@ -260,10 +260,13 @@ pure checks and prepared exact-stack tests; hosted PostgreSQL/system/Chromium
 acceptance is not claimed by this local preparation. Receipt creation/verification
 does not prove restoration; stale/version-mismatched observations remain explicit.
 
-V22/B7 cleanup remains incomplete: [V1_RETENTION.md](V1_RETENTION.md) provides a
-strict preview, fail-closed apply refusal and exact cooperative-writer-barrier plan.
-The finite follow-on must implement actual safe cleanup and prove retry/resume/restore
-afterward. No scope waiver is inferred. The representative workload/hardware/capacity
+V22/B7 cleanup now has an implemented, dry-run-first cold apply command with
+cooperative PostgreSQL/root writer exclusion, fresh-plan identity verification,
+strict immutable/reference protection and a durable partial-cleanup journal; see
+[V1_RETENTION.md](V1_RETENTION.md). This is implementation, not hosted acceptance:
+real concurrent-writer/cleanup/restore and full retry/resume-after-cleanup gates
+remain required. Existing persistent Run logs remain retained, not relabelled
+as disposable high-volume logs. No scope waiver is inferred. The representative workload/hardware/capacity
 portion of B7 also remains open; bounded samples and 76-row smoke are not a substitute.
 
 ## B9 bounded-admission preparation update (2026-10-23)

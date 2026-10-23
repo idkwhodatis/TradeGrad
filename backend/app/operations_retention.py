@@ -1,9 +1,8 @@
-"""Bounded, cold retention *preview*, never a garbage collector.
+"""Legacy bounded read-only retention preview, never an apply authority.
 
-Writers do not participate in a shared retention exclusion protocol. In
-particular, an atomic publisher may still hold a temporary inode which a
-sweeper would unlink. Database quiescence and two equal scans cannot establish
-that no writer exists. Apply therefore fails before accessing DB or storage.
+The cold command uses the cooperative barrier in operations_cold_retention.
+This helper remains a read-only inspection API for existing callers/tests and
+cannot bypass that protocol, fresh-plan confirmation or durable receipt.
 """
 
 from __future__ import annotations
@@ -30,9 +29,8 @@ from backend.app.operations_backup import (
 
 FORMAT = "tradegrad.retention-preview.v1"
 APPLY_BLOCKER = (
-    "Retention apply is unsupported: all writers must first share a proven "
-    "exclusion protocol with cleanup, and discardable logs need a separate "
-    "owned namespace. Nothing was deleted."
+    "This advisory preview cannot apply: use the cold-maintenance exclusion protocol "
+    "and freshly approved plan. Nothing was deleted."
 )
 UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 # These are literal layouts emitted by atomic_storage.publish_bytes callers.

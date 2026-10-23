@@ -16,6 +16,7 @@ from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 from backend.app.core.atomic_storage import publish_bytes
+from backend.app.core.maintenance import guarded_worker
 from backend.app.models import Artifact, DatasetVersion, ResearchRun, StrategyVersion
 from backend.app.portable_services import (
     begin_portable_evaluation,
@@ -203,6 +204,7 @@ def _confirmed_stop(runner, evaluation_id):
         return False
 
 
+@guarded_worker
 def execute_portable_configured(run_id: str, generation: int, settings, factory):
     from packages.tradegrad_adapter.model_calls import ModelProviderFailure
     from packages.tradegrad_adapter.model_profiles import (

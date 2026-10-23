@@ -4,6 +4,7 @@ import socket
 import time
 from uuid import UUID, uuid4
 
+from backend.app.core.maintenance import guarded_worker
 from backend.app.final_evaluation_services import (
     begin_final_evaluation,
     complete_final_evaluation,
@@ -20,6 +21,7 @@ from workers.research.lease import AttemptLease
 from workers.research.optimization import confirm_stop
 
 
+@guarded_worker
 def execute_final(run_id, generation, settings, factory):
     from runtimes.evaluator.runner import DockerEvaluator
     from workers.research.executor import publish_artifacts

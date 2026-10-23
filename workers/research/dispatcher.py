@@ -7,6 +7,7 @@ Run and checks its generation. We do not claim end-to-end exactly-once execution
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from backend.app.core import maintenance  # noqa: F401 -- before queue/row locks
 from backend.app.models import OutboxEvent, utcnow
 from workers.research.queue import TASK_NAME, create_queue_app
 

@@ -1,5 +1,6 @@
 from sqlalchemy import select, text
 
+from backend.app.core import maintenance  # noqa: F401 -- before queue/row locks
 from backend.app.models import DataOutbox, utcnow
 from workers.data.queue import TASK_NAME, create_data_queue
 

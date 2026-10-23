@@ -16,6 +16,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from backend.app.core.config import Settings, get_settings
 from backend.app.core.db import create_db_engine, session_factory
+from backend.app.core.maintenance import guarded_worker
 from backend.app.models import (
     DatasetVersion,
     ResearchRun,
@@ -175,11 +176,14 @@ def publish_artifacts(root: Path, target: Path, outcome: dict, max_bytes: int):
     return artifacts
 
 
-def execute(run_id: str, generation: int, settings: Settings | None = None):
+@guarded_worker
+def execute(
+    run_id: str, generation: int, settings: Settings | None = None, factory=None
+):
     from runtimes.evaluator.runner import DockerEvaluator
 
     settings = settings or get_settings()
-    factory = session_factory(create_db_engine(settings))
+    factory = factory or session_factory(create_db_engine(settings))
     with factory() as session:
         current = session.get(ResearchRun, UUID(run_id))
         schema = current.config.get("schema_version") if current is not None else None

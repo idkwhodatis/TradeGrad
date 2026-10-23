@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from backend.app.core import maintenance  # noqa: F401 -- installs transaction admission guard
 from backend.app.core.config import Settings
 
 

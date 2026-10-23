@@ -122,8 +122,11 @@ def provision_directory(path: Path, *, durable_parent: Path) -> None:
     inferred. This also repairs interrupted/concurrent creation below that
     boundary, flushing the leaf before return; it does not certify power loss.
     """
-    fd = _prepare_directory(path, durable_parent)
-    os.close(fd)
+    from backend.app.core.storage_barrier import storage_guard
+
+    with storage_guard(durable_parent):
+        fd = _prepare_directory(path, durable_parent)
+        os.close(fd)
 
 
 def sync_tree(root: Path) -> None:
@@ -146,7 +149,7 @@ def sync_tree(root: Path) -> None:
         fsync_directory(path)
 
 
-def publish_bytes(
+def _publish_bytes(
     target: Path, content: bytes, *, sha256: str, durable_root: Path | None = None
 ) -> None:
     """Publish all bytes or none, then fsync the final directory before returning.
@@ -209,3 +212,20 @@ def publish_bytes(
                 os.fsync(directory_fd)
             finally:
                 os.close(directory_fd)
+
+
+def publish_bytes(
+    target: Path, content: bytes, *, sha256: str, durable_root: Path | None = None
+) -> None:
+    """Guard the durable root for the whole atomic publication, including cleanup.
+
+    Legacy no-root publication is an offline helper outside managed storage; it
+    must never target an installation being maintained. Managed callers name the
+    root explicitly. No filesystem guard substitutes for PG admission.
+    """
+    from backend.app.core.storage_barrier import storage_guard
+
+    if durable_root is None:
+        return _publish_bytes(target, content, sha256=sha256)
+    with storage_guard(durable_root):
+        return _publish_bytes(target, content, sha256=sha256, durable_root=durable_root)
