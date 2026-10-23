@@ -120,3 +120,51 @@ def test_readiness_fails_closed_on_stale_schema(fake_api):
     response = client.get("/api/v1/health/ready")
     assert response.status_code == 503
     assert response.json()["database"] is False
+
+
+@pytest.mark.parametrize("owned", [True, False])
+def test_configured_research_detail_distinguishes_owned_incompatible_from_absent(
+    fake_api, owned
+):
+    client, session, user = fake_api
+    identifier = uuid4()
+    session.scalar.return_value = (
+        SimpleNamespace(
+            id=identifier,
+            owner_id=user.id,
+            config={"schema_version": "tradegrad.portable.run.v1"},
+        )
+        if owned
+        else None
+    )
+    response = client.get(f"/api/v1/research-runs/{identifier}")
+    assert response.status_code == (409 if owned else 404)
+    assert response.json()["code"] == (
+        "invalid_research_config" if owned else "not_found"
+    )
+    session.commit.assert_not_called()
+    session.flush.assert_not_called()
+
+
+def test_portable_fixture_universe_payload_uses_public_interval_contract():
+    from datetime import UTC, datetime
+
+    from pydantic import ValidationError
+
+    from backend.app.data_schemas import UniverseCreate
+
+    member = {"listing_id": str(uuid4()), "valid_from": None, "valid_to": None}
+    body = {
+        "name": "Bounded synthetic fixture",
+        "state": "user_fixed",
+        "as_of": datetime.now(UTC).isoformat(),
+        "members": [member],
+        "evidence": [],
+    }
+    parsed = UniverseCreate.model_validate(body)
+    assert parsed.members[0].listing_id == member["listing_id"]
+    body["members"] = [
+        {"listing_id": member["listing_id"], "member_from": None, "member_to": None}
+    ]
+    with pytest.raises(ValidationError):
+        UniverseCreate.model_validate(body)
