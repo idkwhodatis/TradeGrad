@@ -367,3 +367,135 @@ def test_native_declaration_budget_precedes_runner_request_limit():
     ]
     with pytest.raises(ValueError, match="16 KiB"):
         NativeStrategyContract.model_validate(declaration(parameters=parameters))
+
+
+def authored_result_manifest():
+    body = portable_body()
+    schema = StateSchema(
+        name="user_state",
+        version=1,
+        fields=(StateField(name="count", kind="integer"),),
+    )
+    body["manifest"]["state_schema"] = schema.model_dump(mode="json")
+    body["manifest"]["authoring"]["initial_state"] = (
+        StateCodec(schema).encode({"count": 0}).model_dump(mode="json")
+    )
+    body["manifest"]["prices"]["actions_snapshot_sha256"] = hash_json([])
+    return normalized_source(PortableSourceCreate.model_validate(body), UUID(int=99))
+
+
+def check_result_manifest(manifest, expected_hash=None):
+    from packages.tradegrad_adapter.portable_results import _manifest
+
+    _manifest(
+        manifest,
+        {
+            "strategy_sha256": manifest["code_sha256"],
+            "parameters_sha256": manifest["parameters_sha256"],
+            "manifest_sha256": expected_hash or hash_json(manifest),
+        },
+    )
+
+
+@pytest.mark.parametrize("authored", [False, True])
+def test_result_manifest_accepts_exact_authored_and_legacy_bytes(authored):
+    manifest = authored_result_manifest()
+    if not authored:
+        del manifest["authoring"]
+    before = canonical_json(manifest)
+    check_result_manifest(manifest)
+    assert canonical_json(manifest) == before
+    with pytest.raises(ValueError, match="identity mismatch"):
+        check_result_manifest(manifest, "f" * 64)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "unknown_manifest_field",
+        "null_declaration",
+        "unknown_declaration_field",
+        "false_source_kind",
+        "false_certification",
+        "unknown_schema_field",
+        "invalid_schema_name",
+        "invalid_schema_version",
+        "duplicate_parameter",
+        "invalid_parameter_kind",
+        "state_schema_hash",
+        "state_schema_name",
+        "state_schema_version",
+        "state_payload_hash",
+        "state_type",
+        "state_missing",
+        "state_extra",
+        "state_string_limit",
+    ],
+)
+def test_rehashed_authored_result_manifest_still_rejects_invalid_claims(mutation):
+    manifest = authored_result_manifest()
+    authoring = manifest["authoring"]
+    schema = authoring["parameter_schema"]
+    state = authoring["initial_state"]
+    if mutation == "unknown_manifest_field":
+        manifest["trusted"] = True
+    elif mutation == "null_declaration":
+        manifest["authoring"] = None
+    elif mutation == "unknown_declaration_field":
+        authoring["trusted"] = True
+    elif mutation == "false_source_kind":
+        authoring["source_kind"] = "reference"
+    elif mutation == "false_certification":
+        authoring["evidence"] = "code_verified"
+    elif mutation == "unknown_schema_field":
+        schema["ignored"] = True
+    elif mutation == "invalid_schema_name":
+        schema["name"] = "invalid name"
+    elif mutation == "invalid_schema_version":
+        schema["version"] = 1_000_001
+    elif mutation == "duplicate_parameter":
+        schema["fields"].append(dict(schema["fields"][0]))
+    elif mutation == "invalid_parameter_kind":
+        schema["fields"][0]["kind"] = "callable"
+    elif mutation == "state_schema_hash":
+        state["schema_sha256"] = "0" * 64
+    elif mutation == "state_schema_name":
+        state["schema_name"] = "other"
+    elif mutation == "state_schema_version":
+        state["schema_version"] = 2
+    elif mutation == "state_payload_hash":
+        state["payload_sha256"] = "0" * 64
+    else:
+        payload = {
+            "state_type": {"count": True},
+            "state_missing": {},
+            "state_extra": {"count": 0, "extra": 1},
+            "state_string_limit": {"count": "x" * 8193},
+        }[mutation]
+        state["payload_json"] = canonical_json(payload).decode()
+        state["payload_sha256"] = hash_json(payload)
+    with pytest.raises(ValueError):
+        check_result_manifest(manifest)
+
+
+def test_portable_result_uses_manifest_boundary_without_runtime_imports():
+    tree = ast.parse(
+        (ROOT / "packages/tradegrad_adapter/portable_results.py").read_text()
+    )
+    validator = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "validate_portable_result"
+    )
+    assert any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "_manifest"
+        for node in ast.walk(validator)
+    )
+    forbidden = ("packages.strategy_sdk", "runtimes", "akquant", "pandas")
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            assert not (node.module or "").startswith(forbidden)
+        elif isinstance(node, ast.Import):
+            assert not any(item.name.startswith(forbidden) for item in node.names)

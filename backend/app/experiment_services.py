@@ -604,7 +604,10 @@ def validate_selection_source(session, owner_id, body, settings):
 def portable_selected_metadata(config, source_strategy, candidate):
     """Derive only the selected code checksum; preserve stored policy semantics."""
     from packages.strategy_sdk import canonical_json, parse_json, parse_manifest
-    from packages.tradegrad_adapter.portable_prompts import validate_policy_source
+    from packages.tradegrad_adapter.portable_prompts import (
+        validate_policy_source,
+        validate_user_policy_source,
+    )
     from workers.research.portable_staging import validate_portable_binding
 
     try:
@@ -619,7 +622,19 @@ def portable_selected_metadata(config, source_strategy, candidate):
         manifest = validate_portable_binding(
             config, source_strategy.manifest, source_strategy.parameters
         )
-        validate_policy_source(candidate.code, config.strategy_kind)
+        if manifest.authoring is not None:
+            validate_user_policy_source(candidate.code, config.strategy_kind)
+            if (
+                candidate.code != source_strategy.code
+                or config.optimizer.max_iterations > 0
+            ):
+                validate_policy_source(
+                    candidate.code,
+                    config.strategy_kind,
+                    baseline=source_strategy.code,
+                )
+        else:
+            validate_policy_source(candidate.code, config.strategy_kind)
         value = manifest.model_dump(mode="json")
         value["code_sha256"] = candidate.code_sha256
         value["reference_result_sha256"] = None

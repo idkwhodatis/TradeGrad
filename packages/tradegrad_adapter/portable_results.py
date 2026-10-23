@@ -68,13 +68,15 @@ def _day(value):
     return date.fromisoformat(value)
 
 
-def _tree(value):
+def _tree(
+    value, *, max_nodes=500_000, max_depth=24, max_items=100_000, max_string=65_536
+):
     count = 0
 
     def visit(v, depth=0):
         nonlocal count
         count += 1
-        if count > 500_000 or depth > 24:
+        if count > max_nodes or depth > max_depth:
             raise ValueError("portable result complexity exceeded")
         if v is None or type(v) is bool:
             return
@@ -83,11 +85,11 @@ def _tree(value):
             if type(v) is int and abs(v) > 2**53 - 1:
                 raise ValueError("large integers must use lossless decimal strings")
         elif type(v) is str:
-            if len(v) > 65_536:
+            if len(v) > max_string:
                 raise ValueError("portable result string exceeded")
             v.encode("utf-8", errors="strict")
         elif type(v) in {list, dict}:
-            if len(v) > 100_000:
+            if len(v) > max_items:
                 raise ValueError("portable result collection exceeded")
             if type(v) is dict:
                 if any(type(k) is not str for k in v):
@@ -195,6 +197,75 @@ def parse_portable_json(data: bytes):
         return value
     except (UnicodeError, RecursionError) as exc:
         raise ValueError("invalid portable JSON") from exc
+
+
+def _state_schema(schema):
+    _keys(schema, {"name", "version", "fields"}, "state schema")
+    _text(schema["name"])
+    if (
+        type(schema["version"]) is not int
+        or not 1 <= schema["version"] <= 1_000_000
+        or type(schema["fields"]) is not list
+        or len(schema["fields"]) > 64
+    ):
+        raise ValueError("invalid state schema")
+    names = set()
+    for item in schema["fields"]:
+        _keys(item, {"name", "kind", "required"}, "state field")
+        if (
+            _text(item["name"]) in names
+            or item["kind"]
+            not in {"string", "integer", "number", "boolean", "object", "array", "null"}
+            or type(item["required"]) is not bool
+        ):
+            raise ValueError("invalid state field")
+        names.add(item["name"])
+    for name in (schema["name"], *names):
+        if len(name) > 96 or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]*", name) is None:
+            raise ValueError("invalid state schema name")
+
+
+def _authoring(value, schema):
+    """Validate inert user declarations without importing the policy SDK/runtime."""
+    _keys(
+        value,
+        {"source_kind", "parameter_schema", "initial_state", "evidence"},
+        "authoring declaration",
+    )
+    if (
+        value["source_kind"] != "user_authored"
+        or value["evidence"] != "user_declared_not_code_verified"
+    ):
+        raise ValueError("unsupported portable authoring declaration")
+    _state_schema(value["parameter_schema"])
+    state = value["initial_state"]
+    _state(state)
+    if (state["schema_name"], state["schema_version"], state["schema_sha256"]) != (
+        schema["name"],
+        schema["version"],
+        _sha(schema),
+    ):
+        raise ValueError("portable authoring initial-state schema mismatch")
+    payload = parse_portable_json(state["payload_json"].encode())
+    if len(state["payload_json"].encode()) > 65_536:
+        raise ValueError("portable authoring initial-state byte limit exceeded")
+    _tree(payload, max_nodes=8192, max_depth=12, max_items=1024, max_string=8192)
+    fields = {field["name"]: field for field in schema["fields"]}
+    types = {
+        "string": (str,),
+        "integer": (int,),
+        "number": (int, float),
+        "boolean": (bool,),
+        "object": (dict,),
+        "array": (list,),
+        "null": (type(None),),
+    }
+    if set(payload) - set(fields) or any(
+        (name not in payload and field["required"])
+        or (name in payload and type(payload[name]) not in types[field["kind"]])
+        for name, field in fields.items()
+    ):
+        raise ValueError("portable authoring initial-state fields mismatch")
 
 
 def _manifest_details(manifest):
@@ -307,27 +378,9 @@ def _manifest_details(manifest):
         )
     ):
         raise ValueError("unsupported portable capability")
-    schema = manifest["state_schema"]
-    _keys(schema, {"name", "version", "fields"}, "state schema")
-    _text(schema["name"])
-    if (
-        type(schema["version"]) is not int
-        or schema["version"] < 1
-        or type(schema["fields"]) is not list
-        or len(schema["fields"]) > 64
-    ):
-        raise ValueError("invalid state schema")
-    names = set()
-    for item in schema["fields"]:
-        _keys(item, {"name", "kind", "required"}, "state field")
-        if (
-            _text(item["name"]) in names
-            or item["kind"]
-            not in {"string", "integer", "number", "boolean", "object", "array", "null"}
-            or type(item["required"]) is not bool
-        ):
-            raise ValueError("invalid state field")
-        names.add(item["name"])
+    _state_schema(manifest["state_schema"])
+    if "authoring" in manifest:
+        _authoring(manifest["authoring"], manifest["state_schema"])
     ep = manifest["engine_profile"]
     _keys(
         ep,
@@ -475,6 +528,52 @@ def _decision(value, next_open):
     return ids
 
 
+def _manifest(manifest, identity):
+    _keys(
+        manifest,
+        {
+            "contract_version",
+            "strategy_kind",
+            "strategy_id",
+            "code_sha256",
+            "parameters_sha256",
+            "market",
+            "asset_type",
+            "currency",
+            "calendar",
+            "timezone",
+            "data",
+            "decision_timing",
+            "execution_timing",
+            "universe",
+            "prices",
+            "capabilities",
+            "state_schema",
+            "engine_profile",
+            "reference_result_sha256",
+            "conformance",
+            "external_framework_equivalence",
+        }
+        | ({"authoring"} if "authoring" in manifest else set()),
+        "manifest",
+    )
+    if (
+        _sha(manifest) != identity["manifest_sha256"]
+        or manifest["code_sha256"] != identity["strategy_sha256"]
+        or manifest["parameters_sha256"] != identity["parameters_sha256"]
+    ):
+        raise ValueError("portable manifest identity mismatch")
+    if (
+        manifest["contract_version"] != "portable.v1"
+        or manifest["strategy_kind"] not in {"portfolio", "event"}
+        or manifest["market"] not in {"CN", "US"}
+        or manifest["conformance"] != "interface_only"
+        or manifest["external_framework_equivalence"] != "not_certified"
+    ):
+        raise ValueError("unsupported portable manifest")
+    _manifest_details(manifest)
+
+
 def validate_portable_result(bundle):
     if type(bundle) is bytes:
         bundle = parse_portable_json(bundle)
@@ -530,48 +629,7 @@ def validate_portable_result(bundle):
     for value in identity.values():
         _hash(value)
     manifest = bundle["manifest"]
-    _keys(
-        manifest,
-        {
-            "contract_version",
-            "strategy_kind",
-            "strategy_id",
-            "code_sha256",
-            "parameters_sha256",
-            "market",
-            "asset_type",
-            "currency",
-            "calendar",
-            "timezone",
-            "data",
-            "decision_timing",
-            "execution_timing",
-            "universe",
-            "prices",
-            "capabilities",
-            "state_schema",
-            "engine_profile",
-            "reference_result_sha256",
-            "conformance",
-            "external_framework_equivalence",
-        },
-        "manifest",
-    )
-    if (
-        _sha(manifest) != identity["manifest_sha256"]
-        or manifest["code_sha256"] != identity["strategy_sha256"]
-        or manifest["parameters_sha256"] != identity["parameters_sha256"]
-    ):
-        raise ValueError("portable manifest identity mismatch")
-    if (
-        manifest["contract_version"] != "portable.v1"
-        or manifest["strategy_kind"] not in {"portfolio", "event"}
-        or manifest["market"] not in {"CN", "US"}
-        or manifest["conformance"] != "interface_only"
-        or manifest["external_framework_equivalence"] != "not_certified"
-    ):
-        raise ValueError("unsupported portable manifest")
-    _manifest_details(manifest)
+    _manifest(manifest, identity)
     timezone = ZoneInfo(manifest["timezone"])
     _keys(bundle["window"], {"start", "end", "interval"}, "window")
     start, end = _day(bundle["window"]["start"]), _day(bundle["window"]["end"])

@@ -316,6 +316,10 @@ def _validate_native_persisted_result(
             "benchmark": None,
             "run_config_sha256": config_sha256,
         }
+        if config.strategy_contract is not None:
+            eval_config["strategy_contract"] = config.strategy_contract.model_dump(
+                mode="json"
+            )
         request = {
             "task": config.task,
             "market": config.market_profile.market,

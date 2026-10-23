@@ -4,7 +4,10 @@ Uses existing explicit opt-in harnesses; collection starts no processes/sockets.
 Never execute these locally when candidate/SDK subprocess execution is denied.
 """
 
+import hashlib
+import io
 import json
+import zipfile
 from uuid import uuid4
 
 import test_portable_research_pipeline as portable_system
@@ -12,6 +15,10 @@ import test_research_optimization as native_system
 from test_worker_recovery import ROOT, require
 
 from packages.tradegrad_adapter.config import MarketConfig, RunConfig
+from packages.tradegrad_adapter.portable_final_config import (
+    PortableFinalEvaluationConfig,
+)
+from packages.tradegrad_adapter.portable_results import validate_portable_result
 
 research_harness = native_system.research_harness
 portable_harness = portable_system.portable_harness
@@ -195,13 +202,16 @@ def test_custom_portable_source_outside_reference_scaffold_runs_in_both_containe
         json={
             **refs,
             "seed_strategy": {"id": version["id"], "sha256": version["content_sha256"]},
-            "execution_mode": "seed_evaluation",
+            "execution_mode": "optimization",
             "windows": {
                 "train": {"start": "2024-01-10", "end": "2024-02-01"},
                 "validation": {"start": "2024-02-01", "end": "2024-02-15"},
+                "holdout": {"start": "2024-02-15", "end": "2024-03-01"},
             },
         },
     ).json()
+    # Final selection requires optimization provenance, but no model rewrite.
+    config["optimizer"]["max_iterations"] = 0
     preflight = h.request(
         client, "POST", "/portable-runs/preflight", json=config
     ).json()
@@ -230,6 +240,17 @@ def test_custom_portable_source_outside_reference_scaffold_runs_in_both_containe
         client, "GET", f"/portable-runs/{run['id']}/evaluations"
     ).json()["data"]
     require(len(evaluations) == 2, "Expected exact train/validation evaluations")
+    require(
+        {evaluation["split"] for evaluation in evaluations} == {"train", "validation"},
+        "Authored research must not expose holdout",
+    )
+    require(
+        h.request(client, "GET", f"/portable-runs/{run['id']}/model-calls").json()[
+            "data"
+        ]
+        == [],
+        "Zero-iteration authored gate must not rewrite source",
+    )
     for evaluation in evaluations:
         h.attempts.add(evaluation["id"])
         require(
@@ -246,3 +267,125 @@ def test_custom_portable_source_outside_reference_scaffold_runs_in_both_containe
             view["count"] > 0 and view["ledger_origin"] == "trusted_engine",
             "Custom policy must return decisions, never fabricate the ledger",
         )
+
+    selected = h.request(
+        client,
+        "POST",
+        "/final-selections",
+        status=201,
+        json={
+            "split_version_id": detail["split_version_id"],
+            "source_run_id": run["id"],
+            "source_candidate_id": detail["result"]["best_candidate_id"],
+            "source_checkpoint_id": detail["latest_checkpoint_id"],
+        },
+    ).json()
+    final_body = {"selection_id": selected["id"], "max_runtime_seconds": 90}
+    final_preflight = h.request(
+        client, "POST", "/portable-final-evaluations/preflight", json=final_body
+    ).json()
+    require(final_preflight["eligible"], "Authored final preflight failed")
+    final_config = PortableFinalEvaluationConfig.model_validate(
+        final_preflight["config"]
+    )
+    require(
+        final_config.source_config.model_dump(mode="json") == config,
+        "Authored frozen source config changed",
+    )
+    final = h.request(
+        client,
+        "POST",
+        "/portable-final-evaluations",
+        status=202,
+        headers={"Idempotency-Key": uuid4().hex},
+        json=final_body,
+    ).json()
+
+    def finished_final():
+        value = h.request(
+            client, "GET", f"/portable-final-evaluations/{final['id']}"
+        ).json()
+        require(
+            value["status"] not in {"failed", "interrupted", "cancelled"},
+            "Authored final did not succeed",
+        )
+        return value if value["status"] == "succeeded" else None
+
+    final_detail = h.until(finished_final, "Authored final did not finish", timeout=95)
+    images = {
+        "engine": detail["research_image_digest"],
+        "policy": detail["portable_policy_image_digest"],
+    }
+    require(
+        final_detail["config"] == final_config.model_dump(mode="json")
+        and final_detail["research_image_digest"] == images["engine"]
+        and final_detail["portable_policy_image_digest"] == images["policy"],
+        "Authored final config or isolated image identity changed",
+    )
+    holdouts = h.request(
+        client, "GET", f"/portable-final-evaluations/{final['id']}/evaluations"
+    ).json()["data"]
+    require(len(holdouts) == 1, "Authored final must schedule exactly one holdout")
+    holdout = holdouts[0]
+    h.attempts.add(holdout["id"])
+    require(
+        holdout["status"] == "succeeded"
+        and holdout["split"] == "holdout"
+        and holdout["sandbox_stopped"],
+        "Authored holdout lacked confirmed terminal success",
+    )
+    for role in ("engine", "policy"):
+        require(
+            h.runner._inspect_role(holdout["id"], role) is None,
+            "Authored final sibling survived terminal commit",
+        )
+    result_path = f"/portable-final-evaluations/evaluations/{holdout['id']}/result"
+    content = h.request(client, "GET", result_path + "/download").content
+    bundle = validate_portable_result(content)
+    require(
+        bundle["identity"]["run_config_sha256"] == final_config.sha256
+        and bundle["identity"]["strategy_sha256"]
+        == selected["source_code_sha256"]
+        == version["content_sha256"]
+        and bundle["manifest"]["authoring"] == version["manifest"]["authoring"]
+        and bundle["window"]
+        == {**config["windows"]["holdout"], "interval": "half_open"},
+        "Authored holdout lost source, declaration or frozen-window identity",
+    )
+    h.request(other, "GET", result_path, status=404)
+    h.request(other, "GET", result_path + "/download", status=404)
+    h.request(other, "GET", f"/portable-final-evaluations/{final['id']}", status=404)
+    package = h.request(
+        client,
+        "POST",
+        f"/final-selections/{selected['id']}/packages",
+        status=201,
+        json={"reference_evaluation_id": holdout["id"]},
+    ).json()
+    package_path = f"/strategy-packages/{package['id']}/download"
+    archive = h.request(client, "GET", package_path).content
+    require(
+        hashlib.sha256(archive).hexdigest() == package["archive_sha256"],
+        "Authored selection package checksum changed",
+    )
+    with zipfile.ZipFile(io.BytesIO(archive)) as zipped:
+        source = zipped.read("strategy/strategy.py")
+        require(
+            source == draft["code"].encode("utf-8")
+            and hashlib.sha256(source).hexdigest() == selected["source_code_sha256"],
+            "Authored package did not preserve byte-exact custom source",
+        )
+        require(
+            json.loads(zipped.read("strategy/policy-manifest.json"))
+            == version["manifest"]
+            and zipped.read("reference/result-bundle.json") == content,
+            "Authored package changed the declaration or trusted reference bundle",
+        )
+        require(
+            json.loads(zipped.read("environment/execution-environment.json"))[
+                "image_ids"
+            ]
+            == images,
+            "Authored package lost dual image identity",
+        )
+    h.request(other, "GET", package_path, status=404)
