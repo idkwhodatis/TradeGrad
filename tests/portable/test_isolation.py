@@ -317,7 +317,7 @@ def test_actual_symbol_order_and_future_suffix_invariance(evaluator, tmp_path, k
     first, _ = run(
         evaluator, tmp_path / "first", kind=kind, data=fixture_data("US", "portfolio")
     )
-    assert first["status"] == "succeeded", first
+    assert_status(first, "succeeded")
     data = fixture_data("US", "portfolio")
     cutoff = data["sessions"][-2]["session_date"]
     data["bars"].reverse()
@@ -328,7 +328,7 @@ def test_actual_symbol_order_and_future_suffix_invariance(evaluator, tmp_path, k
                 bar[key] *= 2
             bar["volume"] *= 2
     second, _ = run(evaluator, tmp_path / "second", kind=kind, data=data)
-    assert second["status"] == "succeeded", second
+    assert_status(second, "succeeded")
     before = lambda result: [
         row
         for row in result["bundle"]["decision_trace"]
@@ -411,7 +411,8 @@ def test_actual_prefix_replay_keeps_decisions_and_pre_cutoff_ledger(
     complete, _ = run(evaluator, tmp_path / "complete")
     prefix_data = fixture_data("US", "event", count=cutoff_count)
     prefix, _ = run(evaluator, tmp_path / "prefix", data=prefix_data)
-    assert complete["status"] == prefix["status"] == "succeeded", (complete, prefix)
+    assert_status(complete, "succeeded")
+    assert_status(prefix, "succeeded")
     cutoff = prefix_data["sessions"][-1]["session_date"]
     assert prefix["bundle"]["decision_trace"] == [
         row
@@ -589,13 +590,9 @@ def _earliest_exit(self, observation):
 Policy.on_event = _earliest_exit
 """
     result, _ = run(evaluator, tmp_path / "case", "CN", kind, data=data, suffix=suffix)
-    assert result["status"] == "succeeded", (
-        (
-            "Controller CN T+1 NextOpen acceptance failed: earliest eligible sale "
-            "must execute, never be rejected, clipped, or silently delayed to T+2"
-        ),
-        result,
-    )
+    # Earliest eligible CN T+1 sale must execute, never be rejected, clipped,
+    # or silently delayed to T+2. Detailed inventory assertions below remain.
+    assert_status(result, "succeeded")
     bundle = result["bundle"]
     assert_native_controller_inventory(bundle)
     buys = [fill for fill in bundle["fills"] if fill["side"] == "buy"]
