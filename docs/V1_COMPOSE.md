@@ -314,8 +314,12 @@ These parse/check YAML and Dockerfiles and exercise non-network configuration,
 path/identity rejection and privacy contracts with in-memory test doubles. They
 do not invoke Docker, open a socket, start a server or execute strategy code.
 
-The dedicated `compose` workflow job runs only after the exact-head application
-job passes in fixture mode. It generates temporary runner-only credentials,
+The dedicated `compose` workflow job and ordinary application job run independently
+after the exact-head four-task baseline passes, in fixture mode. Each owns a
+separate hosted runner, database, storage, credentials and image builds; neither
+consumes the other's artifacts. A failure in one does not suppress the other's
+diagnostic evidence, and both must pass for the full workflow to succeed. There
+is no `continue-on-error` or waived acceptance group. Compose generates temporary runner-only credentials,
 resolves the official Docker CLI and application base repository digests, and
 records built image IDs. It never uploads resolved configuration, private raw
 logs, database archives or restart-proof records. Local source checks passed;

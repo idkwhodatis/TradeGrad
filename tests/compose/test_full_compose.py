@@ -503,15 +503,26 @@ if __name__ == "__main__":
     unittest.main()
 
 
-def test_hosted_compose_job_is_sequential_and_publishes_only_bounded_evidence():
+def test_hosted_compose_is_independent_after_baseline_and_keeps_bounded_evidence():
     workflow = yaml.safe_load(
         (ROOT / ".github/workflows/v1-validation.yml").read_text()
     )
     job = workflow["jobs"]["compose"]
-    assert job["needs"] == "application"
+    assert job["needs"] == "baseline"
+    assert workflow["jobs"]["application"]["needs"] == "baseline"
+    assert "continue-on-error" not in job
+    assert "always()" not in job["if"]
     assert job["timeout-minutes"] == 75
     assert workflow["permissions"] == {"contents": "read"}
     steps = job["steps"]
+    # This job rebuilds its own stack; it consumes no application-job artifact
+    # or output that could be missing or unsafe after an unrelated failure.
+    assert all(
+        not step.get("uses", "").startswith("actions/download-artifact@")
+        for step in steps
+    )
+    assert "needs.application" not in json.dumps(job)
+    assert all("continue-on-error" not in step for step in steps)
     commands = "\n".join(step.get("run", "") for step in steps)
     assert (
         "--require-hashes -r backend/requirements.lock -r tests/compose/requirements.lock"
