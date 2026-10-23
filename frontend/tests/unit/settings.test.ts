@@ -75,3 +75,17 @@ describe("workspace defaults and management contracts", () => {
     ).toBe("update_managed_quota");
   });
 });
+
+describe("optimization-only holdout notice", () => {
+  it("does not advertise separate final workflows as globally unavailable", () => {
+    const source = readFileSync(
+      new URL("../../src/features/settings.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain("Holdout inside native optimization");
+    expect(source).toContain(
+      "available through a separately frozen final selection",
+    );
+    expect(source).not.toContain("Not enabled in this milestone");
+  });
+});

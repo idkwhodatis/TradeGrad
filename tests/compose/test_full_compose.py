@@ -529,6 +529,7 @@ def test_hosted_compose_job_is_sequential_and_publishes_only_bounded_evidence():
     assert uploads[0]["path"].splitlines() == [
         "var/ci-evidence/*.xml",
         "var/ci-evidence/compose-images.json",
+        "var/ci-evidence/v1-service-log-policy.json",
     ]
     assert "secrets." not in json.dumps(job)
     assert compose_image_evidence.BASES["DOCKER_CLI_IMAGE"] == "docker:27-cli"

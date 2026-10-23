@@ -116,11 +116,11 @@ export function SettingsPage() {
                 </dd>
               </div>
               <div>
-                <dt>Final holdout execution</dt>
+                <dt>Holdout inside native optimization</dt>
                 <dd>
                   {capabilities.data?.holdout_execution
                     ? "Enabled"
-                    : "Not enabled in this milestone"}
+                    : "Excluded from optimization; available through a separately frozen final selection"}
                 </dd>
               </div>
               <div>
