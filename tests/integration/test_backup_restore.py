@@ -706,6 +706,29 @@ def test_real_m3_backup_restore_then_current_upgrade_preserves_history(
         restored.dispose()
 
 
+def _settings_seed_statement():
+    return text("""INSERT INTO user_workspace_settings
+        (owner_id, defaults, max_active_runs, max_active_imports, disabled_model_profiles)
+        SELECT id, CAST(:defaults AS jsonb), 1, 2,
+        CAST(:disabled_profiles AS jsonb) FROM users""").bindparams(
+        defaults=json.dumps({"initial_cash": 250000, "model_profile_id": "fixture"}),
+        disabled_profiles=json.dumps(["existing-disabled-profile"]),
+    )
+
+
+def test_settings_seed_uses_explicit_json_bindings():
+    """Pure SQL compilation only; no engine, database or backup is started."""
+    statement = _settings_seed_statement()
+    parameters = statement.compile().params
+    assert set(parameters) == {"defaults", "disabled_profiles"}
+    assert json.loads(parameters["defaults"]) == {
+        "initial_cash": 250000,
+        "model_profile_id": "fixture",
+    }
+    assert json.loads(parameters["disabled_profiles"]) == ["existing-disabled-profile"]
+    assert "CAST(:defaults AS jsonb)" in str(statement)
+
+
 @pytest.mark.parametrize("revision", ["005_settings", "006_provider_connections"])
 def test_real_settings_backup_restores_management_and_immutable_history(
     drill_databases: DrillDatabases,
@@ -740,12 +763,7 @@ def test_real_settings_backup_restores_management_and_immutable_history(
         identity = _config_identity(source)
         _upgrade(source, revision)
         with source.begin() as connection:
-            connection.execute(
-                text("""INSERT INTO user_workspace_settings
-                (owner_id, defaults, max_active_runs, max_active_imports, disabled_model_profiles)
-                SELECT id, '{"initial_cash":250000,"model_profile_id":"fixture"}'::jsonb,
-                1, 2, '["existing-disabled-profile"]'::jsonb FROM users""")
-            )
+            connection.execute(_settings_seed_statement())
         if revision == "006_provider_connections":
             from sqlalchemy.orm import Session
 
