@@ -129,7 +129,7 @@ test("ordinary user defaults save, cancel and survive reload without admin contr
     page.getByLabel("Iteration default", { exact: true }),
   ).toHaveValue("7");
   await expect(
-    page.getByText("Backup status: not reported", { exact: true }),
+    page.getByText("Backup status: restricted", { exact: true }),
   ).toBeVisible();
 });
 
