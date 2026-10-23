@@ -361,6 +361,9 @@ def controller(tmp_path, monkeypatch):
         completed=completed,
         checkpoints=checkpoints,
         run=run,
+        settings=settings,
+        owner_id=owner_id,
+        factory=factory,
     )
 
     def patch(name, effect):
@@ -373,6 +376,11 @@ def controller(tmp_path, monkeypatch):
     patch("mark_running", lambda *a: True)
     patch("pin_portable_images", lambda *a: trace.append(("pin", a[-1])))
     patch("append_event", lambda *a: None)
+    # Fake DB cannot prove account/workspace admission. Dedicated profile tests
+    # exercise those services; this controller test checks launch/stop ordering.
+    from backend.app import workspace_policy
+
+    monkeypatch.setattr(workspace_policy, "enforce_model_policy", lambda *a: None)
 
     class Lease:
         def __init__(self, *args):

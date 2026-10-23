@@ -201,8 +201,9 @@ export function PortableResultContent({
           <p className="notice" data-testid="portable-data-evidence">
             {data.is_synthetic
               ? "Explicit synthetic raw/no-actions fixture. Not market observations, live-provider acceptance or investment evidence."
-              : "Dataset marked non-synthetic. Inspect the pinned raw-price, action and calendar evidence."}{" "}
-            Deterministic model fixture only, not paid-model acceptance.
+              : "Non-synthetic upload: raw/no-actions claims are unverified user research assumptions, not provider verification. Inspect pinned declarations, source hashes and calendar evidence."}{" "}
+            Model provenance and usage belong to the immutable source run; this
+            ledger does not certify model quality or billing.
           </p>
           <Metadata
             values={{

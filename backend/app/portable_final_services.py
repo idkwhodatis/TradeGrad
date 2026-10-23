@@ -324,7 +324,7 @@ def _quota(session, owner_id, settings):
 def preflight_final_evaluation(session, owner_id, body, settings):
     final, selection, split, source = _make_config(session, owner_id, body)
     provisional = _provisional_run(owner_id, final, selection, split, source)
-    validate_final_inputs(session, provisional, settings)
+    validated = validate_final_inputs(session, provisional, settings)
     snapshot = get_exposure_snapshot(session, owner_id, split)
     remaining = _quota(session, owner_id, settings)
     return PortableFinalEvaluationPreflight(
@@ -337,7 +337,15 @@ def preflight_final_evaluation(session, owner_id, body, settings):
             TRACKING_COVERAGE,
             "Admission is permanently recorded as possible exposure, including cancellation and failure.",
             "Portable policy and engine execute in separate sibling containers. Runtime and external framework equivalence are not certified; prior tracked exposure does not establish an unseen holdout.",
-        ],
+        ]
+        + (
+            [
+                "Raw/no-actions upload assertions are unverified user-declared research assumptions, not provider verification or data/runtime certification."
+            ]
+            if (validated[2].manifest or {}).get("data_evidence")
+            == "user_declaration_unverified"
+            else []
+        ),
     )
 
 

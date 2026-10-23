@@ -27,6 +27,7 @@ from backend.app.research_services import (
     bounded_json,
     latest_checkpoint_for_resume,
     payload_hash,
+    validate_model_selection,
 )
 from backend.app.services import (
     TERMINAL,
@@ -37,7 +38,7 @@ from backend.app.services import (
     owned_run,
 )
 from backend.app.storage import read_verified, redact
-from backend.app.workspace_policy import quota_limit
+from backend.app.workspace_policy import enforce_model_policy, quota_limit
 from packages.strategy_sdk import (
     DataRequirements,
     EngineProfile,
@@ -266,16 +267,14 @@ def validate_portable_submission(session, owner_id, body, settings):
             "Portable environment differs from this deployment",
             422,
         )
-    if (
-        body.prompt_version != PROMPT_VERSION
-        or body.model.provider != "fixture"
-        or body.model.model != "deterministic-fixture-v1"
-    ):
+    if body.prompt_version != PROMPT_VERSION:
         raise DomainError(
             "portable_capability_unavailable",
-            "Only frozen fixture models and reviewed portable prompts are supported",
+            "Only reviewed portable prompts are supported",
             422,
         )
+    enforce_model_policy(session, owner_id, body.model)
+    validate_model_selection(body.model, settings, owner_id)
     dataset, universe = _dataset_universe(
         session, owner_id, body.dataset, body.universe
     )
@@ -788,6 +787,17 @@ def resume_portable_run(session, run_id, owner_id, settings):
             "sandbox_not_stopped",
             "Every portable sibling group must be confirmed stopped",
         )
+    config = portable_config(run)
+    enforce_model_policy(session, owner_id, config.model)
+    validate_model_selection(config.model, settings, owner_id)
+    if run.active_attempt_id and config.model.provider != "fixture":
+        from backend.app.model_containment import model_processes_confirmed_stopped
+
+        if not model_processes_confirmed_stopped(session, run.active_attempt_id):
+            raise DomainError(
+                "model_process_not_stopped",
+                "Every admitted model process needs a durable stop receipt before resume",
+            )
     latest_checkpoint_for_resume(session, run, settings)
     active = session.scalar(
         select(func.count())

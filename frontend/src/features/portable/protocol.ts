@@ -1,4 +1,5 @@
 import { benchmarkSchema } from "@/lib/benchmarks";
+import { researchModelSchema } from "@/lib/research-form";
 import { z } from "zod";
 import type {
   DatasetPublic,
@@ -11,7 +12,7 @@ import { asRecord, stableJson } from "@/lib/data-utils";
 export const portableNotice =
   "Portable · interface_only. Policy and trusted AKQuant execution are separate contracts. Real-container certification is unverified until actual CI evidence is available; external-framework equivalence is not_certified. No live trading, broker connection or external deployment.";
 export const portableDataNotice =
-  "Preflight requires independently pinned unadjusted/raw prices, complete corporate-action coverage, exact exchange sessions and complete multi-listing snapshots. An empty actions list is not evidence of no actions. Existing providers without this evidence are unavailable for portable execution, not silently converted.";
+  "Preflight requires pinned raw-price/action semantics, exact exchange sessions and complete snapshots. Synthetic no-actions evidence and an explicitly acknowledged user-declared raw/no-actions upload are distinct paths. User declarations remain unverified research assumptions, never provider or runtime certification. An empty actions list proves nothing; adjusted/unknown provider data is not silently converted.";
 export const portableTerminal = new Set([
   "succeeded",
   "failed",
@@ -168,12 +169,7 @@ export const portableFormSchema = z.strictObject({
     max_runtime_seconds: integer(1, 86400),
     max_repairs: integer(0, 20),
   }),
-  model: z.strictObject({
-    provider: z.literal("fixture"),
-    model: z.literal("deterministic-fixture-v1"),
-    credential_ref: z.null(),
-    temperature: z.literal(0),
-  }),
+  model: researchModelSchema,
   prompt_version: z.literal("portable_business_rules.v1"),
   environment_digest: hash,
   benchmark: benchmarkSchema,

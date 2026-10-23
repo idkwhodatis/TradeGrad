@@ -131,9 +131,9 @@ export function PortableFinalResult({
         <p className="notice" data-testid="portable-final-data-evidence">
           {data.is_synthetic
             ? "Explicit synthetic raw/no-actions fixture. Not market observations, live-provider acceptance or investment evidence."
-            : "Dataset marked non-synthetic. Inspect the pinned raw-price, action and calendar evidence."}{" "}
-          No optimizer or model calls are performed by this final job; source
-          research used deterministic fixture accounting.
+            : "Non-synthetic upload: raw/no-actions claims are unverified user research assumptions, not provider verification. Inspect pinned declarations, source hashes and calendar evidence."}{" "}
+          No optimizer or model calls are performed by this final job. Inspect
+          the frozen source run for its model profile and persisted usage.
         </p>
         <Metadata
           values={{

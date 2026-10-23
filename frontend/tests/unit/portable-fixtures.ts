@@ -5,11 +5,13 @@ import type {
 } from "../../src/client/types.gen";
 import type { PortableCatalog } from "../../src/lib/portable-api";
 import { portableFormSchema } from "../../src/features/portable/protocol";
+import { capabilityFixture } from "./research-fixtures";
 export const portableFixture = () => {
   // Serialized by the real Python PortableRunConfig. Local fixture only, not execution evidence.
   const body = portableFormSchema.parse(structuredClone(savedConfig));
   const listing = "d4444444-4444-4444-8444-444444444444";
   const catalog: PortableCatalog = {
+    capabilities: capabilityFixture(),
     datasets: [
       {
         id: body.dataset.id,

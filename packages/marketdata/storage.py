@@ -73,9 +73,24 @@ def write_bundle(directory: Path, request: BarsRequest, result: ProviderResult) 
     # Created only in the separately locked data runtime, never from price rows.
     from .calendars import session_schedule
     from .portable_fixture import action_coverage
+    from .upload_admission import (
+        DECLARATION_FILE,
+        declared_action_coverage,
+        declared_upload_evidence,
+    )
 
     write("sessions.json", session_schedule(request))
-    write("corporate-action-coverage.json", action_coverage(request, result))
+    declaration = declared_upload_evidence(request, result)
+    if declaration is not None:
+        write(DECLARATION_FILE, declaration)
+    write(
+        "corporate-action-coverage.json",
+        (
+            declared_action_coverage(declaration)
+            if declaration is not None
+            else action_coverage(request, result)
+        ),
+    )
     write("preview.json", bars)
     evaluator_files, symbol_mapping = {}, {}
     for listing in request.listings:
@@ -163,6 +178,9 @@ def write_bundle(directory: Path, request: BarsRequest, result: ProviderResult) 
         and all(c.status == "complete" for c in result.coverage)
         and not any(w.severity == "error" for w in result.warnings),
     }
+    if declaration is not None:
+        manifest["data_evidence"] = "user_declaration_unverified"
+        manifest["is_synthetic"] = False
     manifest["content_hash"] = hashlib.sha256(canonical_json(manifest)).hexdigest()
     with (directory / "manifest.json").open("xb") as file:
         file.write(canonical_json(manifest))

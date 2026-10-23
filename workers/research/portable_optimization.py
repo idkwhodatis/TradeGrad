@@ -2,7 +2,8 @@
 
 Both modes use the actual upstream TradeTGD controller. Seed mode executes zero
 revisions. Fixture responses preserve source and prove orchestration, not model
-quality. No host policy import, native fallback or paid provider is available.
+quality. Operator profiles reuse the native bounded SDK process and receipt
+boundary; they are disabled by default. No host policy import or native fallback.
 """
 
 from __future__ import annotations
@@ -203,9 +204,14 @@ def _confirmed_stop(runner, evaluation_id):
 
 
 def execute_portable_configured(run_id: str, generation: int, settings, factory):
-    from packages.tradegrad_adapter.model_calls import FrozenModel
+    from packages.tradegrad_adapter.model_calls import ModelProviderFailure
+    from packages.tradegrad_adapter.model_profiles import (
+        ModelProfileError,
+        resolve_profile,
+    )
     from packages.tradegrad_adapter.optimizer import run_optimization
     from runtimes.evaluator.portable_runner import PortableDockerEvaluator
+    from workers.research.model_provider import create_model
 
     worker_id = f"portable:{socket.gethostname()}:{uuid4()}"
     with factory.begin() as session:
@@ -217,6 +223,7 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
     lease = AttemptLease(factory, settings, attempt_id, generation, token, worker_id)
     active_ids = set()
     images = None
+    model = None
     finish_receipt_committed = False
     deadline = [0.0]
     outcome = {
@@ -259,12 +266,40 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
                 session, attempt_id, generation, token, reference, settings
             )
 
+    def model_boundary(phase, call_id):
+        from backend.app.model_containment import (
+            admit_model_process,
+            confirm_model_process_stopped,
+        )
+
+        if phase not in {"admitted", "stopped"}:
+            raise ValueError("Unknown model process boundary")
+        operation = (
+            admit_model_process
+            if phase == "admitted"
+            else confirm_model_process_stopped
+        )
+        with factory.begin() as session:
+            if phase == "admitted":
+                from backend.app.services import advisory_lock
+                from backend.app.workspace_policy import enforce_model_policy
+
+                advisory_lock(session, f"submit:{model_owner_id}")
+                enforce_model_policy(session, model_owner_id, config.model)
+                resolve_profile(config.model, settings, model_owner_id)
+            operation(session, attempt_id, generation, token, call_id)
+
     lease.start()
     try:
         with factory() as session:
             run = session.get(ResearchRun, UUID(run_id))
             benchmark_owner_id = run.owner_id
             config = portable_config(run)
+            from backend.app.workspace_policy import enforce_model_policy
+
+            enforce_model_policy(session, run.owner_id, config.model)
+            resolve_profile(config.model, settings, run.owner_id)
+            model_owner_id = run.owner_id
             if config.environment_digest != portable_environment_digest():
                 raise ValueError("Portable reviewed environment changed")
             dataset = session.get(DatasetVersion, run.dataset_version_id)
@@ -501,17 +536,16 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
                     return dict(completed.payload)
 
         if ready and not lease.cancelled.is_set():
-            fixture = FrozenModel(
-                [f"```python\n{seed_code}\n```"] * config.budgets.max_model_calls
+            model = create_model(
+                config, settings, model_owner_id, seed_code, boundary=model_boundary
             )
-            fixture.provider, fixture.model = config.model.provider, config.model.model
             result = run_optimization(
                 config=config.model_dump(mode="json"),
                 initial_code=seed_code,
                 windows=list(portable_evaluation_windows(config)),
                 evaluate=evaluate,
                 root=attempt_root,
-                model=fixture,
+                model=model,
                 event=event,
                 checkpoint_committed=committed,
                 control=control,
@@ -534,7 +568,9 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
                 else None,
                 "image_digest": images["engine"],
                 "policy_image_digest": images["policy"],
-                "model_mode": "frozen_fixture",
+                "model_mode": "frozen_fixture"
+                if config.model.provider == "fixture"
+                else "operator_profile",
                 "exit_code": 0,
             }
         else:
@@ -542,7 +578,11 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
     except Exception as error:  # noqa: BLE001 - redact credentials/path-bearing errors
         outcome = {
             "status": "failed",
-            "stop_reason": "orchestration_failed",
+            "stop_reason": error.code
+            if isinstance(error, ModelProfileError)
+            else error.error_class
+            if isinstance(error, ModelProviderFailure)
+            else "orchestration_failed",
             "error": f"Portable research stopped safely ({type(error).__name__})",
         }
     finally:
@@ -553,7 +593,15 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
                 stops.append(runner.stop_attempt(str(attempt_id)) is True)
             except Exception:  # noqa: BLE001 - independent group cleanup remains fail closed
                 stops.append(False)
-            stopped = all(stops)
+            # Model close runs even if a sibling could not stop. A missing local
+            # receipt is independently checked by finish_research_attempt.
+            try:
+                model_stopped = (
+                    model is None or getattr(model, "close", lambda: True)() is True
+                )
+            except Exception:  # noqa: BLE001 - an unknown SDK stop blocks recovery
+                model_stopped = False
+            stopped = all(stops) and model_stopped
             if not lease.lost.is_set():
                 with factory.begin() as session:
                     final_run = finish_research_attempt(

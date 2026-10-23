@@ -97,7 +97,13 @@ describe("portable render contracts", () => {
       await import("../../src/features/portable/experiment");
     const html = await markup(PortableInputPicker, {
       owner: "owner-a",
-      catalog: { datasets: [], universes: [], strategies: [], templates: [] },
+      catalog: {
+        ...portableFixture().catalog,
+        datasets: [],
+        universes: [],
+        strategies: [],
+        templates: [],
+      },
       onConfigured: () => {},
     });
     expect(html).toContain("No published dataset is available");
@@ -125,7 +131,7 @@ describe("portable render contracts", () => {
       "Metadata-only holdout",
       "Warm-up exchange sessions per listing",
       "Maximum model calls",
-      "Maximum synthetic tokens",
+      "Maximum charged or reserved tokens",
       "Run strict portable preflight",
     ])
       expect(html).toContain(phrase);
@@ -133,6 +139,38 @@ describe("portable render contracts", () => {
       /<button[^>]*disabled=""[^>]*>Submit portable experiment/,
     );
     expect(html).not.toContain("Portable preflight passed");
+  });
+  it("shows exact portable operator selection, request risk and unavailable-profile blocking", async () => {
+    const { PortableConfigForm } =
+      await import("../../src/features/portable/experiment");
+    const { operatorCapabilityFixture } = await import("./research-fixtures");
+    const { body, catalog } = portableFixture();
+    const { capabilities, profile } = operatorCapabilityFixture();
+    profile.strategy_modes = ["native_akquant", "portable"];
+    catalog.capabilities = capabilities;
+    body.model = profile.config;
+    const html = await markup(PortableConfigForm, {
+      owner: "owner-a",
+      initial: body,
+      catalog,
+      onChangeInputs: () => {},
+    });
+    expect(html).toContain("provider may bill");
+    expect(html).toContain(
+      "Unknown usage consumes a conservative token reservation",
+    );
+    expect(html).toContain(profile.config.profile_sha256);
+    profile.strategy_modes = ["native_akquant"];
+    const unavailable = await markup(PortableConfigForm, {
+      owner: "owner-a",
+      initial: body,
+      catalog,
+      onChangeInputs: () => {},
+    });
+    expect(unavailable).toContain(
+      "exact model profile is unavailable or changed",
+    );
+    expect(unavailable).not.toContain('type="password"');
   });
   it("lost-response recovery restores original values/key but never an old preflight", async () => {
     const { PortableConfigForm } =

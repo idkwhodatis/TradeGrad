@@ -4,9 +4,11 @@ This is a distinct completion slice for the original V1 “choose a model and
 budget, run TradeGrad” requirement, not live-provider acceptance or a V2 feature.
 It retains unchanged `src.optimizer.TradeTGD` and the durable intent/response,
 checkpoint, budget and replay adapter. Native configured research now admits
-operator-configured OpenAI-compatible profiles. The separate M5 portable protocol
-continues to admit only the deterministic fixture. Capability entries declare
-`strategy_modes`; no unusable portable/profile combination is advertised.
+operator-configured OpenAI-compatible profiles. The B9 extension carries the same
+profile/process/receipt boundary into the separate portable protocol; see
+[`PORTABLE_OPERATOR_ADMISSION.md`](PORTABLE_OPERATOR_ADMISSION.md). Capability
+entries declare `strategy_modes`. Profiles remain disabled by default, and
+portable hosted SDK/container/browser acceptance is prepared, not yet executed.
 
 ## Default and operator boundary
 

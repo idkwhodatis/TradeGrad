@@ -166,10 +166,9 @@ class PortableRunConfig(FrozenModel):
             raise ValueError("Optimization requires a distinct validation window")
         if self.warmup.history_policy != "require" or self.warmup.sessions < 1:
             raise ValueError("Portable research requires explicit pre-window warmup")
-        if self.model.provider != "fixture":
-            raise ValueError(
-                "This portable research deployment admits fixture models only"
-            )
+        # ModelConfig pins either the historical fixture or an operator profile.
+        # Availability/owner permissions are checked by the API and again by the
+        # worker; accepting an immutable selection never enables a deployment.
         expected = PortableEngineProfile.for_market(self.market, self.initial_cash)
         if self.engine_profile is None:
             object.__setattr__(self, "engine_profile", expected)

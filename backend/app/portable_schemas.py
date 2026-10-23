@@ -120,6 +120,9 @@ class PortablePreflightPublic(BaseModel):
     config_sha256: str
     evaluation_windows: list[dict[str, str]]
     is_synthetic: bool
+    data_evidence: Literal[
+        "synthetic_by_construction", "user_declaration_unverified", "not_assessed"
+    ] = "not_assessed"
     warnings: list[str]
     holdout_execution: Literal[False] = False
     runtime_certified: Literal[False] = False
@@ -131,6 +134,9 @@ class PortableResultQuery(BaseModel):
     policy_image_digest: str
     environment_digest: str
     is_synthetic: bool
+    data_evidence: Literal[
+        "synthetic_by_construction", "user_declaration_unverified", "not_assessed"
+    ] = "not_assessed"
     currency: Literal["USD", "CNY"]
     evaluation_id: UUID
     schema_version: Literal["tradegrad.portable-result.v1"]

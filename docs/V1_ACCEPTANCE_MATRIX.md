@@ -265,3 +265,21 @@ strict preview, fail-closed apply refusal and exact cooperative-writer-barrier p
 The finite follow-on must implement actual safe cleanup and prove retry/resume/restore
 afterward. No scope waiver is inferred. The representative workload/hardware/capacity
 portion of B7 also remains open; bounded samples and 76-row smoke are not a substitute.
+
+## B9 bounded-admission preparation update (2026-10-23)
+
+The historical synthetic-only/frozen-only description above is superseded for
+the bounded implementation in [PORTABLE_OPERATOR_ADMISSION.md](PORTABLE_OPERATOR_ADMISSION.md).
+Portable optimization now reuses the default-off owner-scoped operator profile,
+real TradeTGD, SDK process, durable budget/usage/replay and confirmed-stop machinery.
+Eight synthetic-only hosted SDK/HTTP/PG/Docker cases and the associated browser
+selection flow are prepared/collected, not executed locally or accepted as live.
+
+One single-listing raw CSV/Parquet path accepts an explicit immutable user
+research assumption, labelled `user_declaration_unverified` / `declared_none`.
+It preserves source hashes, exact scope and visible consent, rejects known action
+columns, adjusted/unknown semantics and missing/tampered evidence, and never
+upgrades ordinary empty action lists or unsupported provider histories. This
+does **not** prove real-world action absence, close B9's stronger independently
+evidenced action-coverage requirement, or deliver an official three-provider
+portable-data path. Actual hosted boundary acceptance remains pending.

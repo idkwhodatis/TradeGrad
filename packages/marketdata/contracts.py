@@ -337,6 +337,75 @@ class UniverseSnapshot(Contract):
         return self
 
 
+class PortableUploadDeclaration(Contract):
+    """An explicit research assumption, never independently verified evidence."""
+
+    schema_version: Literal["marketdata.portable-upload-declaration.v1"] = (
+        "marketdata.portable-upload-declaration.v1"
+    )
+    kind: Literal["user_declared_raw_no_actions"]
+    acknowledged_unverified: Literal[True]
+    symbol: str = Field(min_length=1, max_length=40, pattern=r"^[A-Za-z0-9.^_-]+$")
+    mic: str = Field(pattern=r"^[A-Z0-9]{4}$")
+    start: date
+    end: date
+    source_reference: str = Field(min_length=1, max_length=512)
+    evidence_note: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("acknowledged_unverified", mode="before")
+    @classmethod
+    def explicit_acknowledgement(cls, value):
+        if value is not True:
+            raise ValueError(
+                "Explicit acknowledgement of unverified assumptions is required"
+            )
+        return value
+
+    @field_validator("source_reference", "evidence_note")
+    @classmethod
+    def bounded_plain_text(cls, value):
+        if not value.strip() or any(ord(c) < 32 or ord(c) == 127 for c in value):
+            raise ValueError("Use nonempty plain text without control characters")
+        return value
+
+    @model_validator(mode="after")
+    def valid_range(self):
+        if self.end <= self.start or (self.end - self.start).days > 3660:
+            raise ValueError(
+                "Declaration coverage must be nonempty and at most ten years"
+            )
+        return self
+
+
+def validate_portable_upload(mapping, *, start=None, end=None):
+    declaration = mapping.portable_declaration
+    if declaration is None:
+        return
+    if (
+        (declaration.symbol, declaration.mic) != (mapping.symbol, mapping.mic)
+        or (start is not None and declaration.start != start)
+        or (end is not None and declaration.end != end)
+    ):
+        raise ValueError(
+            "Portable declaration must match the exact upload identity and date range"
+        )
+    semantics = mapping.price_semantics
+    if (
+        semantics.native_mode not in {"raw", "user_declared_raw"}
+        or semantics.split_basis != "unadjusted"
+        or semantics.dividend_basis != "unadjusted"
+        or semantics.adjustment_as_of is not None
+        or semantics.algorithm_version is not None
+        or semantics.actions_snapshot_id is not None
+        or mapping.volume_unit != "shares"
+        or mapping.currency not in {"USD", "CNY"}
+        or getattr(mapping, "unknown_flags", [])
+    ):
+        raise ValueError(
+            "Portable upload requires explicitly raw, unadjusted prices, known share units and no unresolved semantics"
+        )
+
+
 class UploadMapping(Contract):
     symbol: str
     mic: str
@@ -347,6 +416,7 @@ class UploadMapping(Contract):
     date_format: str = "%Y-%m-%d"
     volume_unit: Literal["shares", "lots", "contracts", "unknown"] = "unknown"
     price_semantics: PriceSemantics = Field(default_factory=PriceSemantics)
+    portable_declaration: PortableUploadDeclaration | None = None
 
     @model_validator(mode="after")
     def consistent_venue_metadata(self):
@@ -356,6 +426,7 @@ class UploadMapping(Contract):
             self.mic, self.calendar, currency=self.currency, timezone=self.timezone
         )
         object.__setattr__(self, "calendar", calendar)
+        validate_portable_upload(self)
         return self
 
 

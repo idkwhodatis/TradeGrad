@@ -15,6 +15,10 @@ import {
   dateWindowError,
 } from "@/lib/data-utils";
 import { useDataAction } from "@/lib/use-data-action";
+import {
+  portableUploadDeclaration,
+  portableUploadAssumptionError,
+} from "@/lib/portable-upload";
 
 const requiredColumns = [
   "session_date",
@@ -29,6 +33,9 @@ export function UploadDatasetPage() {
   const user = useQuery(currentUserOptions);
   const [file, setFile] = useState<File | null>(null);
   const [validation, setValidation] = useState("");
+  const [declarePortable, setDeclarePortable] = useState(false);
+  const [sourceReference, setSourceReference] = useState("");
+  const [evidenceNote, setEvidenceNote] = useState("");
   const [mapping, setMapping] = useState<UploadMapping>({
     name: "Uploaded data snapshot",
     symbol: "",
@@ -73,6 +80,12 @@ export function UploadDatasetPage() {
   }
   const exactMapping: UploadMapping = {
     ...mapping,
+    portable_declaration: portableUploadDeclaration(
+      mapping,
+      declarePortable,
+      sourceReference,
+      evidenceNote,
+    ),
     currency:
       mapping.currency.trim().toLowerCase() === "unknown"
         ? "unknown"
@@ -108,6 +121,11 @@ export function UploadDatasetPage() {
       Object.keys(mapping.columns).length
     ) {
       setValidation("Each normalized field needs a distinct source column.");
+      return;
+    }
+    const assumptionIssue = portableUploadAssumptionError(exactMapping);
+    if (assumptionIssue) {
+      setValidation(assumptionIssue);
       return;
     }
     setValidation("");
@@ -357,6 +375,61 @@ export function UploadDatasetPage() {
                 user-supplied and not independently verified. Corporate actions
                 are not fabricated.
               </p>
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={declarePortable}
+                  onChange={(event) => setDeclarePortable(event.target.checked)}
+                />
+                <span>
+                  Enable portable research using my unverified raw/no-actions
+                  declaration
+                </span>
+              </label>
+              {declarePortable && (
+                <>
+                  <p className="notice">
+                    I declare that the uploaded OHLC is raw and unadjusted and
+                    that no corporate actions occurred for{" "}
+                    {mapping.symbol || "this symbol"} on {mapping.mic}, from{" "}
+                    {mapping.start_date} inclusive to {mapping.end_date}{" "}
+                    exclusive. This includes warm-up sessions. I understand that
+                    this is my research assumption, not independently verified
+                    action coverage or provider, runtime or cross-framework
+                    certification. References are retained, not fetched or
+                    verified. Known actions and unknown/adjusted semantics are
+                    rejected. The original bytes and declaration are immutable.
+                  </p>
+                  <Field
+                    label="Declaration source reference"
+                    id="upload-source-reference"
+                    help="A public source/document identifier, without passwords or private access tokens."
+                  >
+                    <Input
+                      id="upload-source-reference"
+                      value={sourceReference}
+                      required
+                      maxLength={512}
+                      onChange={(event) =>
+                        setSourceReference(event.target.value)
+                      }
+                    />
+                  </Field>
+                  <Field
+                    label="Basis for raw/no-actions assumption"
+                    id="upload-evidence-note"
+                    help="Describe what you reviewed for this exact security and date range. This note is not independent proof."
+                  >
+                    <Input
+                      id="upload-evidence-note"
+                      value={evidenceNote}
+                      required
+                      maxLength={2000}
+                      onChange={(event) => setEvidenceNote(event.target.value)}
+                    />
+                  </Field>
+                </>
+              )}
               <JsonDetails
                 title="Review exact mapping before upload"
                 value={exactMapping}

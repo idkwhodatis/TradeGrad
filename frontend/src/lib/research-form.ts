@@ -61,12 +61,15 @@ export const researchModelSchema = z.discriminatedUnion("provider", [
 ]);
 
 /** Only expose complete, internally consistent owner-scoped capability choices. */
-export function researchModelProfiles(capabilities: ResearchCapabilities) {
+export function researchModelProfiles(
+  capabilities: ResearchCapabilities,
+  mode: "native_akquant" | "portable" = "native_akquant",
+) {
   return (capabilities.model_profiles || []).flatMap((profile, _, profiles) => {
     const parsed = researchModelSchema.safeParse(profile.config);
     if (
       !parsed.success ||
-      !profile.strategy_modes?.includes("native_akquant") ||
+      !profile.strategy_modes?.includes(mode) ||
       profiles.filter((item) => item.id === profile.id).length !== 1 ||
       (parsed.data.provider !== "fixture" &&
         parsed.data.profile_id !== profile.id) ||
@@ -83,8 +86,9 @@ export function researchModelProfiles(capabilities: ResearchCapabilities) {
 export function researchModelProfileFor(
   model: z.infer<typeof researchModelSchema>,
   capabilities: ResearchCapabilities,
+  mode: "native_akquant" | "portable" = "native_akquant",
 ) {
-  return researchModelProfiles(capabilities).find(
+  return researchModelProfiles(capabilities, mode).find(
     (profile) => stableJson(profile.config) === stableJson(model),
   );
 }

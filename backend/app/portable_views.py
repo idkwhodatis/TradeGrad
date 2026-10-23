@@ -28,15 +28,21 @@ from packages.tradegrad_adapter.portable_config import portable_evaluation_windo
 
 
 def preflight_portable(session, owner_id, body, settings):
-    dataset, _, _, _ = validate_portable_submission(session, owner_id, body, settings)
+    dataset, _, _, reports = validate_portable_submission(
+        session, owner_id, body, settings
+    )
     return PortablePreflightPublic(
         config_sha256=body.sha256,
         evaluation_windows=list(portable_evaluation_windows(body)),
         is_synthetic=dataset.is_synthetic,
+        data_evidence=reports[0].data_evidence if reports else "not_assessed",
         warnings=[
             "New portable research protocol; not upstream paper equivalence.",
             "Only explicit daily cash long-only semantics; runtime and external framework equivalence are not certified.",
         ]
+        + list(
+            dict.fromkeys(warning for report in reports for warning in report.warnings)
+        )
         + (
             [
                 "Selected benchmark has exact scored-session raw-close coverage; comparison is post-processing only and holdout remains separately admitted."
@@ -60,6 +66,15 @@ class OwnedPortableResult:
     content: bytes
     run: ResearchRun
     is_synthetic: bool
+    data_evidence: str = "not_assessed"
+
+
+def portable_data_evidence(dataset):
+    """A display of persisted admission class, never an independent certification."""
+    value = (getattr(dataset, "manifest", None) or {}).get("data_evidence")
+    if value == "user_declaration_unverified" and not dataset.is_synthetic:
+        return value
+    return "synthetic_by_construction" if dataset.is_synthetic else "not_assessed"
 
 
 def load_owned_portable_result(session, evaluation_id, owner_id, settings):
@@ -136,7 +151,13 @@ def load_owned_portable_result(session, evaluation_id, owner_id, settings):
         session, owner_id, config, getattr(dataset, "manifest", {}), bundle, settings
     )
     return OwnedPortableResult(
-        row, artifact, bundle, content, run, dataset.is_synthetic
+        row,
+        artifact,
+        bundle,
+        content,
+        run,
+        dataset.is_synthetic,
+        portable_data_evidence(dataset),
     )
 
 
@@ -168,6 +189,7 @@ def portable_result_view(result, section="account_series", offset=0, limit=100):
         policy_image_digest=result.run.portable_policy_image_digest,
         environment_digest=portable_config(result.run).environment_digest,
         is_synthetic=result.is_synthetic,
+        data_evidence=result.data_evidence,
         currency=bundle["manifest"]["currency"],
         evaluation_id=result.evaluation.id,
         schema_version=bundle["schema_version"],

@@ -187,13 +187,13 @@ describe("secret-free pinned model form", () => {
     ).toBe(false);
   });
 
-  it("does not expand portable execution to operator model profiles", () => {
+  it("accepts a pinned portable model shape but still requires mode-specific admission", () => {
     const { body } = portableFixture();
     const { profile } = operatorCapabilityFixture();
     expect(portableFormSchema.safeParse(body).success).toBe(true);
     expect(
       portableFormSchema.safeParse({ ...body, model: profile.config }).success,
-    ).toBe(false);
+    ).toBe(true);
     expect(profile.strategy_modes).toEqual(["native_akquant"]);
     expect(capabilityFixture().model_profiles![0].strategy_modes).toEqual([
       "native_akquant",

@@ -9,6 +9,7 @@ import type {
   UniversePublic,
   PortableStrategyPublic,
   PortableTemplatePublic,
+  ResearchCapabilities,
 } from "@/client/types.gen";
 import { queryClient } from "./api";
 import {
@@ -44,33 +45,43 @@ export const portableCatalogOptions = (owner: string) =>
     queryKey: portableKey(owner, "catalog"),
     enabled: Boolean(owner),
     queryFn: async ({ signal }) => {
-      const [datasets, universes, strategies, templates] = await Promise.all([
-        collectPortablePages(
-          async (offset) =>
-            (await sdk.listDatasets({ query: { offset, limit: 100 }, signal }))
-              .data,
-        ),
-        collectPortablePages(
-          async (offset) =>
-            (
-              await sdk.listDataUniverses({
-                query: { offset, limit: 100 },
-                signal,
-              })
-            ).data,
-        ),
-        collectPortablePages(
-          async (offset) =>
-            (
-              await sdk.listPortableStrategies({
-                query: { offset, limit: 100 },
-                signal,
-              })
-            ).data,
-        ),
-        sdk.listPortableTemplates({ signal }).then((response) => response.data),
-      ]);
-      return { datasets, universes, strategies, templates };
+      const [datasets, universes, strategies, templates, capabilities] =
+        await Promise.all([
+          collectPortablePages(
+            async (offset) =>
+              (
+                await sdk.listDatasets({
+                  query: { offset, limit: 100 },
+                  signal,
+                })
+              ).data,
+          ),
+          collectPortablePages(
+            async (offset) =>
+              (
+                await sdk.listDataUniverses({
+                  query: { offset, limit: 100 },
+                  signal,
+                })
+              ).data,
+          ),
+          collectPortablePages(
+            async (offset) =>
+              (
+                await sdk.listPortableStrategies({
+                  query: { offset, limit: 100 },
+                  signal,
+                })
+              ).data,
+          ),
+          sdk
+            .listPortableTemplates({ signal })
+            .then((response) => response.data),
+          sdk
+            .researchCapabilities({ signal })
+            .then((response) => response.data),
+        ]);
+      return { datasets, universes, strategies, templates, capabilities };
     },
   });
 export type PortableCatalog = {
@@ -78,6 +89,7 @@ export type PortableCatalog = {
   universes: UniversePublic[];
   strategies: PortableStrategyPublic[];
   templates: PortableTemplatePublic[];
+  capabilities: ResearchCapabilities;
 };
 export async function createPortableStrategy(body: PortableStrategyCreate) {
   return (await sdk.createPortableStrategy({ body })).data;

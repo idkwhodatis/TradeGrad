@@ -11,8 +11,10 @@ from backend.app.schemas import PublicModel
 from packages.marketdata.contracts import (
     Capability,
     Listing,
+    PortableUploadDeclaration,
     PriceSemantics,
     UniverseMember,
+    validate_portable_upload,
 )
 
 ProviderName = Literal["akshare", "yfinance", "openbb", "portable_fixture"]
@@ -241,6 +243,7 @@ class UploadMapping(StrictModel):
     volume_unit: Literal["shares", "lots", "contracts", "unknown"]
     price_semantics: PriceSemantics
     unknown_flags: list[str] = Field(default_factory=list, max_length=20)
+    portable_declaration: PortableUploadDeclaration | None = None
 
     @model_validator(mode="after")
     def mapping_valid(self):
@@ -290,6 +293,7 @@ class UploadMapping(StrictModel):
             and "volume_unit_unknown" not in self.unknown_flags
         ):
             raise ValueError("Unknown volume units must be explicitly flagged")
+        validate_portable_upload(self, start=self.start_date, end=self.end_date)
         return self
 
 

@@ -51,6 +51,7 @@ INPUTS = (
     "packages/marketdata/calendars.py",
     "packages/marketdata/storage.py",
     "packages/marketdata/portable_fixture.py",
+    "packages/marketdata/upload_admission.py",
     "packages/marketdata/contracts.py",
     "packages/marketdata/normalize.py",
     "packages/marketdata/venues.py",

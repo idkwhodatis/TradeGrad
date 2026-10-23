@@ -137,7 +137,7 @@ class OperatorModelProfile(FrozenModel):
             "config": self.public_config(),
             "synthetic": self.synthetic,
             "request_timeout_seconds": self.request_timeout_seconds,
-            "strategy_modes": ["native_akquant"],
+            "strategy_modes": ["native_akquant", "portable"],
         }
 
 

@@ -25,6 +25,10 @@ import { Input } from "@/components/ui/input";
 import { currentUserOptions } from "@/lib/api";
 import { asRecord, snapshotLabel, universeLabels } from "@/lib/data-utils";
 import {
+  researchModelProfiles,
+  researchModelProfileFor,
+} from "@/lib/research-form";
+import {
   createPortableStrategy,
   defaultPortableConfig,
   portableCatalogOptions,
@@ -86,11 +90,11 @@ function PortableWorkspace({ owner }: { owner: string }) {
     <div className="stack mt-6">
       <p className="notice">{portableDataNotice}</p>
       <p className="notice">
-        For the fixture-only path, explicitly import the synthetic
-        portable_fixture source in raw mode. It supports CN 600000/000001 and US
-        AAPL/MSFT within [2024-01-02, 2025-01-01). Its no-actions evidence is
-        true by construction, not evidence about real securities. Publish a
-        matching user-fixed universe version before continuing.
+        For the synthetic path, explicitly import the synthetic portable_fixture
+        source in raw mode. It supports CN 600000/000001 and US AAPL/MSFT within
+        [2024-01-02, 2025-01-01). Its no-actions evidence is true by
+        construction, not evidence about real securities. Publish a matching
+        user-fixed universe version before continuing.
       </p>
       {catalog.isPending ? (
         <Loading text="Loading immutable portable inputs…" />
@@ -369,7 +373,7 @@ export function PortableInputPicker({
               setExecutionMode(e.target.value as typeof executionMode)
             }
           >
-            <option value="optimization">Fixture-model optimization</option>
+            <option value="optimization">Bounded model optimization</option>
             <option value="seed_evaluation">
               Seed-only evaluation · no optimization
             </option>
@@ -489,6 +493,16 @@ export function PortableConfigForm({
     };
   }, []);
   const errors = portableIssues(body);
+  const modelProfiles = researchModelProfiles(catalog.capabilities, "portable");
+  const selectedModelProfile = researchModelProfileFor(
+    body.model,
+    catalog.capabilities,
+    "portable",
+  );
+  if (!selectedModelProfile)
+    errors.push(
+      "The exact model profile is unavailable or changed for this owner. Reload and choose a currently admitted portable profile.",
+    );
   const dataset = catalog.datasets.find((item) => item.id === body.dataset.id),
     universe = catalog.universes.find((item) => item.id === body.universe.id),
     seed = catalog.strategies.find((item) => item.id === body.seed_strategy.id);
@@ -706,17 +720,52 @@ export function PortableConfigForm({
           }
         />
       </Panel>
-      <Panel title="3 · Fixture model, optimizer and bounded budgets">
+      <Panel title="3 · Model profile, optimizer and bounded budgets">
         <p className="notice">
-          Deterministic fixture-model responses and tokens are synthetic. There
-          are no paid model calls or browser credentials. This portable
-          objective is total_return_pct − max_drawdown_pct, not upstream-paper
-          protocol equivalence.
+          Fixture is the default and never makes network calls. Operator
+          profiles must be enabled and assigned by the deployment operator. No
+          browser credentials enter configuration. This portable objective is
+          total_return_pct − max_drawdown_pct, not upstream-paper protocol
+          equivalence.
         </p>
+        {body.model.provider !== "fixture" && (
+          <p className="notice" data-testid="portable-model-notice">
+            {selectedModelProfile?.synthetic
+              ? "Synthetic operator HTTP profile, not live-model or quality evidence."
+              : "Submitting with this operator profile authorizes model requests within the selected call, token and time limits; the provider may bill them."}{" "}
+            Unknown usage consumes a conservative token reservation. Cost is
+            unavailable, not zero. Failed or uncertain requests are not
+            automatically retried. Cancellation waits for confirmed local
+            model-process and policy/engine stops; it cannot undo provider
+            processing or charges.
+          </p>
+        )}
         <fieldset
           disabled={draft.busy || checking || Boolean(accepted)}
           className="form-grid mt-4"
         >
+          <Field id="portable-model-profile" label="Model profile">
+            <select
+              id="portable-model-profile"
+              value={selectedModelProfile?.id ?? ""}
+              onChange={(event) => {
+                const selected = modelProfiles.find(
+                  (profile) => profile.id === event.target.value,
+                );
+                if (selected)
+                  edit({ ...body, model: structuredClone(selected.config) });
+              }}
+            >
+              <option value="">Choose an admitted profile</option>
+              {modelProfiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.label} ·{" "}
+                  {profile.synthetic ? "synthetic" : "operator / may bill"} ·{" "}
+                  {profile.config.provider} / {profile.config.model}
+                </option>
+              ))}
+            </select>
+          </Field>
           <Field id="portable-mode" label="Execution mode">
             <select
               id="portable-mode"
@@ -730,7 +779,7 @@ export function PortableConfigForm({
                 edit(next);
               }}
             >
-              <option value="optimization">Fixture optimization</option>
+              <option value="optimization">Bounded optimization</option>
               <option value="seed_evaluation">Seed evaluation</option>
             </select>
           </Field>
@@ -802,7 +851,7 @@ export function PortableConfigForm({
           {numeric(
             "budgets",
             "max_tokens",
-            "Maximum synthetic tokens",
+            "Maximum charged or reserved tokens",
             0,
             100000000,
           )}

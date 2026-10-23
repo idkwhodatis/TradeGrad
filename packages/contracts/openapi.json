@@ -6637,6 +6637,16 @@
             "title": "Currency",
             "type": "string"
           },
+          "data_evidence": {
+            "default": "not_assessed",
+            "enum": [
+              "synthetic_by_construction",
+              "user_declaration_unverified",
+              "not_assessed"
+            ],
+            "title": "Data Evidence",
+            "type": "string"
+          },
           "environment_digest": {
             "title": "Environment Digest",
             "type": "string"
@@ -6829,6 +6839,16 @@
         "properties": {
           "config_sha256": {
             "title": "Config Sha256",
+            "type": "string"
+          },
+          "data_evidence": {
+            "default": "not_assessed",
+            "enum": [
+              "synthetic_by_construction",
+              "user_declaration_unverified",
+              "not_assessed"
+            ],
+            "title": "Data Evidence",
             "type": "string"
           },
           "evaluation_windows": {
@@ -7057,6 +7077,16 @@
               "CNY"
             ],
             "title": "Currency",
+            "type": "string"
+          },
+          "data_evidence": {
+            "default": "not_assessed",
+            "enum": [
+              "synthetic_by_construction",
+              "user_declaration_unverified",
+              "not_assessed"
+            ],
+            "title": "Data Evidence",
             "type": "string"
           },
           "environment_digest": {
@@ -8209,6 +8239,74 @@
           "code_sha256"
         ],
         "title": "PortableTemplatePublic",
+        "type": "object"
+      },
+      "PortableUploadDeclaration": {
+        "additionalProperties": false,
+        "description": "An explicit research assumption, never independently verified evidence.",
+        "properties": {
+          "acknowledged_unverified": {
+            "const": true,
+            "title": "Acknowledged Unverified",
+            "type": "boolean"
+          },
+          "end": {
+            "format": "date",
+            "title": "End",
+            "type": "string"
+          },
+          "evidence_note": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Evidence Note",
+            "type": "string"
+          },
+          "kind": {
+            "const": "user_declared_raw_no_actions",
+            "title": "Kind",
+            "type": "string"
+          },
+          "mic": {
+            "pattern": "^[A-Z0-9]{4}$",
+            "title": "Mic",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "marketdata.portable-upload-declaration.v1",
+            "default": "marketdata.portable-upload-declaration.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source_reference": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Source Reference",
+            "type": "string"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          },
+          "symbol": {
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9.^_-]+$",
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "acknowledged_unverified",
+          "symbol",
+          "mic",
+          "start",
+          "end",
+          "source_reference",
+          "evidence_note"
+        ],
+        "title": "PortableUploadDeclaration",
         "type": "object"
       },
       "PreviewBar": {
@@ -12643,6 +12741,16 @@
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "portable_declaration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PortableUploadDeclaration"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "price_semantics": {
             "$ref": "#/components/schemas/PriceSemantics"

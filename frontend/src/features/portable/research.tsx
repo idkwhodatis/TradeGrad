@@ -239,10 +239,10 @@ export function PortableResearchContent({
       header: "Adopted",
       cell: ({ row }) => String(row.original.adopted),
     },
-    { accessorKey: "model", header: "Fixture model" },
+    { accessorKey: "model", header: "Model" },
     {
       accessorKey: "usage",
-      header: "Synthetic token usage",
+      header: "Token usage",
       cell: ({ row }) => rawCell(row.original.usage),
     },
   ];
@@ -346,9 +346,11 @@ export function PortableResearchContent({
               <p className="notice">
                 {run.result.is_synthetic
                   ? "Synthetic dataset, not market-performance evidence."
-                  : "Dataset marked non-synthetic; inspect pinned raw/action evidence."}{" "}
-                Deterministic fixture model only. Holdout execution is excluded
-                from this research run.
+                  : "Non-synthetic upload: raw/no-actions claims are unverified user research assumptions, not provider evidence."}{" "}
+                {run.config.model?.provider === "fixture"
+                  ? "Deterministic fixture model; no provider request."
+                  : "Operator model profile; inspect persisted calls, usage and stop receipts. Provider charges cannot be inferred from tokens."}{" "}
+                Holdout execution is excluded from this research run.
               </p>
               <Metadata
                 values={{
@@ -453,11 +455,13 @@ export function PortableResearchContent({
             </div>
           )}
         </Panel>
-        <Panel title="Fixture model calls and usage">
+        <Panel title="Model calls and usage">
           <p className="notice">
-            Token counts are deterministic fixture accounting, not paid-model
-            bills, response quality or live-model acceptance evidence. Cost is
-            unavailable, not zero.
+            {run.config.model?.provider === "fixture"
+              ? "Token counts are deterministic fixture accounting, not paid-model bills."
+              : "Token counts are provider-reported or conservatively reserved when usage is unknown. Failed or uncertain requests are not automatically retried; local stop receipts do not undo provider processing or charges."}{" "}
+            Cost is unavailable, not zero. Neither usage nor a completed run
+            proves model quality.
           </p>
           {usage.isPending ? (
             <Loading text="Loading persisted usage…" />
@@ -473,7 +477,7 @@ export function PortableResearchContent({
                 "Adopted calls": usage.data.adopted_calls,
                 "Input tokens": usage.data.input_tokens,
                 "Output tokens": usage.data.output_tokens,
-                "Charged synthetic tokens": usage.data.charged_tokens,
+                "Charged or reserved tokens": usage.data.charged_tokens,
                 "Unknown usage calls": usage.data.unknown_usage_calls,
                 Cost: "Unavailable",
                 "Usage evidence": usage.data.usage_sources,
@@ -483,7 +487,7 @@ export function PortableResearchContent({
           <Paged
             query={calls}
             columns={callColumns}
-            label="Portable fixture model calls"
+            label="Portable model calls"
             offset={callOffset}
             onPage={setCallOffset}
           />
@@ -501,7 +505,7 @@ export function PortableResearchContent({
                 />
               ) : call.data ? (
                 <JsonDetails
-                  title="Fixture model request, response and adoption"
+                  title="Model request, response and adoption"
                   value={call.data}
                 />
               ) : null}

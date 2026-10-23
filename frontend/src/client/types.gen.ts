@@ -3877,6 +3877,10 @@ export type PortableFinalResultQuery = {
      */
     currency: 'USD' | 'CNY';
     /**
+     * Data Evidence
+     */
+    data_evidence?: 'synthetic_by_construction' | 'user_declaration_unverified' | 'not_assessed';
+    /**
      * Environment Digest
      */
     environment_digest: string;
@@ -4011,6 +4015,10 @@ export type PortablePreflightPublic = {
      */
     config_sha256: string;
     /**
+     * Data Evidence
+     */
+    data_evidence?: 'synthetic_by_construction' | 'user_declaration_unverified' | 'not_assessed';
+    /**
      * Evaluation Windows
      */
     evaluation_windows: Array<{
@@ -4136,6 +4144,10 @@ export type PortableResultQuery = {
      * Currency
      */
     currency: 'USD' | 'CNY';
+    /**
+     * Data Evidence
+     */
+    data_evidence?: 'synthetic_by_construction' | 'user_declaration_unverified' | 'not_assessed';
     /**
      * Environment Digest
      */
@@ -4719,6 +4731,50 @@ export type PortableTemplatePublic = {
      * Template Version
      */
     template_version: 'portable_business_rules.v1';
+};
+
+/**
+ * PortableUploadDeclaration
+ *
+ * An explicit research assumption, never independently verified evidence.
+ */
+export type PortableUploadDeclaration = {
+    /**
+     * Acknowledged Unverified
+     */
+    acknowledged_unverified: true;
+    /**
+     * End
+     */
+    end: string;
+    /**
+     * Evidence Note
+     */
+    evidence_note: string;
+    /**
+     * Kind
+     */
+    kind: 'user_declared_raw_no_actions';
+    /**
+     * Mic
+     */
+    mic: string;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'marketdata.portable-upload-declaration.v1';
+    /**
+     * Source Reference
+     */
+    source_reference: string;
+    /**
+     * Start
+     */
+    start: string;
+    /**
+     * Symbol
+     */
+    symbol: string;
 };
 
 /**
@@ -7126,6 +7182,7 @@ export type UploadMapping = {
      * Name
      */
     name?: string;
+    portable_declaration?: PortableUploadDeclaration | null;
     price_semantics: PriceSemantics;
     /**
      * Start Date

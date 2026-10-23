@@ -21,6 +21,7 @@ from .contracts import (
     UploadMapping,
     WarningRecord,
     utc_now,
+    validate_portable_upload,
 )
 
 
@@ -251,6 +252,11 @@ def normalize_upload(
     if len(request.listings) != 1:
         raise ValueError("One listing per uploaded table is required")
     listing = request.listings[0]
+    validate_portable_upload(mapping, start=request.start, end=request.end)
+    if mapping.portable_declaration is not None and source_reference is None:
+        raise ValueError(
+            "Portable declaration requires a pinned original upload artifact"
+        )
     from .venues import canonical_calendar
 
     requested_calendar = canonical_calendar(
@@ -299,6 +305,29 @@ def normalize_upload(
     if not required <= mapping.columns.keys():
         raise ValueError("Upload column mapping does not match the table")
     selected = list(dict.fromkeys(mapping.columns.values()))
+    action_columns = []
+
+    def include_action_columns(names):
+        # These conventional action columns must not be discarded by column mapping.
+        # Their absence still proves nothing; the opt-in remains a user assumption.
+        if mapping.portable_declaration is not None:
+            action_columns.extend(
+                name
+                for name in names
+                if re.sub(r"[ _-]", "", name).lower()
+                in {
+                    "dividend",
+                    "dividends",
+                    "split",
+                    "splits",
+                    "stocksplit",
+                    "stocksplits",
+                    "capitalgain",
+                    "capitalgains",
+                }
+            )
+            selected.extend(name for name in action_columns if name not in selected)
+
     if len(selected) > 8:
         raise ValueError("Upload supports at most eight mapped columns")
     if extension == ".csv":
@@ -319,6 +348,7 @@ def normalize_upload(
                 raise ValueError("Upload exceeds the 100000 daily-row limit")
         if not set(selected) <= set(header):
             raise ValueError("Upload column mapping does not match the table")
+        include_action_columns(header)
         frame = pd.read_csv(io.BytesIO(original), usecols=selected, nrows=max_rows + 1)
     else:
         import pyarrow as pa
@@ -342,6 +372,7 @@ def normalize_upload(
             raise ValueError("Nested Parquet fields are unsupported")
         if not set(selected) <= set(parquet.schema_arrow.names):
             raise ValueError("Upload column mapping does not match the table")
+        include_action_columns(parquet.schema_arrow.names)
         frame = parquet.read(columns=selected).to_pandas()
     if len(frame) > max_rows:
         raise ValueError("Upload exceeds the 100000 daily-row limit")
@@ -352,7 +383,19 @@ def normalize_upload(
         "user",
         "uploaded_table",
         evidence="uploaded",
-        effective_params=mapping.model_dump(mode="json"),
+        requested_params={
+            "listing_id": listing.listing_id,
+            "start": str(request.start),
+            "end": str(request.end),
+        }
+        if mapping.portable_declaration is not None
+        else None,
+        effective_params=mapping.model_dump(mode="json")
+        | (
+            {"upload_source": raw_content}
+            if mapping.portable_declaration is not None
+            else {}
+        ),
         package_names=["pandas", "pyarrow"],
         note="Exact original bytes retained; only explicitly mapped columns parsed",
     )
@@ -374,6 +417,12 @@ def normalize_upload(
                 day = datetime.strptime(str(day_value), mapping.date_format).date()
             if not request.start <= day < request.end:
                 continue
+            for column in action_columns:
+                value = float(row[column])
+                if not math.isfinite(value) or value != 0:
+                    raise ValueError(
+                        "Declared no-action upload contains an action or unknown action value"
+                    )
             fields = {
                 name: row[column]
                 for name, column in mapping.columns.items()
@@ -398,6 +447,14 @@ def normalize_upload(
                 severity="error",
                 listing_id=listing.listing_id,
                 message=f"{invalid_rows} uploaded rows could not be normalized; exact source retained",
+            )
+        )
+    if mapping.portable_declaration is not None:
+        warnings.append(
+            WarningRecord(
+                code="portable_upload_assumption_unverified",
+                listing_id=listing.listing_id,
+                message="Raw prices and absence of corporate actions are user-declared research assumptions for this exact listing/range. Source references are retained, not independently verified; no provider, runtime or cross-framework certification.",
             )
         )
     if (

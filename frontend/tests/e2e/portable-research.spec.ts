@@ -496,3 +496,195 @@ test("real portable CN/US research, frozen final retry and package flows preserv
     ).toEqual([]);
   }
 });
+
+// PREPARED ONLY. The hosted launcher must provision its synthetic loopback model
+// profile. This seed-only browser case never sends a model request; the real SDK
+// request/replay/failure gates live in test_portable_operator_pipeline.py.
+test("@portable-operator-profile real profile selection, reload, preflight and seed-only run", async ({
+  page,
+  request,
+}) => {
+  test.skip(
+    process.env.E2E_MODEL_PROFILES !== "1" || !process.env.E2E_MODEL_PROFILE_ID,
+    "Requires an explicitly provisioned hosted synthetic model profile",
+  );
+  test.setTimeout(300000);
+  account();
+  const auth = await token(request);
+  const imports = new Set<string>();
+  let runId: string | null = null;
+  try {
+    const capabilities = await read<
+      import("../../src/client/types.gen").ResearchCapabilities
+    >(request, auth, "/research-capabilities");
+    const profile = capabilities.model_profiles?.find(
+      (row) => row.id === process.env.E2E_MODEL_PROFILE_ID,
+    );
+    expect(
+      profile?.synthetic,
+      "Never use a real paid model in this browser gate",
+    ).toBe(true);
+    expect(profile?.strategy_modes).toContain("portable");
+    const { dataset, universe } = await syntheticInputs(
+      request,
+      auth,
+      "US",
+      imports,
+    );
+    await signIn(page);
+    await page.goto("/portable/new");
+    const change = page.getByRole("button", { name: "Change pinned inputs" });
+    if (await change.isVisible()) await change.click();
+    await page.getByLabel("Market", { exact: true }).selectOption("US");
+    await page
+      .getByLabel("Portable template", { exact: true })
+      .selectOption("event");
+    await page.getByLabel("Published dataset version").selectOption(dataset.id);
+    await page.getByLabel("Exact universe version").selectOption(universe.id);
+    const seed = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/v1/portable-strategies" &&
+        response.request().method() === "POST",
+    );
+    await page
+      .getByRole("button", {
+        name: "Create reference template version",
+        exact: true,
+      })
+      .click();
+    expect((await seed).status()).toBe(201);
+    await page
+      .getByRole("button", {
+        name: "Load pinned portable configuration",
+        exact: true,
+      })
+      .click();
+    await expect(page.getByLabel("Model profile", { exact: true })).toHaveValue(
+      "fixture",
+    );
+    await page
+      .getByLabel("Model profile", { exact: true })
+      .selectOption(profile!.id);
+    await expect(page.getByTestId("portable-model-notice")).toContainText(
+      "Synthetic operator HTTP profile",
+    );
+    await page
+      .getByLabel("Execution mode", { exact: true })
+      .selectOption("seed_evaluation");
+    await page
+      .getByLabel("train start · inclusive", { exact: true })
+      .fill("2024-01-08");
+    await page
+      .getByLabel("train end · exclusive", { exact: true })
+      .fill("2024-01-15");
+    await page
+      .getByLabel("validation start · inclusive", { exact: true })
+      .fill("2024-01-15");
+    await page
+      .getByLabel("validation end · exclusive", { exact: true })
+      .fill("2024-01-22");
+    await page.reload();
+    await expect(page.getByLabel("Model profile", { exact: true })).toHaveValue(
+      profile!.id,
+    );
+    await expect(
+      page.getByRole("button", {
+        name: "Submit portable experiment",
+        exact: true,
+      }),
+    ).toBeDisabled();
+    const preflight = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/v1/portable-runs/preflight",
+    );
+    await page
+      .getByRole("button", {
+        name: "Run strict portable preflight",
+        exact: true,
+      })
+      .click();
+    expect((await preflight).status()).toBe(200);
+    const submitted = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/v1/portable-runs" &&
+        response.request().method() === "POST",
+    );
+    await page
+      .getByRole("button", { name: "Submit portable experiment", exact: true })
+      .click();
+    const response = await submitted;
+    expect(response.status()).toBe(202);
+    const run = (await response.json()) as PortableRunPublic;
+    runId = run.id;
+    expect(run.config.model).toEqual(profile!.config);
+    await expect
+      .poll(async () => (await detail(request, auth, run.id)).status, {
+        timeout: 150000,
+      })
+      .toBe("succeeded");
+    await page.reload();
+    await expect(
+      page.getByText("Model calls and usage", { exact: true }),
+    ).toBeVisible();
+    const calls = await pages(
+      request,
+      auth,
+      `/portable-runs/${run.id}/model-calls`,
+    );
+    expect(calls).toHaveLength(0);
+    expect(
+      (await detail(request, auth, run.id)).attempts.every(
+        (row) => row.sandbox_stopped,
+      ),
+    ).toBe(true);
+  } finally {
+    if (runId) {
+      const run = await detail(request, auth, runId);
+      if (!terminal.has(run.status)) {
+        expect(
+          (
+            await request.post(api(`/portable-runs/${runId}/cancel`), {
+              headers: authorization(auth),
+            })
+          ).status(),
+        ).toBe(202);
+      }
+      await expect
+        .poll(
+          async () => {
+            const value = await detail(request, auth, runId!);
+            return (
+              terminal.has(value.status) &&
+              value.attempts.every((row) => row.sandbox_stopped)
+            );
+          },
+          { timeout: 45000 },
+        )
+        .toBe(true);
+    }
+    for (const id of imports) {
+      const row = await read<ImportDetail>(
+        request,
+        auth,
+        `/data/imports/${id}`,
+      );
+      if (!["ready", "partial", "failed", "cancelled"].includes(row.status)) {
+        expect(
+          (
+            await request.post(api(`/data/imports/${id}/cancel`), {
+              headers: authorization(auth),
+            })
+          ).status(),
+        ).toBe(202);
+        await expect
+          .poll(
+            async () =>
+              (await read<ImportDetail>(request, auth, `/data/imports/${id}`))
+                .status,
+            { timeout: 45000 },
+          )
+          .toMatch(/^(ready|partial|failed|cancelled)$/);
+      }
+    }
+  }
+});

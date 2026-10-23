@@ -24,6 +24,7 @@ from backend.app.portable_final_services import (
 )
 from backend.app.portable_schemas import PortableResultQuery
 from backend.app.portable_services import portable_score, verify_portable_bundle_binding
+from backend.app.portable_views import portable_data_evidence
 from backend.app.research_services import bounded_json, payload_hash
 from backend.app.services import DomainError
 from backend.app.storage import read_verified
@@ -214,6 +215,7 @@ def final_result_view(
         policy_image_digest=result.run.portable_policy_image_digest,
         environment_digest=config.environment_digest,
         is_synthetic=result.dataset.is_synthetic,
+        data_evidence=portable_data_evidence(result.dataset),
         currency=bundle["manifest"]["currency"],
         evaluation_id=result.evaluation.id,
         result_trust=bundle["result_trust"],

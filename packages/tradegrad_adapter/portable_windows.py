@@ -50,6 +50,7 @@ class PortableWindowReport:
     warnings: tuple[str, ...]
     point_in_time_proven: bool = False
     is_synthetic: bool = False
+    data_evidence: str = "unknown"
 
 
 @dataclass(frozen=True)
@@ -61,6 +62,146 @@ class PortableStagedDataset:
 
 def _fail(code, text):
     raise PreflightError(code, text)
+
+
+def _declared_upload(coverage, manifest, request, listings, actions, read, read_bytes):
+    """Validate a retained assumption without promoting it to known/verified proof."""
+    from packages.marketdata.contracts import UploadMapping, validate_portable_upload
+
+    reference = coverage.get("declaration")
+    if (
+        len(listings) != 1
+        or actions
+        or manifest.get("data_evidence") != "user_declaration_unverified"
+        or manifest.get("is_synthetic") is not False
+        or coverage.get("is_synthetic") is not False
+        or coverage.get("generator_version") is not None
+        or not isinstance(reference, dict)
+        or set(reference) != {"artifact", "sha256"}
+        or reference["artifact"] != "portable-upload-declaration.json"
+        or reference["sha256"] != manifest["artifact_files"].get(reference["artifact"])
+    ):
+        _fail(
+            "unknown_corporate_actions",
+            "User-declared coverage requires exact immutable upload evidence and no actions",
+        )
+    evidence = read(reference["artifact"])
+    if not isinstance(evidence, dict) or set(evidence) != {
+        "schema_version",
+        "data_evidence",
+        "listing_id",
+        "start",
+        "end",
+        "declaration",
+        "source",
+        "provenance_id",
+        "price_semantics",
+    }:
+        _fail("unknown_corporate_actions", "Malformed user declaration evidence")
+    listing = listings[0]
+    records = coverage["listings"]
+    sources = manifest.get("provenance", [])
+    if (
+        evidence["schema_version"] != "marketdata.portable-upload-evidence.v1"
+        or evidence["data_evidence"] != "user_declaration_unverified"
+        or (evidence["listing_id"], evidence["start"], evidence["end"])
+        != (listing["listing_id"], request["start"], request["end"])
+        or records
+        != [
+            {
+                "listing_id": listing["listing_id"],
+                "status": "declared_none",
+                "provenance_ids": [evidence["provenance_id"]],
+                "evidence": "user_declaration_unverified",
+            }
+        ]
+        or not isinstance(sources, list)
+        or len(sources) != 1
+        or not isinstance(sources[0], dict)
+    ):
+        _fail(
+            "unknown_corporate_actions",
+            "User declaration coverage or evidence label differs",
+        )
+    source = sources[0]
+    if not isinstance(source.get("effective_params"), dict):
+        _fail(
+            "unknown_corporate_actions", "User declaration provenance lacks a mapping"
+        )
+    params = dict(source["effective_params"])
+    original = params.pop("upload_source", None)
+    try:
+        mapping = UploadMapping.model_validate(params)
+        validate_portable_upload(
+            mapping,
+            start=date.fromisoformat(request["start"]),
+            end=date.fromisoformat(request["end"]),
+        )
+    except (ValueError, TypeError):
+        _fail(
+            "unknown_corporate_actions",
+            "Invalid unverified upload declaration or raw-price semantics",
+        )
+    if (
+        mapping.portable_declaration is None
+        or mapping.portable_declaration.model_dump(mode="json")
+        != evidence["declaration"]
+        or mapping.price_semantics.model_dump(mode="json")
+        != evidence["price_semantics"]
+        or evidence["price_semantics"] != manifest["price_semantics"]
+        or (
+            mapping.symbol,
+            mapping.mic,
+            mapping.currency,
+            mapping.timezone,
+            mapping.calendar,
+        )
+        != tuple(
+            listing.get(key)
+            for key in ("symbol", "mic", "currency", "timezone", "calendar")
+        )
+        or source.get("provenance_id") != evidence["provenance_id"]
+        or (
+            source.get("connector"),
+            source.get("provider"),
+            source.get("endpoint"),
+            source.get("evidence"),
+        )
+        != ("upload", "user", "uploaded_table", "uploaded")
+        or source.get("requested_params")
+        != {
+            "listing_id": listing["listing_id"],
+            "start": request["start"],
+            "end": request["end"],
+        }
+        or not isinstance(original, dict)
+        or original != evidence["source"]
+        or original != manifest.get("upload_source")
+        or set(original) != {"artifact", "sha256", "size_bytes"}
+        or original["artifact"] not in {"source.csv", "source.parquet"}
+        or type(original["size_bytes"]) is not int
+        or not 0 < original["size_bytes"] <= 10_000_000
+        or original["sha256"] != manifest["artifact_files"].get(original["artifact"])
+    ):
+        _fail(
+            "unknown_corporate_actions",
+            "Declaration does not bind the exact original upload, identity and price semantics",
+        )
+    if len(read_bytes(original["artifact"])) != original["size_bytes"]:
+        _fail("input_hash_mismatch", "Original upload byte count differs")
+    raw = read("raw.json")
+    if (
+        not isinstance(raw, list)
+        or len(raw) != 1
+        or not isinstance(raw[0], dict)
+        or raw[0].get("listing_id") != listing["listing_id"]
+        or raw[0].get("provenance_id") != evidence["provenance_id"]
+        or raw[0].get("content") != original
+    ):
+        _fail(
+            "unknown_corporate_actions",
+            "Original upload reference differs from retained raw evidence",
+        )
 
 
 def _window(config, split, evaluation_window):
@@ -171,7 +312,7 @@ def _stage_portable_window(
     loaded = {}
     total = 0
 
-    def read(name):
+    def read_bytes(name):
         nonlocal total
         digest = artifacts.get(name)
         if not isinstance(digest, str) or len(digest) != 64:
@@ -188,7 +329,10 @@ def _stage_portable_window(
         if hashlib.sha256(raw).hexdigest() != digest:
             _fail("input_hash_mismatch", "Immutable portable evidence bytes changed")
         loaded[name] = digest
-        return parse_json(raw, limits=DATA_LIMITS)
+        return raw
+
+    def read(name):
+        return parse_json(read_bytes(name), limits=DATA_LIMITS)
 
     schedule = read("sessions.json")
     if (
@@ -263,7 +407,11 @@ def _stage_portable_window(
     coverage = read("corporate-action-coverage.json")
     if (
         not isinstance(coverage, dict)
-        or coverage.get("schema_version") != "marketdata.corporate-action-coverage.v1"
+        or coverage.get("schema_version")
+        not in {
+            "marketdata.corporate-action-coverage.v1",
+            "marketdata.corporate-action-coverage.v2",
+        }
         or (coverage.get("start"), coverage.get("end"))
         != (request["start"], request["end"])
     ):
@@ -284,11 +432,14 @@ def _stage_portable_window(
             "capital_gain",
         }:
             _fail("unknown_corporate_actions", "Unknown corporate action type")
-        if (
-            sessions[0]["session_date"]
-            <= action.get("session_date", "")
-            < str(window.end)
-        ):
+        try:
+            action_day = str(date.fromisoformat(action.get("session_date", "")))
+        except (TypeError, ValueError):
+            _fail(
+                "unknown_corporate_actions",
+                "Corporate action lacks an exact session date",
+            )
+        if sessions[0]["session_date"] <= action_day < str(window.end):
             _fail(
                 "corporate_actions_unsupported",
                 "Portable profile rejects warmup/active windows containing corporate actions",
@@ -312,6 +463,16 @@ def _stage_portable_window(
     ids = [v.get("listing_id") for v in source_listings]
     if len(set(ids)) != len(ids):
         _fail("duplicate_listing", "Duplicate immutable listing identity")
+    for action in actions:
+        action_day = str(date.fromisoformat(action["session_date"]))
+        if (
+            action.get("listing_id") not in ids
+            or not request["start"] <= action_day < request["end"]
+        ):
+            _fail(
+                "unknown_corporate_actions",
+                "Corporate action has unidentified listing or uncovered date",
+            )
     if universe.get("members") is not None and set(ids) != {
         m.get("listing_id") for m in universe["members"]
     }:
@@ -322,75 +483,93 @@ def _stage_portable_window(
     if (
         not isinstance(action_records, list)
         or len(action_records) != len(ids)
+        or any(not isinstance(r, dict) for r in action_records)
         or {r.get("listing_id") for r in action_records} != set(ids)
     ):
         _fail("unknown_corporate_actions", "Action evidence must cover every listing")
-    if (
-        any(
-            r.get("status") != "known_none"
-            or r.get("evidence") != "synthetic_by_construction"
-            or not r.get("provenance_ids")
-            for r in action_records
+    is_synthetic = (
+        coverage.get("schema_version") == "marketdata.corporate-action-coverage.v1"
+    )
+    if not is_synthetic:
+        _declared_upload(
+            coverage, manifest, request, source_listings, actions, read, read_bytes
         )
-        or coverage.get("is_synthetic") is not True
-        or coverage.get("generator_version") != "portable.synthetic.daily.v1"
-    ):
-        _fail(
-            "unknown_corporate_actions",
-            "Initial portable action coverage admits only explicit no-actions synthetic evidence, never an unexplained empty array",
+        warnings.append(
+            "Raw prices and absence of corporate actions are user-declared research assumptions for this exact listing/range. Source references are retained, not independently verified; no provider, runtime or cross-framework certification."
         )
-    if semantics.get("algorithm_version") != coverage["generator_version"]:
-        _fail("unknown_corporate_actions", "Price generator and action evidence differ")
-    sources = {p.get("provenance_id"): p for p in manifest.get("provenance", [])}
-    for record in action_records:
-        intervals = []
-        for source_id in record["provenance_ids"]:
-            p = sources.get(source_id) or {}
-            if (
-                p.get("connector") != "portable_fixture"
-                or p.get("provider") != "synthetic"
-                or p.get("evidence") != "fixture"
-                or p.get("endpoint") != coverage["generator_version"]
-                or (p.get("requested_params") or {}).get("listing_id")
-                != record["listing_id"]
-                or p.get("effective_params")
-                != {
-                    "is_synthetic": True,
-                    "price_basis": "unadjusted",
-                    "corporate_actions": "none_by_construction",
-                    "generator_version": coverage["generator_version"],
-                }
-            ):
-                _fail(
-                    "unknown_corporate_actions",
-                    "Synthetic no-actions evidence lacks matching provenance",
-                )
-            params = p["requested_params"]
-            start, end = params.get("start"), params.get("end")
-            if not isinstance(start, str) or not isinstance(end, str):
-                _fail(
-                    "unknown_corporate_actions",
-                    "Action provenance lacks exact coverage bounds",
-                )
-            # Parse dates before comparing, rather than trusting lexical payloads.
-            start, end = str(date.fromisoformat(start)), str(date.fromisoformat(end))
-            intervals.append((start, end))
-        cursor = request["start"]
-        for start, end in sorted(intervals):
-            if start > cursor or end <= start:
-                _fail(
-                    "unknown_corporate_actions",
-                    "Action provenance has an uncovered interval",
-                )
-            cursor = max(cursor, end)
-        if cursor < request["end"]:
+    else:
+        if (
+            any(
+                r.get("status") != "known_none"
+                or r.get("evidence") != "synthetic_by_construction"
+                or not r.get("provenance_ids")
+                for r in action_records
+            )
+            or coverage.get("is_synthetic") is not True
+            or coverage.get("generator_version") != "portable.synthetic.daily.v1"
+        ):
             _fail(
                 "unknown_corporate_actions",
-                "Action provenance does not cover the requested range",
+                "Initial portable action coverage admits only explicit no-actions synthetic evidence, never an unexplained empty array",
             )
-    warnings.append(
-        "Artificial raw-price fixture with no corporate actions by construction; not captured or live market observations."
-    )
+        if semantics.get("algorithm_version") != coverage["generator_version"]:
+            _fail(
+                "unknown_corporate_actions",
+                "Price generator and action evidence differ",
+            )
+        sources = {p.get("provenance_id"): p for p in manifest.get("provenance", [])}
+        for record in action_records:
+            intervals = []
+            for source_id in record["provenance_ids"]:
+                p = sources.get(source_id) or {}
+                if (
+                    p.get("connector") != "portable_fixture"
+                    or p.get("provider") != "synthetic"
+                    or p.get("evidence") != "fixture"
+                    or p.get("endpoint") != coverage["generator_version"]
+                    or (p.get("requested_params") or {}).get("listing_id")
+                    != record["listing_id"]
+                    or p.get("effective_params")
+                    != {
+                        "is_synthetic": True,
+                        "price_basis": "unadjusted",
+                        "corporate_actions": "none_by_construction",
+                        "generator_version": coverage["generator_version"],
+                    }
+                ):
+                    _fail(
+                        "unknown_corporate_actions",
+                        "Synthetic no-actions evidence lacks matching provenance",
+                    )
+                params = p["requested_params"]
+                start, end = params.get("start"), params.get("end")
+                if not isinstance(start, str) or not isinstance(end, str):
+                    _fail(
+                        "unknown_corporate_actions",
+                        "Action provenance lacks exact coverage bounds",
+                    )
+                # Parse dates before comparing, rather than trusting lexical payloads.
+                start, end = (
+                    str(date.fromisoformat(start)),
+                    str(date.fromisoformat(end)),
+                )
+                intervals.append((start, end))
+            cursor = request["start"]
+            for start, end in sorted(intervals):
+                if start > cursor or end <= start:
+                    _fail(
+                        "unknown_corporate_actions",
+                        "Action provenance has an uncovered interval",
+                    )
+                cursor = max(cursor, end)
+            if cursor < request["end"]:
+                _fail(
+                    "unknown_corporate_actions",
+                    "Action provenance does not cover the requested range",
+                )
+        warnings.append(
+            "Artificial raw-price fixture with no corporate actions by construction; not captured or live market observations."
+        )
     for source in sorted(source_listings, key=lambda v: v["listing_id"]):
         binding = (schedule.get("listing_calendars") or {}).get(
             source["listing_id"]
@@ -522,7 +701,8 @@ def _stage_portable_window(
         "user_fixed",
         tuple(dict.fromkeys(warnings)),
         False,
-        True,
+        is_synthetic,
+        "synthetic_by_construction" if is_synthetic else "user_declaration_unverified",
     )
     return PortableStagedDataset(market, content, report)
 
