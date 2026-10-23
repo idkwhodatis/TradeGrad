@@ -76,7 +76,7 @@ class PortableProcessHarness(ResearchProcessHarness):
                 "provider": "portable_fixture",
                 "name": "Explicit synthetic portable pipeline gate",
                 "market": market,
-                "symbols": ["600000", "000001"] if market == "CN" else ["AAPL", "MSFT"],
+                "symbols": ["600000"] if market == "CN" else ["AAPL", "MSFT"],
                 "start_date": "2024-01-02",
                 "end_date": "2024-03-01",
                 "price_mode": "raw",
@@ -86,22 +86,22 @@ class PortableProcessHarness(ResearchProcessHarness):
         def complete():
             value = self.request(client, "GET", f"/data/imports/{record['id']}").json()
             require(
-                value["status"] not in {"failed", "cancelled"},
+                value["status"] not in {"failed", "partial", "cancelled"},
                 "Synthetic data worker failed",
             )
-            return value if value["status"] == "completed" else None
+            return value if value["status"] == "ready" else None
 
         imported = self.until(
             complete, "Synthetic data import did not complete", timeout=70
         )
         dataset = self.request(
-            client, "GET", f"/dataset-versions/{imported['dataset_version_id']}"
+            client, "GET", f"/datasets/{imported['dataset_version_id']}"
         ).json()
         require(dataset["is_synthetic"], "Artificial fixture lost its synthetic label")
         universe = self.request(
             client,
             "POST",
-            "/universe-versions",
+            "/data/universes",
             status=201,
             json={
                 "name": "Explicit fixed synthetic portable universe",
