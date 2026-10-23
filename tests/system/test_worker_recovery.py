@@ -36,6 +36,7 @@ from script.ci_owned_group import (
     stop_owned_groups,
     wait_owned_group,
 )
+from script.ci_recovery_diagnostics import recovery_diagnostic
 
 ROOT = Path(__file__).resolve().parents[2]
 SLOW_SEED = "E2E slow cn_time seed (20s import delay)"
@@ -137,7 +138,7 @@ class ProcessHarness:
                     f"Owned {label} process exited early",
                 )
 
-    def until(self, predicate, message, *, timeout):
+    def until(self, predicate, message, *, timeout, diagnostics=None):
         deadline = time.monotonic() + self.remaining(timeout)
         while time.monotonic() < deadline:
             self.alive()
@@ -145,7 +146,46 @@ class ProcessHarness:
             if result:
                 return result
             time.sleep(0.15)
+        if diagnostics is not None:
+            # Fixed enums/numeric timing only, no UUIDs, credentials, SQL, logs,
+            # event payloads or arbitrary HTTP/database error messages.
+            message += "; " + json.dumps(diagnostics(), sort_keys=True, allow_nan=False)
         pytest.fail(message, pytrace=False)
+
+    def recovery_diagnostics(self, old):
+        snapshots = []
+        for snapshot in old:
+            row = None
+            container_state = "unknown"
+            try:
+                with self.connection(private=True) as connection:
+                    connection.execute("SET statement_timeout = 1000")
+                    row = connection.execute(
+                        """SELECT r.status, a.status,
+                          extract(epoch FROM (a.lease_expires_at-clock_timestamp())),
+                          extract(epoch FROM (clock_timestamp()-a.heartbeat_at)),
+                          a.sandbox_stopped, a.finished_at IS NOT NULL,
+                          EXISTS(SELECT 1 FROM run_events e
+                            WHERE e.attempt_id=a.id AND e.type='recovery_blocked')
+                        FROM execution_attempts a JOIN research_runs r ON r.id=a.run_id
+                        WHERE a.id=%s""",
+                        (UUID(snapshot["attempt_id"]),),
+                    ).fetchone()
+            except Exception:  # noqa: BLE001 - never serialize diagnostic failures
+                row = None
+            try:
+                state = self.runner._inspect(snapshot["attempt_id"])
+                container_state = (
+                    "absent"
+                    if state is None
+                    else "running"
+                    if state["State"]["Running"]
+                    else "exited"
+                )
+            except Exception:  # noqa: BLE001 - unavailable is not absence
+                container_state = "unknown"
+            snapshots.append(recovery_diagnostic(row, container_state=container_state))
+        return {"recovery_observations": snapshots}
 
     def request(self, client, method, path, *, status=200, **kwargs):
         response = client.request(method, path, timeout=self.remaining(3), **kwargs)
@@ -637,6 +677,7 @@ def test_two_concurrent_runs_recover_after_real_workers_are_sigkilled(process_ha
         lambda: harness.reconciled(old),
         "Expired workers were not durably reconciled",
         timeout=18,
+        diagnostics=lambda: harness.recovery_diagnostics(old),
     )
     harness.workers = harness.start_workers()
     for run in harness.runs:
