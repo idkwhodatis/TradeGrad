@@ -29,6 +29,15 @@ No external-engine certification is claimed.
   of TLS, account lifecycle, authentication abuse/rate limits and host operations.
   This work does not perform that deployment or alter security settings.
 
+## Optional full application Compose profile
+
+The existing `infra/compose.yml` remains database-only. For the opt-in complete
+application packaging, non-root same-path storage contract, separate role images,
+explicit migration/bootstrap and exact-Compose hosted acceptance, use
+[V1_COMPOSE.md](V1_COMPOSE.md). Do not combine the two Compose files. The manual
+process profile below remains supported; packaging/static checks do not replace
+actual Docker, recovery, upgrade or browser release gates.
+
 ## Install the separately locked environments
 
 Run from the reviewed checkout. Do not install the original paper's aggregate

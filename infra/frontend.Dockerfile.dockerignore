@@ -1,0 +1,17 @@
+**
+!**/
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/tsconfig*.json
+!frontend/vite.config.ts
+!frontend/index.html
+!frontend/src/**/*.ts
+!frontend/src/**/*.tsx
+!frontend/src/**/*.css
+!frontend/src/**/*.svg
+!frontend/public/**/*.svg
+!infra/nginx.conf
+
+!frontend/FASTAPI-TEMPLATE-LICENSE
+!frontend/LIGHTWEIGHT-CHARTS-NOTICE
+!frontend/THIRD_PARTY_NOTICES.md

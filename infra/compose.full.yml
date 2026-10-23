@@ -1,0 +1,239 @@
+# Explicit opt-in single-Linux-host application. Never merge with compose.yml.
+# See docs/V1_COMPOSE.md. No service starts candidate code in a trusted process.
+x-app: &app
+  user: "${TRADEGRAD_UID:?Set the existing non-root storage owner UID}:${TRADEGRAD_GID:?Set its primary GID}"
+  init: true
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs: ["/tmp:rw,nosuid,nodev,size=268435456,mode=1777"]
+  pids_limit: 256
+  mem_limit: 2g
+  cpus: 2
+  restart: unless-stopped
+  stop_grace_period: 45s
+  networks: [application]
+  volumes: &storage
+    - type: bind
+      source: ${TRADEGRAD_STATE_ROOT:?Set an absolute pre-provisioned durable path}/storage
+      target: ${TRADEGRAD_STATE_ROOT:?Set an absolute pre-provisioned durable path}/storage
+      bind: {create_host_path: false}
+  depends_on:
+    database: {condition: service_healthy}
+    migrate: {condition: service_completed_successfully}
+  environment: &environment
+    DATABASE_URL: ${DATABASE_URL:?Supply the existing authorized database URI using host database}
+    SECRET_KEY: ${SECRET_KEY:?Supply the existing signing key privately}
+    STORAGE_ROOT: ${TRADEGRAD_STATE_ROOT:?}/storage
+    TRADEGRAD_STATE_ROOT: ${TRADEGRAD_STATE_ROOT:?}
+    TRADEGRAD_UID: ${TRADEGRAD_UID:?}
+    TRADEGRAD_GID: ${TRADEGRAD_GID:?}
+    DATA_PROVIDER_MODE: ${DATA_PROVIDER_MODE:-fixture}
+    HEARTBEAT_SECONDS: "5"
+    LEASE_SECONDS: "60"
+x-api-build: &api-build
+  context: ..
+  dockerfile: infra/application.Dockerfile
+  target: api
+  args:
+    PYTHON_IMAGE: ${TRADEGRAD_PYTHON_IMAGE:-python:3.12.14-slim-bookworm}
+    DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:?Set an official docker CLI image pinned by sha256 digest}
+x-research-build: &research-build
+  <<: *api-build
+  target: research
+x-runner-volumes: &runner-volumes
+  - type: bind
+    source: ${TRADEGRAD_STATE_ROOT:?}/storage
+    target: ${TRADEGRAD_STATE_ROOT:?}/storage
+    bind: {create_host_path: false}
+  - type: bind
+    source: ${TRADEGRAD_STATE_ROOT:?}/runner
+    target: ${TRADEGRAD_STATE_ROOT:?}/runner
+    bind: {create_host_path: false}
+  - type: bind
+    source: ${TRADEGRAD_DOCKER_SOCKET:?Set an existing authorized local Unix Docker socket}
+    target: /var/run/docker.sock
+    bind: {create_host_path: false}
+x-runner-environment: &runner-environment
+  <<: *environment
+  TRADEGRAD_RUNNER_STATE_DIR: ${TRADEGRAD_STATE_ROOT:?}/runner
+  TRADEGRAD_DOCKER_HOST: unix:///var/run/docker.sock
+  EVALUATOR_IMAGE: ${EVALUATOR_IMAGE:?Build the native evaluator first}
+  PORTABLE_ENGINE_IMAGE: ${PORTABLE_ENGINE_IMAGE:?Build the portable engine first}
+  PORTABLE_POLICY_IMAGE: ${PORTABLE_POLICY_IMAGE:?Build the portable policy first}
+x-health: &health
+  interval: 10s
+  timeout: 8s
+  retries: 6
+  start_period: 40s
+services:
+  database:
+    image: postgres:18.6
+    environment:
+      POSTGRES_DB: tradegrad
+      POSTGRES_USER: tradegrad
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Supply the existing authorized database password privately}
+    volumes: [postgres-data:/var/lib/postgresql]
+    networks: [application]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U tradegrad -d tradegrad]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+    # No host port and no Docker socket. The official image initializes its own volume.
+  migrate:
+    <<: *app
+    image: ${TRADEGRAD_IMAGE_PREFIX:-tradegrad-local}/api:${TRADEGRAD_RELEASE:?Set a unique reviewed release label}
+    build: *api-build
+    command: [migrate]
+    restart: "no"
+    depends_on:
+      database: {condition: service_healthy}
+  bootstrap:
+    <<: *app
+    image: ${TRADEGRAD_IMAGE_PREFIX:-tradegrad-local}/api:${TRADEGRAD_RELEASE:?}
+    build: *api-build
+    profiles: [provision]
+    command: [bootstrap]
+    restart: "no"
+    environment:
+      <<: *environment
+      BOOTSTRAP_EMAIL: ${BOOTSTRAP_EMAIL:-}
+      BOOTSTRAP_PASSWORD: ${BOOTSTRAP_PASSWORD:-}
+      BOOTSTRAP_SYNTHETIC: ${BOOTSTRAP_SYNTHETIC:-0}
+      BOOTSTRAP_E2E: ${BOOTSTRAP_E2E:-0}
+      BOOTSTRAP_SUPERUSER: ${BOOTSTRAP_SUPERUSER:-0}
+  api:
+    <<: *app
+    image: ${TRADEGRAD_IMAGE_PREFIX:-tradegrad-local}/api:${TRADEGRAD_RELEASE:?}
+    build: *api-build
+    command: [run, api]
+    environment:
+      <<: *environment
+      MODEL_PROFILES_ENABLED: ${MODEL_PROFILES_ENABLED:-false}
+      MODEL_PROFILES: "${MODEL_PROFILES:-[]}"
+    healthcheck:
+      <<: *health
+      test: [CMD, python, -m, script.compose_runtime, health, api]
+  research-dispatcher:
+    <<: *app
+    image: ${TRADEGRAD_IMAGE_PREFIX:-tradegrad-local}/api:${TRADEGRAD_RELEASE:?}
+    build: *api-build
+    command: [run, research-dispatcher]
+    healthcheck:
+      <<: *health
+      test: [CMD, python, -m, script.compose_runtime, health, dispatcher]
+  research-worker:
+    <<: *app
+    image: ${TRADEGRAD_IMAGE_PREFIX:-tradegrad-local}/research:${TRADEGRAD_RELEASE:?}
+    build: *research-build
+    command: [run, research-worker]
+    group_add: ["${TRADEGRAD_DOCKER_GID:?Set the existing Docker socket group ID; do not grant new access}"]
+    volumes: *runner-volumes
+    environment:
+      <<: *runner-environment
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-1}
+      MODEL_PROFILES_ENABLED: ${MODEL_PROFILES_ENABLED:-false}
+      MODEL_PROFILES: "${MODEL_PROFILES:-[]}"
+    healthcheck:
+      <<: *health
+      test: [CMD, python, -m, script.compose_runtime, health, research]
+  evaluator-reconciler:
+    <<: *app
+    image: ${TRADEGRAD_IMAGE_PREFIX:-tradegrad-local}/research:${TRADEGRAD_RELEASE:?}
+    build: *research-build
+    command: [run, evaluator-reconciler]
+    group_add: ["${TRADEGRAD_DOCKER_GID:?}"]
+    volumes: *runner-volumes
+    environment: *runner-environment
+    healthcheck:
+      <<: *health
+      test: [CMD, python, -m, script.compose_runtime, health, reconciler]
+  data-dispatcher:
+    <<: *app
+    image: ${TRADEGRAD_IMAGE_PREFIX:-tradegrad-local}/api:${TRADEGRAD_RELEASE:?}
+    build: *api-build
+    command: [run, data-dispatcher]
+    healthcheck:
+      <<: *health
+      test: [CMD, python, -m, script.compose_runtime, health, data_dispatcher]
+  data-worker:
+    <<: *app
+    image: ${TRADEGRAD_IMAGE_PREFIX:-tradegrad-local}/data:${TRADEGRAD_RELEASE:?}
+    build:
+      <<: *api-build
+      target: data
+    command: [run, data-worker]
+    environment:
+      <<: *environment
+      DATA_WORKER_CONCURRENCY: ${DATA_WORKER_CONCURRENCY:-1}
+    healthcheck:
+      <<: *health
+      test: [CMD, python, -m, script.compose_runtime, health, data]
+  frontend:
+    image: ${TRADEGRAD_IMAGE_PREFIX:-tradegrad-local}/frontend:${TRADEGRAD_RELEASE:?}
+    build:
+      context: ..
+      dockerfile: infra/frontend.Dockerfile
+      args:
+        NODE_IMAGE: ${TRADEGRAD_NODE_IMAGE:-node:24-bookworm-slim}
+        NGINX_IMAGE: ${TRADEGRAD_NGINX_IMAGE:-nginx:stable-alpine}
+    user: "65532:65532"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,nosuid,nodev,size=67108864,mode=1777"]
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: 1
+    networks: [application]
+    ports: ["127.0.0.1:${TRADEGRAD_HTTP_PORT:-8080}:8080"]
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      <<: *health
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8080/healthz]
+    restart: unless-stopped
+  # Build-only profile. Do NOT `up --profile images`. Actual execution and
+  # resource/fencing policy belong exclusively to the reviewed Docker supervisor.
+  native-evaluator:
+    profiles: [images]
+    image: ${EVALUATOR_IMAGE:?}
+    build:
+      context: ..
+      dockerfile: runtimes/evaluator/Dockerfile
+      args:
+        TRADEGRAD_ENVIRONMENT_DIGEST: ${NATIVE_ENVIRONMENT_DIGEST:?Compute from the exact release tree}
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  portable-engine:
+    profiles: [images]
+    image: ${PORTABLE_ENGINE_IMAGE:?}
+    build:
+      context: ..
+      dockerfile: runtimes/portable_engine/Dockerfile
+      args:
+        TRADEGRAD_ENVIRONMENT_DIGEST: ${PORTABLE_ENVIRONMENT_DIGEST:?Compute from the exact release tree}
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  portable-policy:
+    profiles: [images]
+    image: ${PORTABLE_POLICY_IMAGE:?}
+    build:
+      context: ..
+      dockerfile: runtimes/portable_policy/Dockerfile
+      args:
+        TRADEGRAD_ENVIRONMENT_DIGEST: ${PORTABLE_ENVIRONMENT_DIGEST:?}
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+networks:
+  application: {}
+volumes:
+  postgres-data: {}

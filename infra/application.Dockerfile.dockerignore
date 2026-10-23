@@ -1,0 +1,22 @@
+# Default deny: no .git, credentials, local state, caches or arbitrary uploads.
+**
+!**/
+!.dockerignore
+!backend/**/*.py
+!backend/**/*.sql
+!backend/alembic.ini
+!backend/requirements.lock
+!workers/**/*.py
+!packages/**/*.py
+!runtimes/**/*.py
+!runtimes/**/Dockerfile
+!runtimes/**/*.lock
+!src/*.py
+!script/*.py
+!seed_strategies/*.py
+!tests/baseline/fixtures/**/*.csv
+!tests/baseline/fixtures/manifest.json
+
+!backend/LICENSE.fastapi-template
+!backend/LICENSE.procrastinate
+!backend/NOTICE.md
