@@ -13,6 +13,7 @@ MESSAGES = frozenset(
         "Portable channel ended before trusted result",
         "Portable channels ended without exactly one complete trusted result",
         "Portable attach CLI failed",
+        "Portable attach CLI identity no longer reserved",
         "Portable evaluation or decision deadline exceeded",
         "Portable lease/cancellation callback blocked",
         "Portable evaluation cancelled or lease lost",

@@ -467,6 +467,7 @@ def test_real_pipe_relay_normalizes_and_only_accepts_engine_result(
     tmp_path, monkeypatch
 ):
     obj = runner(tmp_path, timeout=2, decision_timeout=1)
+    monkeypatch.setattr(obj, "_attachment_exitcode", lambda process: process.returncode)
     obs = observation()
     manifest = make_manifest()
     request = {
@@ -557,6 +558,7 @@ def test_relay_hostile_and_stalled_inert_endpoints_fail_bounded(
     import runtimes.evaluator.portable_runner as module
 
     obj = runner(tmp_path, timeout=1, decision_timeout=0.15, log_bytes=128)
+    monkeypatch.setattr(obj, "_attachment_exitcode", lambda process: process.returncode)
     obs = observation()
     request = {"initial_state": STATE.model_dump(mode="json")}
     monkeypatch.setitem(
@@ -706,25 +708,105 @@ def test_attach_subprocess_starts_its_own_process_group(tmp_path, monkeypatch):
     assert set(captured["env"]) == {"PATH", "LANG"}
 
 
-def test_attach_descendant_groups_killed_even_after_leader_exit_and_first_error(
+def test_attach_unreaped_groups_killed_even_after_leader_exit_and_first_error(
     tmp_path, monkeypatch
 ):
     obj = runner(tmp_path)
     processes = [
-        SimpleNamespace(pid=123, poll=lambda: 0, wait=lambda **_: 0),
-        SimpleNamespace(pid=124, poll=lambda: None, wait=lambda **_: 0),
+        SimpleNamespace(pid=123, returncode=None, wait=lambda **_: 0),
+        SimpleNamespace(pid=124, returncode=None, wait=lambda **_: 0),
     ]
     obj._attachments[EVALUATION] = processes
-    groups = []
+    calls = []
+
+    def observe(kind, pid, flags):
+        assert kind == os.P_PID
+        assert flags & os.WNOWAIT
+        calls.append(("observe", pid))
+        return (
+            SimpleNamespace(si_code=os.CLD_EXITED, si_status=0) if pid == 123 else None
+        )
 
     def killpg(pid, sig):
-        groups.append(pid)
+        calls.append(("signal" if sig else "probe", pid))
+        if sig == 0:
+            raise ProcessLookupError
         if pid == 123:
             raise PermissionError("first group uncertain")
 
+    monkeypatch.setattr(os, "waitid", observe)
     monkeypatch.setattr(os, "killpg", killpg)
     assert obj._kill_attachments(EVALUATION) is False
-    assert groups == [123, 124]
+    assert calls == [
+        ("observe", 123),
+        ("signal", 123),
+        ("probe", 123),
+        ("observe", 124),
+        ("signal", 124),
+        ("probe", 124),
+    ]
+
+
+@pytest.mark.parametrize("reaped", [True, False])
+def test_attachment_lost_identity_is_never_signalled(tmp_path, monkeypatch, reaped):
+    obj = runner(tmp_path)
+    obj._attachments[EVALUATION] = [
+        SimpleNamespace(pid=123, returncode=0 if reaped else None)
+    ]
+    calls = []
+
+    def observe(*args):
+        raise ChildProcessError
+
+    def probe(pid, sig):
+        calls.append((pid, sig))
+        assert sig == 0, "Never signal a reaped or no-longer-owned process identity"
+        raise PermissionError
+
+    monkeypatch.setattr(os, "waitid", observe)
+    monkeypatch.setattr(os, "killpg", probe)
+    assert obj._kill_attachments(EVALUATION) is False
+    assert calls == ([(123, 0)] if reaped else [])
+
+
+@pytest.mark.parametrize(
+    "code,status,expected",
+    [(os.CLD_EXITED, 0, 0), (os.CLD_EXITED, 9, 9), (os.CLD_KILLED, 9, -9)],
+)
+def test_attachment_observation_preserves_pid_until_cleanup(
+    tmp_path, monkeypatch, code, status, expected
+):
+    obj = runner(tmp_path)
+    process = SimpleNamespace(pid=123, returncode=None)
+
+    def observe(kind, pid, flags):
+        assert (kind, pid, flags) == (
+            os.P_PID,
+            123,
+            os.WEXITED | os.WNOHANG | os.WNOWAIT,
+        )
+        return SimpleNamespace(si_code=code, si_status=status)
+
+    monkeypatch.setattr(os, "waitid", observe)
+    assert obj._attachment_exitcode(process) == expected
+    assert process.returncode is None
+
+
+def test_attachment_observation_fails_if_ownership_was_lost(tmp_path, monkeypatch):
+    obj = runner(tmp_path)
+    monkeypatch.setattr(
+        os, "waitid", lambda *args: (_ for _ in ()).throw(ChildProcessError())
+    )
+    with pytest.raises(IsolationUnavailable, match="identity no longer reserved"):
+        obj._attachment_exitcode(SimpleNamespace(pid=123, returncode=None))
+
+
+def test_relay_never_reaps_process_identity_before_teardown():
+    import inspect
+
+    source = inspect.getsource(PortableDockerEvaluator._relay)
+    assert ".poll(" not in source and ".wait(" not in source
+    assert "_attachment_exitcode" in source
 
 
 def test_child_enumeration_recovers_partial_groups_by_attempt(tmp_path, monkeypatch):
@@ -889,3 +971,48 @@ def test_independent_watchdog_contains_siblings_while_heartbeat_blocks(
         assert {"engine", "policy"} <= set(stops)
     finally:
         release.set()
+
+
+def test_concurrent_attachment_stops_signal_reserved_leader_only_once(
+    tmp_path, monkeypatch
+):
+    obj = runner(tmp_path)
+    entered, release = threading.Event(), threading.Event()
+    process = SimpleNamespace(pid=123, returncode=None)
+    calls = []
+
+    def wait(**kwargs):
+        entered.set()
+        assert release.wait(1)
+        process.returncode = -9
+        return -9
+
+    process.wait = wait
+    obj._attachments[EVALUATION] = [process]
+    monkeypatch.setattr(os, "waitid", lambda *args: None)
+
+    def killpg(pid, sig):
+        calls.append(sig)
+        if sig == 0:
+            raise ProcessLookupError
+
+    monkeypatch.setattr(os, "killpg", killpg)
+    results = []
+    threads = [
+        threading.Thread(
+            target=lambda: results.append(obj._kill_attachments(EVALUATION))
+        )
+        for _ in range(2)
+    ]
+    try:
+        threads[0].start()
+        assert entered.wait(1)
+        threads[1].start()
+    finally:
+        release.set()
+        for thread in threads:
+            if thread.ident is not None:
+                thread.join(2)
+    assert all(not thread.is_alive() for thread in threads)
+    assert results == [True, True]
+    assert calls == [9, 0, 0]
