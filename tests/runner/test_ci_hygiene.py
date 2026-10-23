@@ -1,12 +1,34 @@
 """Offline hygiene checks; these do not claim hosted or browser execution."""
 
+import re
 import secrets
+from pathlib import Path
 from xml.etree import ElementTree as ET
 
 import pytest
+from pydantic import EmailStr, TypeAdapter
 
 from script.ci_test_environment import SECRET_FIELDS, create_environment, main
 from script.summarize_ci_junit import summarize
+
+
+def test_ci_bootstrap_email_literals_pass_actual_application_validation():
+    workflow = (
+        Path(__file__).resolve().parents[2] / ".github/workflows/v1-validation.yml"
+    ).read_text()
+    literals = re.findall(
+        r"^\s+(E2E_(?:OTHER_|ADMIN_)?EMAIL):\s*([^\s#]+)\s*$",
+        workflow,
+        flags=re.MULTILINE,
+    )
+    assert {name for name, _ in literals} == {
+        "E2E_EMAIL",
+        "E2E_OTHER_EMAIL",
+        "E2E_ADMIN_EMAIL",
+    }
+    validator = TypeAdapter(EmailStr)
+    for _, email in literals:
+        assert str(validator.validate_python(email)) == email
 
 
 def test_ci_values_are_ephemeral_distinct_and_not_printed(capsys):

@@ -94,7 +94,7 @@ jobs:
       TRADEGRAD_REQUIRE_DOCKER: "1"
       E2E_EMAIL: first@example.com
       E2E_OTHER_EMAIL: second@example.com
-      E2E_ADMIN_EMAIL: settings-admin@example.invalid
+      E2E_ADMIN_EMAIL: settings-admin@example.com
       WORKER_CONCURRENCY: "1"
       DATA_WORKER_CONCURRENCY: "1"
       # Ordinary pushes freeze SDK responses. Live requires explicit dispatch or
