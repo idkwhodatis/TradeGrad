@@ -477,9 +477,12 @@ test("bound native research → freeze → lost-response final submit → actual
         exact: true,
       })
       .click();
-    await expect(
-      page.getByRole("img", { name: /^Holdout Equity;/ }),
-    ).toBeVisible();
+    const equityChart = page.getByRole("img", {
+      name: "Holdout Equity. Only the requested bounded series is shown. Original precision is available in the data table.",
+      exact: true,
+    });
+    await expect(equityChart).toBeVisible();
+    await expect(equityChart.locator("svg")).toBeVisible();
     const original = await bytes(page, "Download original holdout JSON");
     expect(sha256(original.content)).toBe(result.artifact_sha256);
     const exporting = page.waitForResponse(
