@@ -44,6 +44,7 @@ from packages.tradegrad_adapter.portable_prompts import (
     validate_policy_source,
 )
 from runtimes.portable_engine.runtime import profile_sha256
+from tests.maintenance_fakes import InertMaintenanceEngine
 from workers.research import portable_optimization as worker
 
 IMAGES = {"engine": "sha256:" + "a" * 64, "policy": "sha256:" + "b" * 64}
@@ -292,6 +293,7 @@ def test_seed_no_model_calls_and_budget_end(tmp_path):
 
 class FakePersistence:
     def __init__(self, records, trace):
+        self.kw = {"bind": InertMaintenanceEngine()}
         self.records, self.trace = records, trace
 
     @contextmanager

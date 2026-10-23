@@ -43,6 +43,7 @@ from packages.tradegrad_adapter.config import (
 )
 from packages.tradegrad_adapter.environment import environment_digest
 from packages.tradegrad_adapter.windows import PreflightError
+from tests.maintenance_fakes import InertMaintenanceEngine
 from workers.research import optimization as worker
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -251,6 +252,7 @@ class FakePersistence:
     """No database: records worker transaction ordering, never PostgreSQL evidence."""
 
     def __init__(self, records, trace):
+        self.kw = {"bind": InertMaintenanceEngine()}
         self.records, self.trace = records, trace
 
     @contextmanager
@@ -297,7 +299,9 @@ def orchestration(tmp_path, monkeypatch):
         storage_key="datasets/fixture",
         content_sha256=config.dataset.sha256,
     )
-    strategy = SimpleNamespace(owner_id=owner_id, code=CODE)
+    strategy = SimpleNamespace(
+        owner_id=owner_id, code=CODE, manifest=None, parameters=None
+    )
     attempt = SimpleNamespace(id=attempt_id, lease_token=token)
     trace, events, checkpoints, completed, model_requests = [], [], [], {}, []
     factory = FakePersistence(
@@ -455,21 +459,30 @@ def orchestration(tmp_path, monkeypatch):
         if h.mode == "fence_loss":
             h.mocks["heartbeat"].side_effect = FenceLost()
             heartbeat(force=True)
+        # Complete synthetic native evidence, not metrics-only success or actual
+        # engine execution. The real worker still validates and publishes it.
+        from backend.tests.research_view_fixtures import synthetic_result
+
+        staged = json.loads((input_dir / "request.json").read_text())
+        window = staged["evaluation_config"]["window"]
+        bundle = synthetic_result(
+            config=h.config,
+            owner_id=owner_id,
+            run_id=UUID(run_id),
+            evaluation_id=UUID(attempt_id),
+            dataset_manifest=manifest,
+            evaluation_window={
+                "start": window["start"],
+                "end": window["end"],
+                "split": window["role"],
+            },
+        ).bundle
         return {
             "status": "succeeded",
             "exit_code": 0,
             "logs": {},
-            "metrics": {
-                "combined_score": 2.5,
-                "metrics": {
-                    "sharpe_ratio": 1.2,
-                    "annualized_return": 15.0,
-                    "max_drawdown": 4.0,
-                    "trade_per_day": 1.0,
-                    "win_rate": 60.0,
-                    "return_per_trade": 0.5,
-                },
-            },
+            "metrics": copy.deepcopy(bundle["legacy_performance"]["value"]),
+            "bundle": bundle,
         }
 
     def stop(identifier):
@@ -668,3 +681,23 @@ def test_persisted_workspace_policy_stops_worker_before_model_or_evaluation(
     h.sandbox.evaluate.assert_not_called()
     h.optimizer.assert_not_called()
     assert not h.model_requests
+
+
+def test_metrics_only_fake_result_cannot_become_success(orchestration):
+    h = orchestration
+    original = h.sandbox.evaluate.side_effect
+
+    def missing_bundle(*args, **kwargs):
+        result = original(*args, **kwargs)
+        result.pop("bundle")
+        return result
+
+    h.sandbox.evaluate.side_effect = missing_bundle
+    assert h.execute()["status"] == "failed"
+    assert h.completed and all(
+        row["status"] == "failed" for row in h.completed.values()
+    )
+    assert not any(
+        kind == "run_finished" and data["status"] == "succeeded"
+        for kind, data in h.events
+    )

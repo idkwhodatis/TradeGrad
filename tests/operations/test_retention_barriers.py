@@ -247,3 +247,43 @@ def test_failed_admission_invalidates_connection_against_same_session_reuse():
     with pytest.raises(maintenance.MaintenanceBusy):
         maintenance._admit_transaction(None, SimpleNamespace(nested=False), connection)
     assert connection.invalidated
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_worker_decorator_preserves_inert_database_guard_through_body_finally(
+    tmp_path, fail
+):
+    from tests.maintenance_fakes import InertMaintenanceEngine
+
+    engine = InertMaintenanceEngine()
+    factory = SimpleNamespace(kw={"bind": engine})
+    settings = SimpleNamespace(storage_root=tmp_path)
+    observed = []
+
+    @maintenance.guarded_worker
+    def worker(run_id, generation, settings=None, factory=None):
+        assert run_id == "inert" and generation == 1
+        connection = engine.connections[-1]
+        assert connection.held and not connection.closed
+        try:
+            with pytest.raises(maintenance.MaintenanceBusy):
+                with storage_guard(tmp_path, exclusive=True):
+                    pytest.fail("Component worker lost its real filesystem fence")
+            if fail:
+                raise ValueError("inert body fault")
+            return "complete"
+        finally:
+            observed.append(connection.held)
+
+    if fail:
+        with pytest.raises(ValueError, match="inert body"):
+            worker("inert", 1, settings, factory)
+    else:
+        assert worker("inert", 1, settings, factory) == "complete"
+    assert observed == [True]
+    assert len(engine.connections) == 1
+    connection = engine.connections[0]
+    assert connection.closed and not connection.held and not connection.invalidated
+    assert len(connection.calls) == 2
+    with storage_guard(tmp_path, exclusive=True):
+        pass

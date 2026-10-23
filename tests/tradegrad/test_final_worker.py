@@ -25,6 +25,7 @@ from backend.app.services import DomainError, FenceLost
 from backend.app.storage import read_verified
 from backend.tests.final_result_fixtures import synthetic_final_result
 from runtimes.evaluator import runner as runner_module
+from tests.maintenance_fakes import InertMaintenanceEngine
 from tests.tradegrad.test_final_staging import CODE, IMAGE, final_inputs, sha
 from workers.research import (
     environment_evidence,
@@ -42,6 +43,7 @@ class FakePersistence:
     """Explicit commit ordering only; not an ORM/transaction integration substitute."""
 
     def __init__(self, harness):
+        self.kw = {"bind": InertMaintenanceEngine()}
         self.h = harness
         self.records = {(ResearchRun, harness.run.id): harness.run}
         self.artifacts = []

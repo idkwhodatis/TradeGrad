@@ -15,6 +15,7 @@ from backend.app.models import Artifact, Evaluation, ResearchRun
 from backend.app.services import FenceLost
 from packages.tradegrad_adapter.portable_results import canonical_json_bytes
 from runtimes.evaluator import portable_runner
+from tests.maintenance_fakes import InertMaintenanceEngine
 from workers.research import portable_final_evaluation as worker
 
 
@@ -68,6 +69,7 @@ def harness(tmp_path, monkeypatch):
             return self.begin()
 
     h.factory = Factory()
+    h.factory.kw = {"bind": InertMaintenanceEngine()}
 
     class Lease:
         def __init__(self, *args):
