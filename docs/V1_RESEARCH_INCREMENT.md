@@ -486,3 +486,85 @@ Local socket/PostgreSQL/Docker restrictions still prevent the real application
 stack. Chromium's executable is present, but this does not make an actual-stack
 browser run possible by itself. Final exact-head PostgreSQL, Docker, Playwright,
 Compose and recovery checks remain mandatory; no fixture is called live evidence.
+
+## I6 implementation boundaries
+
+- Research notes are human-maintained hypotheses and conclusions, not executable
+  strategies or automatically validated profit claims. Structured fields cover
+  motivation, rules, sources, observed behavior, controls, counterexamples,
+  applicability and next steps. The four explicit statuses are pending,
+  supported-under-current-tests, mixed and refuted-under-current-tests.
+- Every saved revision is append-only and binds its contents, evidence snapshot,
+  physical retention inventory and inherited admission dependencies to an exact
+  hash. Owner-scoped idempotency and optimistic base revision/hash checks prevent
+  retry duplication and silently overwriting a concurrent edit. Removing a
+  visible reference never removes earlier outcome-access dependencies.
+- Typed references preserve code and specification revisions, physical leaf
+  Evaluation/Attempt/result/trace pins, decision/stage/instrument selectors,
+  comparison sides and event pairs, parity reports, and all immutable control
+  arms. A failed arm remains a failed physical generation, never zero profit or
+  a later successful retry. Rule-only notes do not claim execution evidence.
+- Reads, history, search, exports and idempotent responses enforce owner and
+  final-result admission before returning saved outcome prose. Search admits the
+  bounded owner corpus before filtering/counting, so empty pages and counts do
+  not become an outcome oracle. Evidence metadata is admitted before fallible
+  byte loading; a missing file cannot hide another side's admission requirement.
+- Exact missing, unavailable and corrupt states are visible without replacement
+  by current code or newer executions. Restore selections must match one
+  coherent saved source/evidence tuple; individually valid fields cannot be
+  mixed across two executions. Markdown export renders user text literally and
+  includes the exact evidence inventory, rather than active user-supplied HTML.
+- Historical control-arm locators bind the note revision/hash and evidence/arm
+  ordinal. Their read-only panel displays the saved physical status, generation
+  and stopped attempt even after a retry, without consulting current run status.
+  Successful arms can open their exact result; a failed arm has no result link.
+  Generic current-control links are suppressed when they cannot restore history.
+- Note resolution has bounded content, reference counts, ancestry, file bytes,
+  file counts and elapsed work. Search/history stream one revision at a time,
+  with a shared 32 MiB revision-read budget and a 1,000-note search-corpus cap.
+  The 30-second work deadline is cooperative around individually bounded reads,
+  not a claim to interrupt a single operating-system read precisely at 30 seconds.
+  It never runs a strategy, model or provider.
+  Source/session/owner pin memoization remains request-local. Exceeding a bound
+  is an explicit error, not silent truncation of the evidence corpus.
+- Cold backup and cleanup inventory includes artifact pins from every historical
+  revision independently of live artifact registration. Exact duplicate pins
+  coalesce; conflicting hashes and absent/corrupt retained bytes fail closed.
+  Existing cleanup remains conservative: only expired unreferenced atomic
+  temporary files are candidates. No automatic published-evidence deletion or
+  vector database is introduced.
+
+The migration-010 recovery fixture creates and reopens two real source-note
+revisions through the service, plus a separately labelled synthetic persistence
+fixture for a registered artifact retention pin. This verifies persistence and
+inventory contracts, not a successful strategy evaluation. Completed diagnostic
+and control result recovery is still a separate I7 acceptance requirement.
+
+## I6 checkpoint
+
+Validated locally on 2026-10-23 before I7: **2,282 tests passed** in 109.27 seconds
+across backend, runner, operations and research-trace suites. The actual native
+engine selector remained required and used the pinned AKQuant interpreter.
+The final note contract selection independently passed **72 tests**. Focused
+backup/retention/CI-boundary checks passed **324 tests**; these overlap the broad
+suite and are not additive totals. Generated OpenAPI/SDK, Ruff, formatting,
+whitespace checks and offline PostgreSQL migration rendering passed.
+
+Frontend: **1,000 tests passed** in 63 files; TypeScript, production build and
+format checks passed. **63 real-stack Playwright scenarios were collected** in
+17 files, not locally executed. New scenarios cover exact note restoration after
+specification edits and login, concurrent revision conflicts, owner checks,
+escaped exports, and historical failed-arm generation inspection after retry.
+
+The note suite contains **36 PostgreSQL-selector/API cases**: its selector check
+runs locally and 35 database cases remain unexecuted. The combined note/backup/
+OpenAPI local selection passed 15 checks with **42 explicit infrastructure
+skips**. No SQLite substitute or successful recovery claim is made. Required CI
+enables the note PostgreSQL selector and keeps the full existing browser suite.
+
+Independent review found and then cleared inherited outcome-admission laundering,
+search/history count and empty-page leaks, missing protected authority, mixed
+source restore selections, stale cached frontend outcome display, unsafe export
+markup and eager large-corpus materialization. No concrete blocking finding
+remained in the reviewed boundaries. Exact-head hosted PostgreSQL concurrency,
+cold restore, Docker and actual browser validation are still mandatory in I7.

@@ -82,13 +82,16 @@ describe("honest rule-card evidence rendering", () => {
     expect(html).not.toContain("Actual selected stage observations");
   });
 });
-async function renderWorkbench(tab = "description") {
+async function renderWorkbench(tab = "description", damagedSource = false) {
   const { ResearchWorkbenchPage } =
     await import("../../src/features/research-workbench/page");
   const query = new QueryClient({
-    defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    defaultOptions: {
+      queries: { retry: false, staleTime: Infinity, refetchOnMount: false },
+    },
   });
   const cache: [unknown[], unknown][] = [
+    [["research-notes", "owner-1", "", 0], { data: [], count: 0 }],
     [["me"], { id: "owner-1" }],
     [
       ["strategy", ids.strategy],
@@ -149,6 +152,12 @@ async function renderWorkbench(tab = "description") {
     ],
   ];
   for (const [key, value] of cache) query.setQueryData(key, value);
+  if (damagedSource)
+    query.setQueryData(["strategy", ids.strategy], {
+      id: ids.strategy,
+      code: "old source",
+      content_sha256: "f".repeat(64),
+    });
   const root = createRootRoute({ component: Outlet });
   const workspace = createRoute({
     getParentRoute: () => root,
@@ -200,16 +209,13 @@ describe("five-tab workbench shell", () => {
     expect(html).toContain("Expected template flow, not an execution trace");
     expect(html).toContain("Algorithm references (not code parents)");
   });
-  it.each([["notes", "I6"]])(
-    "keeps %s honestly pending",
-    async (tab, phase) => {
-      const html = await renderWorkbench(tab);
-      expect(html).toContain(phase);
-      expect(html).toContain("pending: not implemented in this phase");
-      expect(html).toContain(`spec_sha256=${hashes.spec}`);
-      expect(html).not.toContain("Actual selected stage observations");
-    },
-  );
+  it("opens server-backed evidence notes rather than a pending placeholder", async () => {
+    const html = await renderWorkbench("notes");
+    expect(html).toContain("Evidence research notes");
+    expect(html).toContain("Create note from current evidence");
+    expect(html).toContain("No saved notes match this search");
+    expect(html).not.toContain("pending: not implemented");
+  });
 });
 
 it("opens real replay controls only after an actual leaf is selected", async () => {
@@ -234,4 +240,11 @@ it("replaces the pending I5 tab with source-admitted independent verification", 
   expect(html).toContain("Select an admitted successful physical leaf");
   expect(html).not.toContain("pending: not implemented");
   expect(html).not.toContain("Create independent diagnostic replay");
+});
+
+it("does not place saved notes behind the broken source/spec gate", async () => {
+  const html = await renderWorkbench("notes", true);
+  expect(html).toContain("Current source context is unavailable");
+  expect(html).toContain("Evidence research notes");
+  expect(html).toContain("Search titles, tags and body");
 });

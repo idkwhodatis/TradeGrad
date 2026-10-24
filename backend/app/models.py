@@ -887,3 +887,75 @@ class ControlledArm(Base):
         ),
         CheckConstraint("ordinal BETWEEN 0 AND 2"),
     )
+
+
+class ResearchNote(Base):
+    """Stable owner identity. All user-visible content lives in immutable revisions."""
+
+    __tablename__ = "research_notes"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class ResearchNoteRevision(Base):
+    __tablename__ = "research_note_revisions"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    note_id: Mapped[UUID] = mapped_column(ForeignKey("research_notes.id"), index=True)
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    revision: Mapped[int] = mapped_column(Integer)
+    revision_sha256: Mapped[str] = mapped_column(String(64))
+    pins_sha256: Mapped[str] = mapped_column(String(64))
+    content: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    evidence_snapshot: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    admission_snapshot: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    title: Mapped[str] = mapped_column(String(240))
+    tags: Mapped[list[str]] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(40))
+    search_text: Mapped[str] = mapped_column(Text)
+    change_note: Mapped[str | None] = mapped_column(Text)
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    request_sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    __table_args__ = (
+        UniqueConstraint("note_id", "revision", name="uq_note_revision"),
+        UniqueConstraint("owner_id", "idempotency_key", name="uq_note_owner_key"),
+        CheckConstraint("revision BETWEEN 1 AND 10000"),
+        CheckConstraint("jsonb_typeof(content) = 'object'"),
+        CheckConstraint("jsonb_typeof(evidence_snapshot) = 'array'"),
+    )
+
+
+class ResearchNoteEvidencePin(Base):
+    """Append-only retention inventory, deliberately no external-resource FK.
+
+    Explicit cleanup may remove original resources, but not the historical pin.
+    All revisions, including superseded ones, continue to protect their inventory.
+    """
+
+    __tablename__ = "research_note_evidence_pins"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    revision_id: Mapped[UUID] = mapped_column(
+        ForeignKey("research_note_revisions.id"), index=True
+    )
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    resource_kind: Mapped[str] = mapped_column(String(30))
+    resource_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), index=True)
+    sha256: Mapped[str | None] = mapped_column(String(64))
+    details: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    __table_args__ = (
+        UniqueConstraint(
+            "revision_id", "resource_kind", "resource_id", name="uq_note_evidence_pin"
+        ),
+        CheckConstraint("jsonb_typeof(details) = 'object'"),
+    )

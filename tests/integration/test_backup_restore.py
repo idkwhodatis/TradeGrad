@@ -1,4 +1,4 @@
-"""Opt-in, real PostgreSQL cold-restore and genuine M3-through-I5 upgrade drill.
+"""Opt-in, real PostgreSQL cold-restore and genuine M3-through-I6 upgrade drill.
 
 RUN_BACKUP_RESTORE_DRILL=1 is mandatory. TEST_DATABASE_URL is a maintenance
 connection on a dedicated test server; its role must have CREATEDB. Only two
@@ -1326,6 +1326,229 @@ def _seed_independent_boundary(engine: Engine) -> None:
         session.commit()
 
 
+def _note_settings(engine, storage):
+    import secrets
+
+    from backend.app.core.config import Settings
+
+    return Settings(
+        database_url=engine.url.render_as_string(hide_password=False),
+        secret_key=secrets.token_urlsafe(48),
+        storage_root=storage,
+        model_profiles_enabled=False,
+    )
+
+
+def _seed_note_boundary(engine, storage):
+    """Real note services over genuine old code/spec rows, not invented results."""
+    from sqlalchemy.orm import Session
+
+    from backend.app.models import (
+        Artifact,
+        Candidate,
+        ResearchNote,
+        ResearchNoteEvidencePin,
+        ResearchNoteRevision,
+        ResearchRun,
+        StrategySpecRevision,
+    )
+    from backend.app.research_note_schemas import (
+        ResearchNoteContent,
+        ResearchNoteCreate,
+        ResearchNoteEdit,
+    )
+    from backend.app.research_note_services import (
+        create_note,
+        create_revision,
+        read_revision,
+        revision_hash,
+        search_text,
+    )
+    from backend.app.workbench_services import read_spec
+    from packages.research_trace.contracts import digest
+
+    settings = _note_settings(engine, storage)
+    with Session(engine) as session:
+        candidate = session.scalar(
+            select(Candidate).where(Candidate.candidate_key == "restore-derived")
+        )
+        run = session.get(ResearchRun, candidate.run_id)
+        row = session.scalar(
+            select(StrategySpecRevision).where(
+                StrategySpecRevision.candidate_id == candidate.id,
+                StrategySpecRevision.revision == 1,
+            )
+        )
+        spec = read_spec(
+            session,
+            "candidate",
+            candidate.id,
+            run.owner_id,
+            revision=1,
+            expected_spec_sha256=row.spec_sha256,
+        )
+        rule = spec.spec.rules[0]
+        content = ResearchNoteContent(
+            title="Historical source mechanism 待验证",
+            tags=["retained", "mechanism"],
+            hypothesis="Human source-code hypothesis, not a successful engine result.",
+            counterexamples="No live or synthetic runtime result is asserted by this note.",
+            evidence=[
+                {
+                    "kind": "source",
+                    "label": "Exact original code and rule revision",
+                    "source_kind": "candidate",
+                    "source_id": str(candidate.id),
+                    "code_sha256": candidate.code_sha256,
+                    "spec_revision": 1,
+                    "spec_sha256": row.spec_sha256,
+                    "rule_id": rule.rule_id,
+                    "source_ref": rule.source_ref,
+                }
+            ],
+            restore={
+                "strategy_version_id": str(run.strategy_version_id),
+                "selection": {
+                    "candidate_id": str(candidate.id),
+                    "code_sha256": candidate.code_sha256,
+                    "spec_revision": 1,
+                    "spec_sha256": row.spec_sha256,
+                    "rule_id": rule.rule_id,
+                    **({"stage_id": rule.stage_id} if rule.stage_id else {}),
+                    "tab": "description",
+                },
+            },
+        )
+        first = create_note(
+            session,
+            run.owner_id,
+            ResearchNoteCreate(content=content),
+            "restore-note-create",
+            settings,
+        )
+        edited = content.model_copy(
+            update={
+                "title": "Historical source mechanism mixed",
+                "status": "mixed",
+                "next_steps": "Collect new evidence without replacing the original source.",
+            }
+        )
+        second = create_revision(
+            session,
+            first.note_id,
+            run.owner_id,
+            ResearchNoteEdit(
+                content=edited,
+                base_revision=first.revision,
+                base_revision_sha256=first.revision_sha256,
+                change_note="Human-only status revision; no automatic profit validation.",
+            ),
+            "restore-note-edit",
+            settings,
+        )
+        # A separate explicitly synthetic persistence-boundary note exercises a
+        # real registered artifact retention pin. It claims no Evaluation facts.
+        # Keep the two service-created source notes' inventories unchanged.
+        artifact = session.scalar(select(Artifact).where(Artifact.run_id == run.id))
+        pin = {
+            "resource_kind": "artifact",
+            "resource_id": str(artifact.id),
+            "sha256": artifact.sha256,
+            "details": {
+                "storage_key": artifact.storage_key,
+                "size_bytes": artifact.size_bytes,
+                "name": artifact.name,
+                "run_id": str(artifact.run_id),
+                "attempt_id": str(artifact.attempt_id),
+                "media_type": artifact.media_type,
+            },
+        }
+        retained = ResearchNote(id=uuid4(), owner_id=run.owner_id)
+        session.add(retained)
+        session.flush()
+        raw_content = ResearchNoteContent(
+            title="Synthetic retention registration boundary",
+            body="Persistence-only registered file pin; not a behavioral result or API-created evaluation note.",
+        )
+        raw = raw_content.model_dump(mode="json")
+        retention_revision = ResearchNoteRevision(
+            id=uuid4(),
+            note_id=retained.id,
+            owner_id=run.owner_id,
+            revision=1,
+            revision_sha256=revision_hash(
+                retained.id, 1, raw, [], None, digest([pin]), []
+            ),
+            pins_sha256=digest([pin]),
+            content=raw,
+            evidence_snapshot=[],
+            admission_snapshot=[],
+            title=raw_content.title,
+            tags=[],
+            status="pending",
+            search_text=search_text(raw_content),
+            change_note=None,
+            idempotency_key="restore-retention-boundary",
+            request_sha256=digest({"synthetic_persistence_fixture": True}),
+        )
+        session.add(retention_revision)
+        session.flush()
+        session.add(
+            ResearchNoteEvidencePin(
+                revision_id=retention_revision.id,
+                owner_id=run.owner_id,
+                resource_kind="artifact",
+                resource_id=artifact.id,
+                sha256=artifact.sha256,
+                details=pin["details"],
+            )
+        )
+        session.flush()
+        values = [
+            read_revision(
+                session,
+                first.note_id,
+                run.owner_id,
+                settings,
+                revision=item.revision,
+                revision_sha256=item.revision_sha256,
+            ).model_dump(mode="json")
+            for item in (first, second)
+        ]
+        assert values[0]["content"]["status"] == "pending"
+        assert values[1]["content"]["status"] == "mixed"
+        assert all("spec_revision=1" in value["restore_href"] for value in values)
+        assert all(value["retained_pin_count"] >= 3 for value in values)
+        session.commit()
+        return run.owner_id, values
+
+
+def _reopen_restored_notes(engine, storage, retained):
+    from sqlalchemy.orm import Session
+
+    from backend.app.research_note_services import markdown, read_revision
+
+    owner_id, values = retained
+    settings = _note_settings(engine, storage)
+    with Session(engine) as session:
+        for expected in values:
+            from uuid import UUID
+
+            actual = read_revision(
+                session,
+                UUID(expected["note_id"]),
+                owner_id,
+                settings,
+                revision=expected["revision"],
+                revision_sha256=expected["revision_sha256"],
+            )
+            assert actual.model_dump(mode="json") == expected
+            exported = markdown(actual)
+            assert expected["revision_sha256"] in exported
+            assert expected["content"]["evidence"][0]["code_sha256"] in exported
+        session.commit()
+
+
 @pytest.mark.parametrize(
     "revision",
     [
@@ -1334,6 +1557,7 @@ def _seed_independent_boundary(engine: Engine) -> None:
         "007_research_specs",
         "008_comparisons",
         "009_independent_evaluations",
+        "010_research_notes",
     ],
 )
 def test_real_settings_backup_restores_management_and_immutable_history(
@@ -1375,6 +1599,7 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             "007_research_specs",
             "008_comparisons",
             "009_independent_evaluations",
+            "010_research_notes",
         }:
             from sqlalchemy.orm import Session
 
@@ -1412,20 +1637,40 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             "007_research_specs",
             "008_comparisons",
             "009_independent_evaluations",
+            "010_research_notes",
         }:
             _seed_workbench_evidence(source)
-        if revision in {"008_comparisons", "009_independent_evaluations"}:
+        if revision in {
+            "008_comparisons",
+            "009_independent_evaluations",
+            "010_research_notes",
+        }:
             files.update(_seed_comparison_boundary(source, storage))
-        if revision == "009_independent_evaluations":
+        if revision in {"009_independent_evaluations", "010_research_notes"}:
             _seed_independent_boundary(source)
+        retained_notes = (
+            _seed_note_boundary(source, storage)
+            if revision == "010_research_notes"
+            else None
+        )
         expected = _historical_snapshot(source)
-        if revision in {"008_comparisons", "009_independent_evaluations"}:
+        if retained_notes:
+            assert len(expected["research_notes"][1]) == 2
+            assert len(expected["research_note_revisions"][1]) == 3
+            assert len(expected["research_note_evidence_pins"][1]) >= 7
+        if revision in {
+            "008_comparisons",
+            "009_independent_evaluations",
+            "010_research_notes",
+        }:
             assert len(expected["comparisons"][1]) == 1
             assert len(expected["comparison_submissions"][1]) == 2
             assert len(expected["research_evaluations"][1]) == (
-                6 if revision == "009_independent_evaluations" else 2
+                6
+                if revision in {"009_independent_evaluations", "010_research_notes"}
+                else 2
             )
-        if revision == "009_independent_evaluations":
+        if revision in {"009_independent_evaluations", "010_research_notes"}:
             assert len(expected["independent_evaluations"][1]) == 3
             assert len(expected["controlled_experiments"][1]) == 1
             assert len(expected["controlled_arms"][1]) == 2
@@ -1464,7 +1709,11 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             == manifest
         )
         _assert_historical_snapshot(restored, expected)
-        if revision in {"008_comparisons", "009_independent_evaluations"}:
+        if revision in {
+            "008_comparisons",
+            "009_independent_evaluations",
+            "010_research_notes",
+        }:
             with restored.connect() as connection:
                 assert connection.execute(
                     text(
@@ -1491,7 +1740,7 @@ def test_real_settings_backup_restores_management_and_immutable_history(
                 ):
                     connection.execute(text(statement))
             _assert_historical_snapshot(restored, expected)
-        if revision == "009_independent_evaluations":
+        if revision in {"009_independent_evaluations", "010_research_notes"}:
             for statement, error in (
                 (
                     "UPDATE independent_evaluations SET source_snapshot = '{}'::jsonb",
@@ -1505,6 +1754,22 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             ):
                 with (
                     pytest.raises(DBAPIError, match=error),
+                    restored.begin() as connection,
+                ):
+                    connection.execute(text(statement))
+            _assert_historical_snapshot(restored, expected)
+        if retained_notes:
+            _reopen_restored_notes(restored, restored_storage, retained_notes)
+            for statement in (
+                "UPDATE research_notes SET created_at = now()",
+                "UPDATE research_note_revisions SET status = 'mixed'",
+                "DELETE FROM research_note_evidence_pins",
+            ):
+                with (
+                    pytest.raises(
+                        DBAPIError,
+                        match="Research notes and evidence revisions are append-only",
+                    ),
                     restored.begin() as connection,
                 ):
                     connection.execute(text(statement))

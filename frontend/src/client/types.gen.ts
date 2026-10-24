@@ -165,7 +165,7 @@ export type BackupReceipt = {
     /**
      * Schema Revision
      */
-    schema_revision: '003_m3' | '004_m5' | '005_settings' | '006_provider_connections' | '007_research_specs' | '008_comparisons' | '009_independent_evaluations';
+    schema_revision: '003_m3' | '004_m5' | '005_settings' | '006_provider_connections' | '007_research_specs' | '008_comparisons' | '009_independent_evaluations' | '010_research_notes';
 };
 
 /**
@@ -5146,6 +5146,263 @@ export type NativeStrategyContract = {
 };
 
 /**
+ * NoteComparisonEvidence
+ */
+export type NoteComparisonEvidence = {
+    /**
+     * Comparison Id
+     */
+    comparison_id: string;
+    /**
+     * Event Pair Id
+     */
+    event_pair_id?: string | null;
+    /**
+     * Input Sha256
+     */
+    input_sha256: string;
+    /**
+     * Instrument Id
+     */
+    instrument_id?: string | null;
+    /**
+     * Kind
+     */
+    kind: 'comparison';
+    /**
+     * Label
+     */
+    label?: string;
+    left: ComparisonSideCreate;
+    /**
+     * Manifest Sha256
+     */
+    manifest_sha256: string;
+    /**
+     * Mechanism Index
+     */
+    mechanism_index?: number | null;
+    right: ComparisonSideCreate;
+    /**
+     * Section
+     */
+    section?: 'events' | 'candidates' | 'features' | 'predicates' | 'targets' | 'orders' | 'fills' | 'positions' | 'account' | 'turnover' | 'holding_duration';
+};
+
+/**
+ * NoteControlledArm
+ */
+export type NoteControlledArm = {
+    /**
+     * Execution Attempt Id
+     */
+    execution_attempt_id: string;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Ordinal
+     */
+    ordinal: number;
+    result: ComparisonSideCreate | null;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Status
+     */
+    status: 'succeeded' | 'failed' | 'cancelled' | 'interrupted';
+};
+
+/**
+ * NoteControlledEvidence
+ */
+export type NoteControlledEvidence = {
+    /**
+     * Arms
+     */
+    arms: Array<NoteControlledArm>;
+    /**
+     * Controlled Experiment Id
+     */
+    controlled_experiment_id: string;
+    /**
+     * Kind
+     */
+    kind: 'controlled';
+    /**
+     * Label
+     */
+    label?: string;
+    /**
+     * Protocol Sha256
+     */
+    protocol_sha256: string;
+    /**
+     * Request Sha256
+     */
+    request_sha256: string;
+    /**
+     * Selected Arm
+     */
+    selected_arm?: number | null;
+};
+
+/**
+ * NoteDiagnosticEvidence
+ */
+export type NoteDiagnosticEvidence = {
+    /**
+     * Config Sha256
+     */
+    config_sha256: string;
+    /**
+     * Kind
+     */
+    kind: 'diagnostic';
+    /**
+     * Label
+     */
+    label?: string;
+    /**
+     * Report Sha256
+     */
+    report_sha256: string;
+    result: ComparisonSideCreate;
+    /**
+     * Run Id
+     */
+    run_id: string;
+};
+
+/**
+ * NoteEvaluationEvidence
+ */
+export type NoteEvaluationEvidence = {
+    /**
+     * Decision Id
+     */
+    decision_id?: string | null;
+    /**
+     * Instrument Id
+     */
+    instrument_id?: string | null;
+    /**
+     * Kind
+     */
+    kind: 'evaluation' | 'decision';
+    /**
+     * Label
+     */
+    label?: string;
+    leaf: ComparisonSideCreate;
+    /**
+     * Record Id
+     */
+    record_id?: string | null;
+    /**
+     * Record Kind
+     */
+    record_kind?: 'candidate' | 'feature' | 'predicate' | 'order' | null;
+    /**
+     * Record Ordinal
+     */
+    record_ordinal?: number | null;
+    /**
+     * Session Date
+     */
+    session_date?: string | null;
+    source_ref?: SourceRef | null;
+    /**
+     * Stage Id
+     */
+    stage_id?: string | null;
+};
+
+/**
+ * NoteEvidenceResolution
+ */
+export type NoteEvidenceResolution = {
+    /**
+     * Bindings
+     */
+    bindings?: Array<EvaluationBinding>;
+    /**
+     * Href
+     */
+    href?: string | null;
+    /**
+     * Index
+     */
+    index: number;
+    /**
+     * Reason
+     */
+    reason: string | null;
+    /**
+     * State
+     */
+    state: 'available' | 'missing' | 'unavailable' | 'corrupt';
+};
+
+/**
+ * NoteRestore
+ */
+export type NoteRestore = {
+    /**
+     * Selection
+     */
+    selection: {
+        [key: string]: string | number | number;
+    };
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+};
+
+/**
+ * NoteSourceEvidence
+ */
+export type NoteSourceEvidence = {
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Kind
+     */
+    kind: 'source';
+    /**
+     * Label
+     */
+    label?: string;
+    /**
+     * Rule Id
+     */
+    rule_id?: string | null;
+    /**
+     * Source Id
+     */
+    source_id: string;
+    /**
+     * Source Kind
+     */
+    source_kind: 'strategy_version' | 'candidate';
+    source_ref?: SourceRef | null;
+    /**
+     * Spec Revision
+     */
+    spec_revision?: number | null;
+    /**
+     * Spec Sha256
+     */
+    spec_sha256?: string | null;
+};
+
+/**
  * ObjectiveConfig
  */
 export type ObjectiveConfig = {
@@ -5690,6 +5947,20 @@ export type PagePortableStrategyPublic = {
      * Data
      */
     data: Array<PortableStrategyPublic>;
+};
+
+/**
+ * Page[ResearchNoteSummary]
+ */
+export type PageResearchNoteSummary = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<ResearchNoteSummary>;
 };
 
 /**
@@ -8549,6 +8820,196 @@ export type ResearchLimits = {
      * Max Upload Bytes
      */
     max_upload_bytes: number;
+};
+
+/**
+ * ResearchNoteContent
+ */
+export type ResearchNoteContent = {
+    /**
+     * Applicability
+     */
+    applicability?: string;
+    /**
+     * Behavior Evidence
+     */
+    behavior_evidence?: string;
+    /**
+     * Body
+     */
+    body?: string;
+    /**
+     * Control Results
+     */
+    control_results?: string;
+    /**
+     * Counterexamples
+     */
+    counterexamples?: string;
+    /**
+     * Evidence
+     */
+    evidence?: Array<NoteSourceEvidence | NoteEvaluationEvidence | NoteComparisonEvidence | NoteDiagnosticEvidence | NoteControlledEvidence>;
+    /**
+     * Hypothesis
+     */
+    hypothesis?: string;
+    /**
+     * Motivation
+     */
+    motivation?: string;
+    /**
+     * Next Steps
+     */
+    next_steps?: string;
+    restore?: NoteRestore | null;
+    /**
+     * Rules
+     */
+    rules?: string;
+    /**
+     * Sources
+     */
+    sources?: string;
+    /**
+     * Status
+     */
+    status?: 'pending' | 'supported_under_current_tests' | 'mixed' | 'refuted_under_current_tests';
+    /**
+     * Tags
+     */
+    tags?: Array<string>;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * ResearchNoteCreate
+ */
+export type ResearchNoteCreate = {
+    /**
+     * Change Note
+     */
+    change_note?: string | null;
+    content: ResearchNoteContent;
+};
+
+/**
+ * ResearchNoteEdit
+ */
+export type ResearchNoteEdit = {
+    /**
+     * Base Revision
+     */
+    base_revision: number;
+    /**
+     * Base Revision Sha256
+     */
+    base_revision_sha256: string;
+    /**
+     * Change Note
+     */
+    change_note?: string | null;
+    content: ResearchNoteContent;
+};
+
+/**
+ * ResearchNoteRevision
+ */
+export type ResearchNoteRevision = {
+    /**
+     * Change Note
+     */
+    change_note: string | null;
+    content: ResearchNoteContent;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Evidence
+     */
+    evidence: Array<NoteEvidenceResolution>;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Note Id
+     */
+    note_id: string;
+    /**
+     * Restore Href
+     */
+    restore_href: string | null;
+    /**
+     * Retained Pin Count
+     */
+    retained_pin_count: number;
+    /**
+     * Retention Reason
+     */
+    retention_reason?: 'immutable_note_revision';
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Revision Sha256
+     */
+    revision_sha256: string;
+    /**
+     * Status Basis
+     */
+    status_basis?: 'human_maintained_not_automatic_validation';
+};
+
+/**
+ * ResearchNoteSummary
+ */
+export type ResearchNoteSummary = {
+    /**
+     * Change Note
+     */
+    change_note: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Evidence Count
+     */
+    evidence_count: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Revision Sha256
+     */
+    revision_sha256: string;
+    /**
+     * Status
+     */
+    status: 'pending' | 'supported_under_current_tests' | 'mixed' | 'refuted_under_current_tests';
+    /**
+     * Tags
+     */
+    tags: Array<string>;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
 };
 
 /**
@@ -17477,6 +17938,350 @@ export type ReadResearchReturnAnalysisResponses = {
 };
 
 export type ReadResearchReturnAnalysisResponse = ReadResearchReturnAnalysisResponses[keyof ReadResearchReturnAnalysisResponses];
+
+export type ListResearchNotesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Status
+         */
+        status?: 'pending' | 'supported_under_current_tests' | 'mixed' | 'refuted_under_current_tests' | null;
+        /**
+         * Tag
+         */
+        tag?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/research-notes';
+};
+
+export type ListResearchNotesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListResearchNotesError = ListResearchNotesErrors[keyof ListResearchNotesErrors];
+
+export type ListResearchNotesResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageResearchNoteSummary;
+};
+
+export type ListResearchNotesResponse = ListResearchNotesResponses[keyof ListResearchNotesResponses];
+
+export type CreateResearchNoteData = {
+    body: ResearchNoteCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/research-notes';
+};
+
+export type CreateResearchNoteErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateResearchNoteError = CreateResearchNoteErrors[keyof CreateResearchNoteErrors];
+
+export type CreateResearchNoteResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResearchNoteRevision;
+};
+
+export type CreateResearchNoteResponse = CreateResearchNoteResponses[keyof CreateResearchNoteResponses];
+
+export type ReadResearchNoteData = {
+    body?: never;
+    path: {
+        /**
+         * Note Id
+         */
+        note_id: string;
+    };
+    query?: never;
+    url: '/api/v1/research-notes/{note_id}';
+};
+
+export type ReadResearchNoteErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadResearchNoteError = ReadResearchNoteErrors[keyof ReadResearchNoteErrors];
+
+export type ReadResearchNoteResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResearchNoteRevision;
+};
+
+export type ReadResearchNoteResponse = ReadResearchNoteResponses[keyof ReadResearchNoteResponses];
+
+export type ListResearchNoteRevisionsData = {
+    body?: never;
+    path: {
+        /**
+         * Note Id
+         */
+        note_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/research-notes/{note_id}/revisions';
+};
+
+export type ListResearchNoteRevisionsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListResearchNoteRevisionsError = ListResearchNoteRevisionsErrors[keyof ListResearchNoteRevisionsErrors];
+
+export type ListResearchNoteRevisionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageResearchNoteSummary;
+};
+
+export type ListResearchNoteRevisionsResponse = ListResearchNoteRevisionsResponses[keyof ListResearchNoteRevisionsResponses];
+
+export type CreateResearchNoteRevisionData = {
+    body: ResearchNoteEdit;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Note Id
+         */
+        note_id: string;
+    };
+    query?: never;
+    url: '/api/v1/research-notes/{note_id}/revisions';
+};
+
+export type CreateResearchNoteRevisionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateResearchNoteRevisionError = CreateResearchNoteRevisionErrors[keyof CreateResearchNoteRevisionErrors];
+
+export type CreateResearchNoteRevisionResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResearchNoteRevision;
+};
+
+export type CreateResearchNoteRevisionResponse = CreateResearchNoteRevisionResponses[keyof CreateResearchNoteRevisionResponses];
+
+export type ReadResearchNoteRevisionData = {
+    body?: never;
+    path: {
+        /**
+         * Note Id
+         */
+        note_id: string;
+        /**
+         * Revision
+         */
+        revision: number;
+    };
+    query: {
+        /**
+         * Revision Sha256
+         */
+        revision_sha256: string;
+    };
+    url: '/api/v1/research-notes/{note_id}/revisions/{revision}';
+};
+
+export type ReadResearchNoteRevisionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadResearchNoteRevisionError = ReadResearchNoteRevisionErrors[keyof ReadResearchNoteRevisionErrors];
+
+export type ReadResearchNoteRevisionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResearchNoteRevision;
+};
+
+export type ReadResearchNoteRevisionResponse = ReadResearchNoteRevisionResponses[keyof ReadResearchNoteRevisionResponses];
+
+export type ExportResearchNoteRevisionData = {
+    body?: never;
+    path: {
+        /**
+         * Note Id
+         */
+        note_id: string;
+        /**
+         * Revision
+         */
+        revision: number;
+    };
+    query: {
+        /**
+         * Revision Sha256
+         */
+        revision_sha256: string;
+    };
+    url: '/api/v1/research-notes/{note_id}/revisions/{revision}/export';
+};
+
+export type ExportResearchNoteRevisionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ExportResearchNoteRevisionError = ExportResearchNoteRevisionErrors[keyof ExportResearchNoteRevisionErrors];
+
+export type ExportResearchNoteRevisionResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type ExportResearchNoteRevisionResponse = ExportResearchNoteRevisionResponses[keyof ExportResearchNoteRevisionResponses];
 
 export type ListResearchRunsData = {
     body?: never;

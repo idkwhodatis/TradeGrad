@@ -43,6 +43,7 @@ import { AnchoredSource } from "./anchored-source";
 import { DecisionReplay } from "./decision-replay";
 import { MechanismComparison } from "./comparison";
 import { StrategyVerification } from "./verification";
+import { ResearchNotes } from "./notes";
 import { sideFromEvidence } from "@/lib/comparison-evidence";
 import { DescriptionRevisions } from "./description-revisions";
 import { LineageSidebar } from "./lineage";
@@ -200,7 +201,13 @@ function Workbench({
     [spec.data, update],
   );
   useEffect(() => {
-    if (problem || sourceProblem || !spec.data) return;
+    if (
+      problem ||
+      sourceProblem ||
+      !spec.data ||
+      (activeTab === "notes" && selection.note_id)
+    )
+      return;
     if (!selection.spec_revision || !selection.code_sha256)
       update(
         {
@@ -212,6 +219,8 @@ function Workbench({
       );
   }, [
     spec.data,
+    activeTab,
+    selection.note_id,
     selection.spec_revision,
     selection.code_sha256,
     problem,
@@ -221,6 +230,7 @@ function Workbench({
   useEffect(() => {
     if (
       problem ||
+      (activeTab === "notes" && selection.note_id) ||
       bindingProblem ||
       !leaf.data ||
       selection.execution_attempt_id ||
@@ -240,6 +250,8 @@ function Workbench({
     );
   }, [
     leaf.data,
+    activeTab,
+    selection.note_id,
     selection.execution_attempt_id,
     selection.result_manifest_sha256,
     problem,
@@ -248,6 +260,7 @@ function Workbench({
   ]);
   useEffect(() => {
     if (
+      !(activeTab === "notes" && selection.note_id) &&
       leafVerified &&
       trace.data &&
       ((!selection.trace_manifest_sha256 && !selection.trace_status) ||
@@ -262,7 +275,7 @@ function Workbench({
         },
         true,
       );
-  }, [trace.data, selection, update, leafVerified]);
+  }, [trace.data, selection, update, leafVerified, activeTab]);
   const trustedDetail =
     leafVerified && detail.data && decisionMatches(selection, detail.data)
       ? detail.data
@@ -285,6 +298,45 @@ function Workbench({
   }
   function selectLeaf(value: WorkbenchEvaluation) {
     void navigate({ search: leafSelection(selection, value) });
+  }
+  // A note is an independent owned object. Broken or deleted evidence must not
+  // prevent reading its immutable content and explicit unavailable references.
+  if (activeTab === "notes") {
+    const unavailable = problem || sourceProblem || bindingProblem;
+    const contextError = unavailable
+      ? new Error(unavailable)
+      : strategy.error ||
+        (selection.candidate_id ? candidate.error : null) ||
+        spec.error ||
+        leaf.error;
+    return (
+      <div className="space-y-4">
+        <WorkbenchTabs
+          strategyId={strategyId}
+          selection={selection}
+          activeTab={activeTab}
+        />
+        <ResearchNotes
+          key={`${owner}:${strategyId}`}
+          owner={owner}
+          strategyId={strategyId}
+          selection={selection}
+          update={update}
+          spec={
+            !contextError &&
+            currentHash === spec.data?.code_sha256 &&
+            selection.code_sha256 === spec.data?.code_sha256 &&
+            selection.spec_revision === spec.data?.revision &&
+            selection.spec_sha256 === spec.data?.spec_sha256
+              ? spec.data
+              : undefined
+          }
+          leaf={leaf.data}
+          verified={leafVerified}
+          sourceProblem={contextError}
+        />
+      </div>
+    );
   }
   if (problem || sourceProblem)
     return <ErrorState error={new Error(problem || sourceProblem!)} />;
@@ -535,19 +587,25 @@ function Workbench({
             </div>
           )}
         </Panel>
-        <nav aria-label="Research workbench tabs" className="workbench-tabs">
-          {workbenchTabs.map((tab) => (
-            <Link
-              key={tab}
-              to="/strategies/$strategyId/research"
-              params={{ strategyId }}
-              search={{ ...selection, tab }}
-              aria-current={activeTab === tab ? "page" : undefined}
-            >
-              {labels[tab]}
-            </Link>
-          ))}
-        </nav>
+        <WorkbenchTabs
+          strategyId={strategyId}
+          selection={selection}
+          activeTab={activeTab}
+        />
+        <Button
+          variant="outline"
+          onClick={() =>
+            update({
+              tab: "notes",
+              note_origin_tab: activeTab,
+              note_id: undefined,
+              note_revision: undefined,
+              note_revision_sha256: undefined,
+            })
+          }
+        >
+          Write note from this evidence
+        </Button>
         {activeTab === "description" ? (
           <>
             <Panel title="Rules and observation coverage">
@@ -637,16 +695,41 @@ function Workbench({
             currentVerified={leafVerified}
             currentCode={currentSource}
           />
-        ) : (
-          <Panel title={labels[activeTab]}>
-            <p className="notice">
-              I6 versioned evidence notes is pending: not implemented in this
-              phase. Your exact selection is preserved. No replay, comparison,
-              validation result or note has been fabricated.
-            </p>
-          </Panel>
-        )}
+        ) : null}
       </div>
     </div>
+  );
+}
+
+function WorkbenchTabs({
+  strategyId,
+  selection,
+  activeTab,
+}: {
+  strategyId: string;
+  selection: WorkbenchSelection;
+  activeTab: string;
+}) {
+  return (
+    <nav aria-label="Research workbench tabs" className="workbench-tabs">
+      {workbenchTabs.map((tab) => (
+        <Link
+          key={tab}
+          to="/strategies/$strategyId/research"
+          params={{ strategyId }}
+          search={{
+            ...selection,
+            tab,
+            note_origin_tab:
+              tab === "notes" && activeTab !== "notes"
+                ? (activeTab as WorkbenchSelection["note_origin_tab"])
+                : selection.note_origin_tab,
+          }}
+          aria-current={activeTab === tab ? "page" : undefined}
+        >
+          {labels[tab]}
+        </Link>
+      ))}
+    </nav>
   );
 }

@@ -130,6 +130,26 @@ def test_missing_mandatory_case_never_unlocks(tmp_path):
         verify_boundary(path, "success", "0", {"test_different"})
 
 
+def test_research_notes_require_actual_postgres_without_filtered_acceptance():
+    import re
+    from pathlib import Path
+
+    workflow = (
+        Path(__file__).resolve().parents[2] / ".github/workflows/v1-validation.yml"
+    ).read_text()
+    application = workflow.split("  application:\n", 1)[1].split("\n  compose:", 1)[0]
+    blocks = re.split(r"(?=^      - name: )", application, flags=re.MULTILINE)
+    postgres = next(
+        block
+        for block in blocks
+        if "run: .venv-data/bin/python -m pytest tests/integration " in block
+    )
+    assert 'TRADEGRAD_NOTES_POSTGRES_REQUIRED: "1"' in postgres
+    assert "--ignore" not in postgres and " -k " not in postgres
+    assert "continue-on-error" not in postgres and "|| true" not in postgres
+    assert "--junitxml=m1-m2-postgres-junit.xml" in postgres
+
+
 def test_portable_upload_contracts_use_required_data_runtime_and_keep_evidence():
     import re
     from pathlib import Path

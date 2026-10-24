@@ -637,6 +637,10 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
 
     app.include_router(independent_router, prefix=PREFIX)
 
+    from backend.app.research_note_routes import router as research_note_router
+
+    app.include_router(research_note_router, prefix=PREFIX)
+
     from backend.app.workbench_routes import router as workbench_router
 
     app.include_router(workbench_router, prefix=PREFIX)

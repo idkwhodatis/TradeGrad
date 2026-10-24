@@ -6,6 +6,7 @@ import {
 } from "@playwright/test";
 import type {
   ControlledExperimentPublic,
+  ResearchNoteRevision,
   DiagnosticParityEventPage,
   DiagnosticParityView,
   IndependentCapability,
@@ -492,6 +493,57 @@ test("actual three-arm manual control retains failed outcomes, immutable conditi
   await expect(page.getByTestId(`independent-status-${failed.id}`)).toHaveText(
     "failed",
   );
+  // I6: Capture the actual stopped failure before retrying. The note-owned
+  // historical locator must continue to show generation one, not live status.
+  const failedControlUrl = page.url();
+  await page
+    .getByRole("button", { name: "Write note from this evidence", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Create note from current evidence",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByLabel("Note title", { exact: true })
+    .fill(`I6 failed control history ${crypto.randomUUID()}`);
+  await page
+    .getByLabel("Counterexamples", { exact: true })
+    .fill(
+      "The deliberately failing arm remains a failure, not zero profit or a later attempt.",
+    );
+  const noteResponse = page.waitForResponse(
+    (value) =>
+      new URL(value.url()).pathname === "/api/v1/research-notes" &&
+      value.request().method() === "POST",
+  );
+  await page
+    .getByRole("button", { name: "Save immutable note revision", exact: true })
+    .click();
+  const noteSaved = await noteResponse;
+  expect(noteSaved.status(), await noteSaved.text()).toBe(201);
+  const controlNote = (await noteSaved.json()) as ResearchNoteRevision;
+  const controlledReference = controlNote.content.evidence?.find(
+    (item) => item.kind === "controlled",
+  );
+  expect(controlledReference?.arms[2]).toMatchObject({
+    status: "failed",
+    generation: failed.generation,
+    execution_attempt_id: failed.active_attempt_id,
+    result: null,
+  });
+  await page
+    .getByRole("link", {
+      name: "Inspect saved arm 3 from note revision 1",
+      exact: true,
+    })
+    .click();
+  await expect(page.getByTestId("historical-control-arm")).toContainText(
+    failed.active_attempt_id!,
+  );
+  const historicalControlUrl = page.url();
+  await page.goto(failedControlUrl);
   const retry = await accepted(
     page,
     `/independent-evaluations/${failed.id}/retry`,
@@ -518,6 +570,22 @@ test("actual three-arm manual control retains failed outcomes, immutable conditi
     true,
   );
   expect(retryFailed.result_pin).toBeNull();
+  await page.goto(historicalControlUrl);
+  await page.reload();
+  await expect(page.getByTestId("historical-control-arm")).toContainText(
+    failed.active_attempt_id!,
+  );
+  await expect(page.getByTestId("historical-control-arm")).not.toContainText(
+    retryFailed.active_attempt_id!,
+  );
+  await expect(page.getByTestId("historical-control-arm")).toContainText(
+    "No successful result",
+  );
+  await reloginAtPinnedEvidence(page, historicalControlUrl);
+  await expect(page.getByTestId("historical-control-arm")).toContainText(
+    failed.active_attempt_id!,
+  );
+  await page.goto(failedControlUrl);
   await page
     .getByRole("button", { name: "Inspect arm 2", exact: true })
     .click();

@@ -1220,6 +1220,7 @@ def test_relative_home_profile_fails_before_inspection_or_client_invocation(
         "007_research_specs",
         "008_comparisons",
         "009_independent_evaluations",
+        "010_research_notes",
     ],
 )
 def test_supported_revisions_backup_roundtrip_without_relabeling(
@@ -1241,6 +1242,7 @@ def test_supported_revisions_backup_roundtrip_without_relabeling(
         "007_research_specs",
         "008_comparisons",
         "009_independent_evaluations",
+        "010_research_notes",
     ],
 )
 def test_source_inventory_retains_strategy_packages_after_settings_revision(
@@ -1255,3 +1257,70 @@ def test_source_inventory_retains_strategy_packages_after_settings_revision(
         database.source_snapshot(backup.BackupLimits())["schema_revision"] == revision
     )
     assert any("FROM strategy_packages" in query for query in connection.queries)
+
+
+def test_note_revision_pins_survive_missing_live_artifact_registration(monkeypatch):
+    class NotesConnection(InspectionConnection):
+        def execute(self, statement, parameters=None):
+            result = super().execute(statement, parameters)
+            if "FROM research_note_evidence_pins" in str(statement):
+                return QueryResult(
+                    [
+                        {
+                            "path": "runs/historical/artifact.json",
+                            "sha256": "a" * 64,
+                            "size_bytes": 12,
+                        },
+                        {
+                            "path": "runs/historical/artifact.json",
+                            "sha256": "a" * 64,
+                            "size_bytes": 12,
+                        },
+                    ]
+                )
+            return result
+
+    connection = NotesConnection(revisions=["010_research_notes"])
+    database = backup.PostgresDatabase(
+        "postgresql://operator@localhost/unit_inspection"
+    )
+    monkeypatch.setattr(database, "_inspect", lambda inspect: inspect(connection))
+    snapshot = database.source_snapshot(backup.BackupLimits())
+    assert snapshot["references"] == [
+        {"path": "runs/historical/artifact.json", "sha256": "a" * 64, "size_bytes": 12}
+    ]
+    query = next(
+        q for q in connection.queries if "FROM research_note_evidence_pins" in q
+    )
+    assert "JOIN" not in query and "DISTINCT" in query
+    assert "WHERE resource_kind='artifact'" in query
+
+
+def test_conflicting_historical_pin_does_not_get_deduplicated(monkeypatch):
+    class NotesConnection(InspectionConnection):
+        def execute(self, statement, parameters=None):
+            result = super().execute(statement, parameters)
+            if "FROM research_note_evidence_pins" in str(statement):
+                return QueryResult(
+                    [
+                        {
+                            "path": "runs/historical/artifact.json",
+                            "sha256": h * 64,
+                            "size_bytes": 12,
+                        }
+                        for h in ("a", "b")
+                    ]
+                )
+            return result
+
+    connection = NotesConnection(revisions=["010_research_notes"])
+    database = backup.PostgresDatabase(
+        "postgresql://operator@localhost/unit_inspection"
+    )
+    monkeypatch.setattr(database, "_inspect", lambda inspect: inspect(connection))
+    snapshot = database.source_snapshot(backup.BackupLimits())
+    assert len(snapshot["references"]) == 2
+    with pytest.raises(backup.BackupError, match="missing or differs"):
+        backup._validate_references(
+            None, [snapshot["references"][0]], snapshot, backup.BackupLimits()
+        )

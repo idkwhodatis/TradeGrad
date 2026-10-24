@@ -52,6 +52,14 @@ type ComparisonPins = {
 };
 export type WorkbenchSelection = ComparisonPins & {
   tab?: WorkbenchTab;
+  note_id?: string;
+  note_revision?: number;
+  note_revision_sha256?: string;
+  note_query?: string;
+  note_offset?: number;
+  note_origin_tab?: Exclude<WorkbenchTab, "notes">;
+  note_evidence_index?: number;
+  note_arm?: number;
   candidate_id?: string;
   code_sha256?: string;
   evaluation_id?: string;
@@ -110,6 +118,9 @@ export type WorkbenchSelection = ComparisonPins & {
   controlled_arm_trace_manifest_sha256?: string;
 };
 const textKeys = [
+  "note_id",
+  "note_revision_sha256",
+  "note_query",
   "candidate_id",
   "code_sha256",
   "evaluation_id",
@@ -253,6 +264,50 @@ export function workbenchSearch(
       );
     result.tab = search.tab as WorkbenchTab;
   }
+  if (search.note_origin_tab !== undefined) {
+    if (
+      !["description", "replay", "comparison", "verification"].includes(
+        String(search.note_origin_tab),
+      )
+    )
+      throw new Error(
+        "Invalid note origin. No different evidence was selected.",
+      );
+    result.note_origin_tab =
+      search.note_origin_tab as WorkbenchSelection["note_origin_tab"];
+  }
+  for (const [key, maximum] of [
+    ["note_evidence_index", 31],
+    ["note_arm", 2],
+  ] as const) {
+    if (search[key] === undefined) continue;
+    const value = Number(search[key]);
+    if (
+      (typeof search[key] !== "number" && typeof search[key] !== "string") ||
+      (typeof search[key] === "string" && !search[key].trim()) ||
+      !Number.isSafeInteger(value) ||
+      value < 0 ||
+      value > maximum
+    )
+      throw new Error(
+        "Invalid historical note evidence locator. No different arm was selected.",
+      );
+    result[key] = value;
+  }
+  if (search.note_revision !== undefined) {
+    const value = Number(search.note_revision);
+    if (
+      (typeof search.note_revision !== "number" &&
+        typeof search.note_revision !== "string") ||
+      !Number.isSafeInteger(value) ||
+      value < 1 ||
+      value > 10000
+    )
+      throw new Error(
+        "Invalid note revision. No latest revision was substituted.",
+      );
+    result.note_revision = value;
+  }
   if (search.spec_revision !== undefined) {
     const value = Number(search.spec_revision);
     if (!Number.isSafeInteger(value) || value < 1)
@@ -280,6 +335,7 @@ export function workbenchSearch(
       );
   }
   for (const key of [
+    "note_offset",
     "diagnostic_event_offset",
     "record_ordinal",
     "mechanism_index",
@@ -360,6 +416,16 @@ export const candidateReasons = [
   "exit",
 ] as const;
 export function selectionProblem(value: WorkbenchSelection): string | null {
+  if (
+    (value.note_id || value.note_revision || value.note_revision_sha256) &&
+    !(value.note_id && value.note_revision && value.note_revision_sha256)
+  )
+    return "A saved note needs its exact ID, revision and hash. No latest note was substituted.";
+  if (
+    (value.note_evidence_index !== undefined && !value.note_id) ||
+    (value.note_arm !== undefined && value.note_evidence_index === undefined)
+  )
+    return "Historical arm evidence requires its exact note revision and evidence ordinal.";
   const verificationProblem = verificationSelectionProblem(value);
   if (verificationProblem) return verificationProblem;
   if (

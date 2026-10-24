@@ -43,6 +43,7 @@ REVISIONS = {
     "007_research_specs",
     "008_comparisons",
     "009_independent_evaluations",
+    "010_research_notes",
 }
 NAMESPACES = {"datasets", "runs", "data-checkpoints", "uploads", "strategy-packages"}
 HEX = re.compile(r"[a-f0-9]{64}\Z")
@@ -535,9 +536,32 @@ class PostgresDatabase:
                 "007_research_specs",
                 "008_comparisons",
                 "009_independent_evaluations",
+                "010_research_notes",
             }:
                 references += rows(
                     "SELECT storage_key AS path, archive_sha256 AS sha256, size_bytes FROM strategy_packages ORDER BY storage_key"
+                )
+            if revisions[0] == "010_research_notes":
+                # Historical note revisions retain exact artifacts independently
+                # of a mutable/current resource pointer. Never JOIN these pins to
+                # artifacts: deliberate metadata cleanup must not silently drop
+                # the original byte-retention obligation. Missing or changed
+                # bytes fail the existing immutable-reference integrity checks.
+                references += rows(
+                    "SELECT DISTINCT details->>'storage_key' AS path, sha256, "
+                    "(details->>'size_bytes')::bigint AS size_bytes "
+                    "FROM research_note_evidence_pins "
+                    "WHERE resource_kind='artifact' "
+                    "ORDER BY path, sha256, size_bytes"
+                )
+                # Exact duplicates across revisions and registration inventory
+                # are one file, while same-path/different-hash conflicts remain
+                # separate and are rejected by byte verification below.
+                references = list(
+                    {
+                        (row["path"], row["sha256"], row.get("size_bytes")): row
+                        for row in references
+                    }.values()
                 )
             datasets = rows(
                 "SELECT storage_key AS path, content_sha256 AS sha256, manifest FROM dataset_versions ORDER BY storage_key"

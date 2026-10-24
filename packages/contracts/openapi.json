@@ -288,7 +288,8 @@
               "006_provider_connections",
               "007_research_specs",
               "008_comparisons",
-              "009_independent_evaluations"
+              "009_independent_evaluations",
+              "010_research_notes"
             ],
             "title": "Schema Revision",
             "type": "string"
@@ -9535,6 +9536,582 @@
         "title": "NativeStrategyContract",
         "type": "object"
       },
+      "NoteComparisonEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "comparison_id": {
+            "format": "uuid",
+            "title": "Comparison Id",
+            "type": "string"
+          },
+          "event_pair_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Pair Id"
+          },
+          "input_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Input Sha256",
+            "type": "string"
+          },
+          "instrument_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrument Id"
+          },
+          "kind": {
+            "const": "comparison",
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Label",
+            "type": "string"
+          },
+          "left": {
+            "$ref": "#/components/schemas/ComparisonSideCreate"
+          },
+          "manifest_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Manifest Sha256",
+            "type": "string"
+          },
+          "mechanism_index": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mechanism Index"
+          },
+          "right": {
+            "$ref": "#/components/schemas/ComparisonSideCreate"
+          },
+          "section": {
+            "default": "events",
+            "enum": [
+              "events",
+              "candidates",
+              "features",
+              "predicates",
+              "targets",
+              "orders",
+              "fills",
+              "positions",
+              "account",
+              "turnover",
+              "holding_duration"
+            ],
+            "title": "Section",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "comparison_id",
+          "input_sha256",
+          "manifest_sha256",
+          "left",
+          "right"
+        ],
+        "title": "NoteComparisonEvidence",
+        "type": "object"
+      },
+      "NoteControlledArm": {
+        "additionalProperties": false,
+        "properties": {
+          "execution_attempt_id": {
+            "format": "uuid",
+            "title": "Execution Attempt Id",
+            "type": "string"
+          },
+          "generation": {
+            "minimum": 1.0,
+            "title": "Generation",
+            "type": "integer"
+          },
+          "ordinal": {
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonSideCreate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "succeeded",
+              "failed",
+              "cancelled",
+              "interrupted"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ordinal",
+          "run_id",
+          "status",
+          "execution_attempt_id",
+          "generation",
+          "result"
+        ],
+        "title": "NoteControlledArm",
+        "type": "object"
+      },
+      "NoteControlledEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "arms": {
+            "items": {
+              "$ref": "#/components/schemas/NoteControlledArm"
+            },
+            "maxItems": 3,
+            "minItems": 2,
+            "title": "Arms",
+            "type": "array"
+          },
+          "controlled_experiment_id": {
+            "format": "uuid",
+            "title": "Controlled Experiment Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "controlled",
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Label",
+            "type": "string"
+          },
+          "protocol_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Protocol Sha256",
+            "type": "string"
+          },
+          "request_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Request Sha256",
+            "type": "string"
+          },
+          "selected_arm": {
+            "anyOf": [
+              {
+                "maximum": 2.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Arm"
+          }
+        },
+        "required": [
+          "kind",
+          "controlled_experiment_id",
+          "request_sha256",
+          "protocol_sha256",
+          "arms"
+        ],
+        "title": "NoteControlledEvidence",
+        "type": "object"
+      },
+      "NoteDiagnosticEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "config_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Config Sha256",
+            "type": "string"
+          },
+          "kind": {
+            "const": "diagnostic",
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Label",
+            "type": "string"
+          },
+          "report_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Report Sha256",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ComparisonSideCreate"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "run_id",
+          "config_sha256",
+          "report_sha256",
+          "result"
+        ],
+        "title": "NoteDiagnosticEvidence",
+        "type": "object"
+      },
+      "NoteEvaluationEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Id"
+          },
+          "instrument_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrument Id"
+          },
+          "kind": {
+            "enum": [
+              "evaluation",
+              "decision"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Label",
+            "type": "string"
+          },
+          "leaf": {
+            "$ref": "#/components/schemas/ComparisonSideCreate"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          },
+          "record_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "candidate",
+                  "feature",
+                  "predicate",
+                  "order"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Kind"
+          },
+          "record_ordinal": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Ordinal"
+          },
+          "session_date": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Date"
+          },
+          "source_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage Id"
+          }
+        },
+        "required": [
+          "kind",
+          "leaf"
+        ],
+        "title": "NoteEvaluationEvidence",
+        "type": "object"
+      },
+      "NoteEvidenceResolution": {
+        "additionalProperties": false,
+        "properties": {
+          "bindings": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationBinding"
+            },
+            "title": "Bindings",
+            "type": "array"
+          },
+          "href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "state": {
+            "enum": [
+              "available",
+              "missing",
+              "unavailable",
+              "corrupt"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "state",
+          "reason"
+        ],
+        "title": "NoteEvidenceResolution",
+        "type": "object"
+      },
+      "NoteRestore": {
+        "additionalProperties": false,
+        "properties": {
+          "selection": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "maxProperties": 120,
+            "title": "Selection",
+            "type": "object"
+          },
+          "strategy_version_id": {
+            "format": "uuid",
+            "title": "Strategy Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "strategy_version_id",
+          "selection"
+        ],
+        "title": "NoteRestore",
+        "type": "object"
+      },
+      "NoteSourceEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "code_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Code Sha256",
+            "type": "string"
+          },
+          "kind": {
+            "const": "source",
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Label",
+            "type": "string"
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "strategy_version",
+              "candidate"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "spec_revision": {
+            "anyOf": [
+              {
+                "maximum": 1000000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Revision"
+          },
+          "spec_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Sha256"
+          }
+        },
+        "required": [
+          "source_kind",
+          "source_id",
+          "code_sha256",
+          "kind"
+        ],
+        "title": "NoteSourceEvidence",
+        "type": "object"
+      },
       "ObjectiveConfig": {
         "additionalProperties": false,
         "properties": {
@@ -10443,6 +11020,27 @@
           "count"
         ],
         "title": "Page[PortableStrategyPublic]",
+        "type": "object"
+      },
+      "Page_ResearchNoteSummary_": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ResearchNoteSummary"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data",
+          "count"
+        ],
+        "title": "Page[ResearchNoteSummary]",
         "type": "object"
       },
       "Page_ResearchRunPublic_": {
@@ -15845,6 +16443,381 @@
           "max_artifact_bytes"
         ],
         "title": "ResearchLimits",
+        "type": "object"
+      },
+      "ResearchNoteContent": {
+        "additionalProperties": false,
+        "properties": {
+          "applicability": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Applicability",
+            "type": "string"
+          },
+          "behavior_evidence": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Behavior Evidence",
+            "type": "string"
+          },
+          "body": {
+            "default": "",
+            "maxLength": 32000,
+            "title": "Body",
+            "type": "string"
+          },
+          "control_results": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Control Results",
+            "type": "string"
+          },
+          "counterexamples": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Counterexamples",
+            "type": "string"
+          },
+          "evidence": {
+            "default": [],
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "comparison": "#/components/schemas/NoteComparisonEvidence",
+                  "controlled": "#/components/schemas/NoteControlledEvidence",
+                  "decision": "#/components/schemas/NoteEvaluationEvidence",
+                  "diagnostic": "#/components/schemas/NoteDiagnosticEvidence",
+                  "evaluation": "#/components/schemas/NoteEvaluationEvidence",
+                  "source": "#/components/schemas/NoteSourceEvidence"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/NoteSourceEvidence"
+                },
+                {
+                  "$ref": "#/components/schemas/NoteEvaluationEvidence"
+                },
+                {
+                  "$ref": "#/components/schemas/NoteComparisonEvidence"
+                },
+                {
+                  "$ref": "#/components/schemas/NoteDiagnosticEvidence"
+                },
+                {
+                  "$ref": "#/components/schemas/NoteControlledEvidence"
+                }
+              ]
+            },
+            "maxItems": 32,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "hypothesis": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Hypothesis",
+            "type": "string"
+          },
+          "motivation": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Motivation",
+            "type": "string"
+          },
+          "next_steps": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Next Steps",
+            "type": "string"
+          },
+          "restore": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NoteRestore"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rules": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Rules",
+            "type": "string"
+          },
+          "sources": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Sources",
+            "type": "string"
+          },
+          "status": {
+            "default": "pending",
+            "enum": [
+              "pending",
+              "supported_under_current_tests",
+              "mixed",
+              "refuted_under_current_tests"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tags": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "ResearchNoteContent",
+        "type": "object"
+      },
+      "ResearchNoteCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "change_note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Note"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ResearchNoteContent"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "title": "ResearchNoteCreate",
+        "type": "object"
+      },
+      "ResearchNoteEdit": {
+        "additionalProperties": false,
+        "properties": {
+          "base_revision": {
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Base Revision",
+            "type": "integer"
+          },
+          "base_revision_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Base Revision Sha256",
+            "type": "string"
+          },
+          "change_note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Note"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ResearchNoteContent"
+          }
+        },
+        "required": [
+          "content",
+          "base_revision",
+          "base_revision_sha256"
+        ],
+        "title": "ResearchNoteEdit",
+        "type": "object"
+      },
+      "ResearchNoteRevision": {
+        "additionalProperties": false,
+        "properties": {
+          "change_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Note"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ResearchNoteContent"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/NoteEvidenceResolution"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note_id": {
+            "format": "uuid",
+            "title": "Note Id",
+            "type": "string"
+          },
+          "restore_href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restore Href"
+          },
+          "retained_pin_count": {
+            "title": "Retained Pin Count",
+            "type": "integer"
+          },
+          "retention_reason": {
+            "const": "immutable_note_revision",
+            "default": "immutable_note_revision",
+            "title": "Retention Reason",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "revision_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Revision Sha256",
+            "type": "string"
+          },
+          "status_basis": {
+            "const": "human_maintained_not_automatic_validation",
+            "default": "human_maintained_not_automatic_validation",
+            "title": "Status Basis",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "note_id",
+          "revision",
+          "revision_sha256",
+          "created_at",
+          "change_note",
+          "content",
+          "evidence",
+          "restore_href",
+          "retained_pin_count"
+        ],
+        "title": "ResearchNoteRevision",
+        "type": "object"
+      },
+      "ResearchNoteSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "change_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Note"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evidence_count": {
+            "title": "Evidence Count",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "revision_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Revision Sha256",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "supported_under_current_tests",
+              "mixed",
+              "refuted_under_current_tests"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "revision_sha256",
+          "title",
+          "tags",
+          "status",
+          "evidence_count",
+          "created_at",
+          "updated_at",
+          "change_note"
+        ],
+        "title": "ResearchNoteSummary",
         "type": "object"
       },
       "ResearchPreflightPublic": {
@@ -33877,6 +34850,716 @@
           }
         ],
         "summary": "Read Research Return Analysis"
+      }
+    },
+    "/api/v1/research-notes": {
+      "get": {
+        "operationId": "list_research_notes",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pending",
+                    "supported_under_current_tests",
+                    "mixed",
+                    "refuted_under_current_tests"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tag",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tag"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ResearchNoteSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listing",
+        "tags": [
+          "research-notes"
+        ]
+      },
+      "post": {
+        "operationId": "create_research_note",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchNoteCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchNoteRevision"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create",
+        "tags": [
+          "research-notes"
+        ]
+      }
+    },
+    "/api/v1/research-notes/{note_id}": {
+      "get": {
+        "operationId": "read_research_note",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Note Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchNoteRevision"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Latest",
+        "tags": [
+          "research-notes"
+        ]
+      }
+    },
+    "/api/v1/research-notes/{note_id}/revisions": {
+      "get": {
+        "operationId": "list_research_note_revisions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ResearchNoteSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "History",
+        "tags": [
+          "research-notes"
+        ]
+      },
+      "post": {
+        "operationId": "create_research_note_revision",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchNoteEdit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchNoteRevision"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Revise",
+        "tags": [
+          "research-notes"
+        ]
+      }
+    },
+    "/api/v1/research-notes/{note_id}/revisions/{revision}": {
+      "get": {
+        "operationId": "read_research_note_revision",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "maximum": 10000,
+              "minimum": 1,
+              "title": "Revision",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "revision_sha256",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Revision Sha256",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchNoteRevision"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Exact",
+        "tags": [
+          "research-notes"
+        ]
+      }
+    },
+    "/api/v1/research-notes/{note_id}/revisions/{revision}/export": {
+      "get": {
+        "operationId": "export_research_note_revision",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "maximum": 10000,
+              "minimum": 1,
+              "title": "Revision",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "revision_sha256",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Revision Sha256",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Export",
+        "tags": [
+          "research-notes"
+        ]
       }
     },
     "/api/v1/research-runs": {

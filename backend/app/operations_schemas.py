@@ -19,6 +19,7 @@ class BackupReceipt(BaseModel):
         "007_research_specs",
         "008_comparisons",
         "009_independent_evaluations",
+        "010_research_notes",
     ]
     manifest_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     backup_created_at: datetime
