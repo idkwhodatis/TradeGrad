@@ -194,9 +194,10 @@ export function ComparisonSourcePicker({
       >
         Use current selection as {title}
       </Button>
-      <label className="workbench-field">
-        {title} source type
+      <div className="workbench-field">
+        <label htmlFor={`${side}-source-type`}>{title} source type</label>
         <select
+          id={`${side}-source-type`}
           value={kind}
           onChange={(event) => {
             const next = event.target.value as SourceResource["kind"];
@@ -210,12 +211,15 @@ export function ComparisonSourcePicker({
           <option value="strategy_version">Owned saved strategy</option>
           <option value="candidate">Owned candidate</option>
         </select>
-      </label>
+      </div>
       {kind === "strategy_version" ? (
         <>
-          <label className="workbench-field">
-            {title} saved strategy
+          <div className="workbench-field">
+            <label htmlFor={`${side}-saved-strategy`}>
+              {title} saved strategy
+            </label>
             <select
+              id={`${side}-saved-strategy`}
               value={
                 pins.source_kind === "strategy_version"
                   ? pins.source_id || ""
@@ -241,7 +245,7 @@ export function ComparisonSourcePicker({
                 </option>
               ))}
             </select>
-          </label>
+          </div>
           {catalog.data && (
             <Pagination
               offset={offset}
@@ -268,13 +272,14 @@ export function ComparisonSourcePicker({
             chooseSource({ kind: "candidate", id: candidateId.trim() });
           }}
         >
-          <label className="workbench-field">
-            {title} candidate ID
+          <div className="workbench-field">
+            <label htmlFor={`${side}-candidate-id`}>{title} candidate ID</label>
             <input
+              id={`${side}-candidate-id`}
               value={candidateId}
               onChange={(event) => setCandidateId(event.target.value)}
             />
-          </label>
+          </div>
           <Button type="submit" variant="outline">
             Load {title} source
           </Button>
@@ -308,9 +313,12 @@ export function ComparisonSourcePicker({
               "Description SHA-256": spec.data.spec_sha256,
             }}
           />
-          <label className="workbench-field">
-            {title} actual leaf Evaluation
+          <div className="workbench-field">
+            <label htmlFor={`${side}-evaluation`}>
+              {title} actual leaf Evaluation
+            </label>
             <select
+              id={`${side}-evaluation`}
               value={pins.evaluation_id || ""}
               onChange={(event) =>
                 chooseLeaf(
@@ -327,7 +335,7 @@ export function ComparisonSourcePicker({
                 </option>
               ))}
             </select>
-          </label>
+          </div>
           {leaves.data && (
             <Pagination
               offset={leafOffset}

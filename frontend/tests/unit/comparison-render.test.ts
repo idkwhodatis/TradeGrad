@@ -1,3 +1,4 @@
+import { expectControlLabel } from "./control-labels";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createElement, type ReactNode } from "react";
 import { renderToString } from "react-dom/server";
@@ -609,6 +610,8 @@ it("orders configuration before mechanisms/outcome/paired evidence in the actual
     }),
     query,
   );
+  expectControlLabel(html, "Explicit event pair", "select");
+  expectControlLabel(html, "Behavior section", "select");
   const headings = [
     "1. Fixed inputs",
     "2. Mechanism",

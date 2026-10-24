@@ -186,6 +186,24 @@ def test_preincrement_absence_is_not_a_manufactured_trace(tmp_path):
     assert prepare_trace_artifacts(**values) == []
 
 
+def test_precheckpoint_trace_does_not_invent_or_rewrite_later_candidate_id(tmp_path):
+    values, _, evaluation = _publication(tmp_path)
+    written = prepare_trace_artifacts(**values)
+    manifest_path = tmp_path / written[0]["storage_key"]
+    before = manifest_path.read_bytes()
+    binding = json.loads(before)["binding"]
+    assert binding["candidate_id"] is None
+    assert binding["evaluation_id"] == str(evaluation.id)
+    assert binding["execution_attempt_id"] == str(evaluation.attempt_id)
+    assert binding["code_sha256"] == evaluation.code_sha256
+    # Candidate persistence happens at the verified optimizer checkpoint, after
+    # this physical Evaluation and its immutable result/trace are published.
+    # Attaching the later database identity cannot backfill immutable evidence.
+    evaluation.candidate_id = uuid4()
+    assert manifest_path.read_bytes() == before
+    assert hashlib.sha256(before).hexdigest() == written[0]["sha256"]
+
+
 def test_hosted_gate_requires_capture_engine_and_postgres_checks():
     from pathlib import Path
 

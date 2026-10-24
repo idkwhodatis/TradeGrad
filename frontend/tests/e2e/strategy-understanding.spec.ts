@@ -327,6 +327,17 @@ for (const templateId of ["daily_timing", "cross_sectional"] as const) {
     ).toEqual(strategy);
 
     if (templateId === "daily_timing") {
+      const navigationWrites: string[] = [];
+      page.on("request", (wire) => {
+        if (
+          wire.method() !== "GET" &&
+          new URL(wire.url()).pathname.startsWith("/api/v1/")
+        ) {
+          navigationWrites.push(
+            `${wire.method()} ${new URL(wire.url()).pathname}`,
+          );
+        }
+      });
       await page
         .getByRole("link", { name: "Decision replay", exact: true })
         .click();
@@ -345,23 +356,77 @@ for (const templateId of ["daily_timing", "cross_sectional"] as const) {
       ).toBeVisible();
       await expect(
         page.getByRole("button", {
-          name: "Diagnostic replay unavailable (I5 pending)",
+          name: "Diagnostic replay unavailable until source admission",
           exact: true,
         }),
       ).toBeDisabled();
-      for (const [name, tab, phase] of [
-        ["Version comparison", "comparison", "I4"],
-        ["Verification", "verification", "I5"],
-        ["Notes", "notes", "I6"],
+      // Later increments implemented these tabs. They must preserve the exact
+      // selection without fabricating an evaluation or dispatching execution.
+      for (const [name, tab, heading] of [
+        [
+          "Version comparison",
+          "comparison",
+          "Compare two immutable evaluations",
+        ],
+        [
+          "Verification",
+          "verification",
+          "Independent diagnostics and manual controls",
+        ],
+        ["Notes", "notes", "Evidence research notes"],
       ]) {
         await page.getByRole("link", { name, exact: true }).click();
         await expectSelection(page, { tab, rule_id: first.rule_id });
         await expect(
-          page.getByRole("heading", { name, exact: true }),
+          page.getByRole("heading", { name: heading, exact: true }),
         ).toBeVisible();
-        await expect(
-          page.getByText(new RegExp(`${phase}.*pending`, "i")),
-        ).toBeVisible();
+        expect(
+          new URL(page.url()).searchParams.get("evaluation_id"),
+        ).toBeNull();
+        if (tab !== "notes") {
+          await expect(
+            page.getByLabel("Actual leaf Evaluation", { exact: true }),
+          ).toHaveValue("");
+        }
+        await expect(page.getByText(/pending: not implemented/i)).toHaveCount(
+          0,
+        );
+        if (tab === "comparison") {
+          await expect(
+            page.getByRole("button", {
+              name: "Create immutable comparison",
+              exact: true,
+            }),
+          ).toBeDisabled();
+          await expect(
+            page.getByLabel("Left saved strategy", { exact: true }),
+          ).toHaveValue("");
+          await expect(
+            page.getByLabel("Right saved strategy", { exact: true }),
+          ).toHaveValue("");
+        }
+        if (tab === "verification") {
+          await expect(
+            page.getByText(
+              "Select an admitted successful physical leaf Evaluation before independent verification.",
+              { exact: true },
+            ),
+          ).toBeVisible();
+          await expect(
+            page.getByRole("button", {
+              name: "Create independent diagnostic replay",
+              exact: true,
+            }),
+          ).toHaveCount(0);
+        }
+        if (tab === "notes") {
+          await expect(
+            page.getByRole("button", {
+              name: "Create note from current evidence",
+              exact: true,
+            }),
+          ).toBeVisible();
+        }
       }
       await page
         .getByRole("link", { name: "Description", exact: true })
@@ -370,6 +435,7 @@ for (const templateId of ["daily_timing", "cross_sectional"] as const) {
         "data-selected",
         "true",
       );
+      expect(navigationWrites).toEqual([]);
     }
   });
 }
@@ -1050,7 +1116,11 @@ test("real isolated candidate leaves keep their own immutable pins, survive logi
     expect(trace.context.trace_manifest_sha256).toBe(
       leaf.trace_manifest_sha256,
     );
-    expect(trace.context.binding?.candidate_id).toBe(candidate.id);
+    // Trace publication precedes optimizer checkpoint registration. The exact
+    // physical Evaluation is attached to the candidate later, but its sealed
+    // pre-checkpoint binding must not be rewritten to add that foreign key.
+    expect(trace.context.binding).not.toBeNull();
+    expect(trace.context.binding?.candidate_id).toBeNull();
     expect(trace.context.binding?.code_sha256).toBe(candidate.code_sha256);
     expect(trace.manifest?.capture.mode).toBe("research");
   }

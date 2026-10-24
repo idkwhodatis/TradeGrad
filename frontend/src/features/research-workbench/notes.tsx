@@ -565,9 +565,12 @@ export function ResearchNotes({
                   }
                 />
               </label>
-              <label className="workbench-field">
-                User-maintained status
+              <div className="workbench-field">
+                <label htmlFor="research-note-status">
+                  User-maintained status
+                </label>
                 <select
+                  id="research-note-status"
                   value={draft.content.status ?? "pending"}
                   onChange={(event) =>
                     editContent({
@@ -582,15 +585,18 @@ export function ResearchNotes({
                     </option>
                   ))}
                 </select>
-              </label>
+              </div>
               <NoteTextFields
                 content={draft.content}
                 disabled={busy || Boolean(draft.key)}
                 onChange={editContent}
               />
-              <label className="workbench-field">
-                Revision change note
+              <div className="workbench-field">
+                <label htmlFor="research-note-change-note">
+                  Revision change note
+                </label>
                 <textarea
+                  id="research-note-change-note"
                   rows={2}
                   maxLength={2000}
                   value={draft.change_note}
@@ -602,7 +608,7 @@ export function ResearchNotes({
                     }
                   }}
                 />
-              </label>
+              </div>
             </fieldset>
             <NoteEvidenceList evidence={draft.content.evidence ?? []} />
             <div className="flex flex-wrap gap-3 my-4">

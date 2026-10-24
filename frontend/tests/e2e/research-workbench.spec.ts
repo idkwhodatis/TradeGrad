@@ -66,6 +66,24 @@ test("repeated submit creates one run; durable events, result and artifact survi
   await expect(
     page.getByRole("heading", { name: "Start with a fixed seed" }),
   ).toBeVisible();
+  // Earlier real-stack cases create newer strategies and datasets. Exercise
+  // the original synthetic seed explicitly, not whichever version sorts first.
+  const originalInputs = await inputs(request, auth);
+  await page
+    .getByLabel("Market & task", { exact: true })
+    .selectOption(originalInputs.task);
+  await page
+    .getByLabel("Dataset snapshot", { exact: true })
+    .selectOption(originalInputs.dataset_version_id);
+  await page
+    .getByLabel("Seed strategy", { exact: true })
+    .selectOption(originalInputs.strategy_version_id);
+  await page
+    .getByLabel("Start date · inclusive", { exact: true })
+    .fill(originalInputs.start_date);
+  await page
+    .getByLabel("End date · exclusive", { exact: true })
+    .fill(originalInputs.end_date);
   let submissions = 0;
   page.on("request", (req) => {
     if (
@@ -384,6 +402,24 @@ test("real network interruption exposes an error and retry recovers", async ({
   const seedCard = page.getByRole("article").filter({
     has: page.getByRole("heading", { name: seedName, exact: true }),
   });
+  // The immutable seed can be beyond page one after other tests create
+  // versions. Traverse the real catalog rather than relying on row order.
+  const pages = page.locator('[aria-label="Strategy pages"]');
+  await expect(pages).toBeVisible();
+  let pageNumber = 1;
+  while ((await seedCard.count()) === 0) {
+    const next = pages.getByRole("button", {
+      name: "Next strategies",
+      exact: true,
+    });
+    await expect(
+      next,
+      "The original seed must exist in the paginated catalog",
+    ).toBeEnabled();
+    await next.click();
+    pageNumber++;
+    await expect(pages).toContainText(`versions · page ${pageNumber}`);
+  }
   await expect(seedCard).toHaveCount(1);
   await expect(seedCard.getByText(expectedHash, { exact: true })).toBeVisible();
   const viewSource = seedCard.getByRole("button", {

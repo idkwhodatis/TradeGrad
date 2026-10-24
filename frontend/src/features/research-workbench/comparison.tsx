@@ -654,9 +654,10 @@ function ComparisonBehavior({
         scope and sequence. Unmatched events remain added/deleted or ambiguous;
         date and symbol alone never establish identity.
       </p>
-      <label className="workbench-field">
-        Explicit event pair
+      <div className="workbench-field">
+        <label htmlFor="comparison-event-pair">Explicit event pair</label>
         <select
+          id="comparison-event-pair"
           value={pair || ""}
           onChange={(event) =>
             update({
@@ -675,7 +676,7 @@ function ComparisonBehavior({
               </option>
             ))}
         </select>
-      </label>
+      </div>
       {validEvents && (
         <Pagination
           offset={eventOffset}
@@ -709,9 +710,10 @@ function ComparisonBehavior({
         />
       )}
       <ComparisonPrestates result={result} event={selectedEvent} />
-      <label className="workbench-field">
-        Behavior section
+      <div className="workbench-field">
+        <label htmlFor="comparison-behavior-section">Behavior section</label>
         <select
+          id="comparison-behavior-section"
           value={section}
           onChange={(event) =>
             update({
@@ -726,7 +728,7 @@ function ComparisonBehavior({
             </option>
           ))}
         </select>
-      </label>
+      </div>
       {section !== "events" && (
         <form
           className="flex items-end gap-3"
@@ -738,14 +740,17 @@ function ComparisonBehavior({
             });
           }}
         >
-          <label className="workbench-field grow">
-            Comparison instrument filter
+          <div className="workbench-field grow">
+            <label htmlFor="comparison-instrument-filter">
+              Comparison instrument filter
+            </label>
             <input
+              id="comparison-instrument-filter"
               value={instrumentInput}
               maxLength={500}
               onChange={(event) => setInstrumentInput(event.target.value)}
             />
-          </label>
+          </div>
           <Button type="submit" variant="outline">
             Apply comparison instrument filter
           </Button>

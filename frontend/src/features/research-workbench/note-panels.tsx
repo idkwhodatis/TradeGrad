@@ -211,16 +211,17 @@ export function NoteTextFields({
   return (
     <>
       {noteTextFields.map(([field, label]) => (
-        <label className="workbench-field" key={field}>
-          {label}
+        <div className="workbench-field" key={field}>
+          <label htmlFor={`research-note-${field}`}>{label}</label>
           <textarea
+            id={`research-note-${field}`}
             value={content[field] ?? ""}
             disabled={disabled}
             maxLength={field === "body" ? 32000 : 8000}
             rows={field === "body" ? 5 : 3}
             onChange={(event) => onChange({ [field]: event.target.value })}
           />
-        </label>
+        </div>
       ))}
     </>
   );

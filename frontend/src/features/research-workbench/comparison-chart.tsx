@@ -148,9 +148,10 @@ export default function ComparisonChart({
   }, [rows, onPair, activeField]);
   return (
     <figure>
-      <label className="workbench-field">
-        Plot saved field
+      <div className="workbench-field">
+        <label htmlFor="comparison-plot-field">Plot saved field</label>
         <select
+          id="comparison-plot-field"
           value={activeField}
           onChange={(event) => setField(event.target.value)}
         >
@@ -161,7 +162,7 @@ export default function ComparisonChart({
             </option>
           ))}
         </select>
-      </label>
+      </div>
       {activeField && (
         <p className="notice">
           Only exact saved {activeField} values are plotted. Duplicate ordinals

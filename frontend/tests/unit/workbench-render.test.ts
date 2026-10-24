@@ -1,3 +1,4 @@
+import { expectControlLabel } from "./control-labels";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
@@ -206,6 +207,8 @@ describe("five-tab workbench shell", () => {
       hashes.spec,
     ])
       expect(html).toContain(title);
+    expectControlLabel(html, "Actual leaf Evaluation", "select");
+    expectControlLabel(html, "Description revision", "select");
     expect(html).toContain("Expected template flow, not an execution trace");
     expect(html).toContain("Algorithm references (not code parents)");
   });

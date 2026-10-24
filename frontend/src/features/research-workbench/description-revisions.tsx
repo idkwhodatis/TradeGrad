@@ -153,9 +153,10 @@ export function DescriptionRevisions({
       {spec.change_note && (
         <p className="text-sm mt-2">Change note: {spec.change_note}</p>
       )}
-      <label className="workbench-field">
-        Description revision
+      <div className="workbench-field">
+        <label htmlFor="description-revision">Description revision</label>
         <select
+          id="description-revision"
           value={spec.spec_sha256}
           disabled={busy}
           onChange={(event) => {
@@ -171,7 +172,7 @@ export function DescriptionRevisions({
             </option>
           ))}
         </select>
-      </label>
+      </div>
       {revisions.error && <ErrorState error={revisions.error} />}
       {revisions.data && (
         <Pagination
@@ -236,9 +237,12 @@ export function DescriptionRevisions({
               disabled={busy || Boolean(draft.key)}
             >
               <legend className="text-sm">{rule.rule_id}</legend>
-              <label className="workbench-field">
-                Rule title: {rule.rule_id}
+              <div className="workbench-field">
+                <label htmlFor={`rule-title-${rule.rule_id}`}>
+                  Rule title: {rule.rule_id}
+                </label>
                 <Input
+                  id={`rule-title-${rule.rule_id}`}
                   value={rule.title}
                   required
                   maxLength={200}
@@ -260,10 +264,13 @@ export function DescriptionRevisions({
                     }
                   }}
                 />
-              </label>
-              <label className="workbench-field">
-                Rule description: {rule.rule_id}
+              </div>
+              <div className="workbench-field">
+                <label htmlFor={`rule-description-${rule.rule_id}`}>
+                  Rule description: {rule.rule_id}
+                </label>
                 <textarea
+                  id={`rule-description-${rule.rule_id}`}
                   value={rule.description}
                   required
                   maxLength={4000}
@@ -286,12 +293,13 @@ export function DescriptionRevisions({
                     }
                   }}
                 />
-              </label>
+              </div>
             </fieldset>
           ))}
-          <label className="workbench-field">
-            Revision change note
+          <div className="workbench-field">
+            <label htmlFor="revision-change-note">Revision change note</label>
             <textarea
+              id="revision-change-note"
               value={draft.body.change_note || ""}
               disabled={busy || Boolean(draft.key)}
               maxLength={2000}
@@ -307,7 +315,7 @@ export function DescriptionRevisions({
                 }
               }}
             />
-          </label>
+          </div>
           <div className="flex flex-wrap gap-3">
             <Button
               type="submit"

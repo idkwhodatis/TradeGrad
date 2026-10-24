@@ -149,24 +149,32 @@ export function CandidateFilters({
         });
       }}
     >
-      <label className="workbench-field">
-        Eligibility filter
-        <select name="eligibility" defaultValue={selection.eligibility ?? ""}>
+      <div className="workbench-field">
+        <label htmlFor="replay-eligibility-filter">Eligibility filter</label>
+        <select
+          id="replay-eligibility-filter"
+          name="eligibility"
+          defaultValue={selection.eligibility ?? ""}
+        >
           <option value="">All recorded eligibility states</option>
           {eligibilityValues.map((v) => (
             <option key={v}>{v}</option>
           ))}
         </select>
-      </label>
-      <label className="workbench-field">
-        Reason filter
-        <select name="reason" defaultValue={selection.reason ?? ""}>
+      </div>
+      <div className="workbench-field">
+        <label htmlFor="replay-reason-filter">Reason filter</label>
+        <select
+          id="replay-reason-filter"
+          name="reason"
+          defaultValue={selection.reason ?? ""}
+        >
           <option value="">All recorded reasons, including non-trades</option>
           {candidateReasons.map((v) => (
             <option key={v}>{v}</option>
           ))}
         </select>
-      </label>
+      </div>
       {(
         [
           ["rank_min", "Minimum rank"],

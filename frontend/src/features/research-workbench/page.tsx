@@ -434,9 +434,10 @@ function Workbench({
               }}
             />
           </div>
-          <label className="workbench-field">
-            Actual leaf Evaluation
+          <div className="workbench-field">
+            <label htmlFor="workbench-evaluation">Actual leaf Evaluation</label>
             <select
+              id="workbench-evaluation"
               value={selection.evaluation_id || ""}
               onChange={(event) => {
                 if (!event.target.value) {
@@ -466,7 +467,7 @@ function Workbench({
                 </option>
               ))}
             </select>
-          </label>
+          </div>
           {evaluations.error && <ErrorState error={evaluations.error} />}
           {evaluations.data && (
             <Pagination

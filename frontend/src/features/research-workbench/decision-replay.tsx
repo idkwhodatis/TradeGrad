@@ -239,9 +239,10 @@ export function DecisionReplay({
           times.
         </p>
         <div className="replay-filter-grid">
-          <label className="workbench-field">
-            Decision date
+          <div className="workbench-field">
+            <label htmlFor="replay-decision-date">Decision date</label>
             <input
+              id="replay-decision-date"
               type="date"
               value={selection.session_date ?? ""}
               min={
@@ -269,10 +270,13 @@ export function DecisionReplay({
                 })
               }
             />
-          </label>
-          <label className="workbench-field">
-            Specific decision event
+          </div>
+          <div className="workbench-field">
+            <label htmlFor="replay-decision-event">
+              Specific decision event
+            </label>
             <select
+              id="replay-decision-event"
               value={selection.decision_id ?? ""}
               onChange={(event) => {
                 const found = eventChoices.find(
@@ -311,10 +315,11 @@ export function DecisionReplay({
                 </option>
               ))}
             </select>
-          </label>
-          <label className="workbench-field">
-            Observed instrument
+          </div>
+          <div className="workbench-field">
+            <label htmlFor="replay-instrument">Observed instrument</label>
             <select
+              id="replay-instrument"
               value={selection.instrument_id ?? ""}
               onChange={(event) =>
                 update({
@@ -341,10 +346,11 @@ export function DecisionReplay({
                 </option>
               ))}
             </select>
-          </label>
-          <label className="workbench-field">
-            Observed stage
+          </div>
+          <div className="workbench-field">
+            <label htmlFor="replay-stage">Observed stage</label>
             <select
+              id="replay-stage"
               value={selection.stage_id ?? ""}
               onChange={(event) =>
                 update({
@@ -359,7 +365,7 @@ export function DecisionReplay({
                 <option key={stage}>{stage}</option>
               ))}
             </select>
-          </label>
+          </div>
         </div>
         {events.error && <ErrorState error={events.error} />}
         {instruments.error && <ErrorState error={instruments.error} />}
@@ -775,9 +781,10 @@ function MarketWindow({
         });
       }}
     >
-      <label className="workbench-field">
-        Retrospective start
+      <div className="workbench-field">
+        <label htmlFor="replay-market-start">Retrospective start</label>
         <input
+          id="replay-market-start"
           name="start"
           type="date"
           required
@@ -785,10 +792,11 @@ function MarketWindow({
           min={market.market.window_start}
           max={market.market.window_end}
         />
-      </label>
-      <label className="workbench-field">
-        Retrospective end (exclusive)
+      </div>
+      <div className="workbench-field">
+        <label htmlFor="replay-market-end">Retrospective end (exclusive)</label>
         <input
+          id="replay-market-end"
           name="end"
           type="date"
           required
@@ -796,7 +804,7 @@ function MarketWindow({
           min={market.market.window_start}
           max={market.market.window_end}
         />
-      </label>
+      </div>
       <Button size="sm">Apply chart window</Button>
       {error && (
         <p role="alert" className="notice error">
