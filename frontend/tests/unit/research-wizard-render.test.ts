@@ -103,6 +103,12 @@ describe("wizard server render contract", () => {
       "Maximum repair attempts",
       "Deployment environment digest",
       "Model profile",
+      "Observation capture mode",
+      "Observation stage IDs",
+      "Observation instrument IDs",
+      "Maximum saved decisions",
+      "Maximum saved detail rows",
+      "Maximum uncompressed capture bytes",
     ])
       expect(html).toContain(label);
     expect(html).toContain("0.0005 means 0.05%");
@@ -110,6 +116,29 @@ describe("wizard server render contract", () => {
     expect(html).not.toContain('name="model.credential_ref"');
     expect(html).toContain("fixture / synthetic");
     expect(html).not.toContain("operator / paid calls");
+  });
+  it("restores editable capture scope and shows it in immutable review", async () => {
+    const { body } = researchFixture();
+    body.research_capture = {
+      mode: "research",
+      observation_window: { start: "2024-04-01", end: "2024-05-01" },
+      stage_ids: ["ranking"],
+      instrument_ids: ["listing-a"],
+      max_decisions: 120,
+    };
+    const html = await markup(2, capabilityFixture(), body);
+    expect(html).toContain('id="research_capture.mode"');
+    expect(html).toContain('value="research" selected=""');
+    expect(html).toContain('id="research_capture.observation_window.end"');
+    expect(html).toContain('value="2024-05-01"');
+    expect(html).toContain('value="120"');
+    expect(html).toContain("ranking");
+    const review = await markup(3, capabilityFixture(), body);
+    expect(review).toContain("Research capture");
+    expect(review).toContain(
+      "research · [2024-04-01, 2024-05-01) · 1 stages · 1 instruments",
+    );
+    expect(review).not.toContain("Preflight passed");
   });
   it("renders owner-enabled operator profiles with pinned parameters and paid disclosure", async () => {
     const { capabilities, profile } = operatorCapabilityFixture();

@@ -100,6 +100,16 @@ def test_real_recorded_indicators_reconstruct_from_artifact_after_worker_complet
     base = f"/research-evaluations/{evaluation['id']}"
     raw = h.request(client, "GET", base + "/results/download").content
     bundle = json.loads(raw)
+    from workbench_assertions import assert_replay_leaf
+
+    assert_replay_leaf(
+        h,
+        client,
+        other,
+        evaluation_id=evaluation["id"],
+        bundle=bundle,
+        result_sha256=hashlib.sha256(raw).hexdigest(),
+    )
     assert bundle["indicators"]["status"] == "available"
     assert {item["indicator_key"] for item in bundle["indicators"]["definitions"]} == {
         "observed_close",

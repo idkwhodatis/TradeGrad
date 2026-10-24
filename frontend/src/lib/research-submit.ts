@@ -6,6 +6,7 @@ import type {
   ResearchPreflightPublic,
 } from "@/client/types.gen";
 import { stableJson } from "./data-utils";
+import { researchCaptureDraftSchema } from "./research-capture";
 import {
   researchFormSchema,
   type ResearchCatalog,
@@ -123,6 +124,7 @@ const draftWindow = z.strictObject({
 });
 const draftBodySchema = z.strictObject({
   ...researchFormSchema.shape,
+  research_capture: researchCaptureDraftSchema.nullable().optional(),
   dataset: draftRef,
   universe: draftRef,
   seed_strategy: draftRef,

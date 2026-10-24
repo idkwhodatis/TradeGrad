@@ -233,3 +233,65 @@ The baseline result-workbench browser suite is unchanged. Collection and local
 projections are not browser, PostgreSQL, Docker or recovery certification. The
 hosted gate requires the workbench PostgreSQL selector and remains mandatory on
 the exact final published head.
+
+## I3 implementation boundaries
+
+- Replay keeps the physical leaf, attempt, immutable result and trace hashes in
+  the URL alongside the specific decision event, session, instrument and stage.
+  A date never collapses distinct callbacks or substitutes for a decision ID.
+  Source association must be verified before trace requests or rendering.
+- Exact selected observations preserve their saved per-stage/table ordinal as
+  well as decision, instrument and logical ID. Duplicate feature/condition or
+  candidate IDs never silently resolve to the first row. A registered off-mode
+  manifest retains its actual hash and missing state; it is not historical
+  absence and is not a stale-response error.
+- Three bounded replay projections reuse the same four schema-specific result
+  loaders, final-result admission, immutable storage and exposure release. They
+  read frozen OHLCV and effective configured universe files, not providers or
+  current listing catalogs. Retrospective price charts are not no-lookahead
+  evidence; user-fixed/current universes are not historical membership proof.
+- Execution evidence joins only explicit saved logical/child-order/fill IDs into
+  the admitted economic bundle. Symbol/time proximity never establishes an
+  association. Generic native execution snapshots remain explicitly unpaired.
+  The original decision pre-state remains separate from later execution events.
+- Capture authoring exposes off/summary/research, observation windows, filters
+  and budgets. These narrow retained observations, never the strategy candidate
+  pool or actual backtest window. Historical omitted capture fields retain their
+  original canonical configuration identity.
+- Five new actual-AKQuant-to-DuckDB/Parquet checks cover higher-score filtered
+  candidates, rank losers, holding retention, configured-universe exit, warmup,
+  false versus not-evaluated predicates, summary missing detail, same-day distinct
+  decision/execution events and actual multiple/partial fills. Already-computed
+  valid scores can remain present for an outside-universe candidate; membership
+  is not a feature-validity predicate. Synthetic business binding UUIDs/hashes in
+  these query fixtures are labelled, not represented as PostgreSQL/HTTP admission.
+
+## I3 checkpoint
+
+Validated locally on 2026-10-23 before I4: **1,997 tests passed** in 75.95 seconds
+across research trace, API/backend, runner, operations and configuration suites,
+with actual native capture execution required. The five new end-to-end native
+query checks ran AKQuant 0.3.27 and read the resulting Parquet through DuckDB;
+they are not substitutes for database, HTTP or container admission. Ruff and
+format checks passed for all 15 changed Python files; diff checks passed. The
+existing Starlette/httpx deprecation remains a warning.
+
+Frontend: **701 tests passed**, typecheck, production build and formatting
+passed. The workbench chunk is 245.80 KiB (75.57 KiB gzip), with a separately lazy
+37.61 KiB replay chart (12.93 KiB gzip); existing large vendor chunks remain a
+warning. Independent review cleared duplicate-observation ambiguity, selection
+restoration after pagination/filter changes, registered capture-off missing
+states, dependent-selection clearing and UTC chart rendering. The baseline
+result-workbench browser suite remains unchanged.
+
+**42 PostgreSQL tests/selectors and seven selected system cases were collected,
+not locally executed.** The replay PostgreSQL group includes one required-gate
+selector and 41 actual cases. Four native/portable research/final system paths
+now inspect replay admission and immutable evidence. **57 Playwright scenarios
+were collected** in 14 files, including three new real-stack replay and capture
+cases. These use actual isolated evaluations without browser route stubs; the
+cross-sectional browser case uses its declared two-listing normalized fixture,
+not the four-symbol hand-worked truth fixture. The latter is separately covered
+by the actual native-to-Parquet query tests. Collection does not certify
+PostgreSQL, Docker, Chromium or recovery. The hosted gate requires the replay
+PostgreSQL selector and final exact-head acceptance remains mandatory.

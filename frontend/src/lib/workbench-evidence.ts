@@ -4,7 +4,10 @@ import type {
   TraceContext,
   WorkbenchEvaluation,
 } from "@/client/types.gen";
-import type { WorkbenchSelection } from "./workbench-selection";
+import {
+  clearedReplaySelection,
+  type WorkbenchSelection,
+} from "./workbench-selection";
 
 export function evidenceMatches(
   selection: WorkbenchSelection,
@@ -57,10 +60,7 @@ export function leafSelection(
     result_manifest_sha256: leaf.result_manifest_sha256 ?? undefined,
     trace_manifest_sha256: leaf.trace_manifest_sha256 ?? undefined,
     trace_status: leaf.trace_manifest_sha256 ? "available" : "not_collected",
-    decision_id: undefined,
-    instrument_id: undefined,
-    stage_id: undefined,
-    rule_id: undefined,
+    ...clearedReplaySelection(),
   };
 }
 export function leafBindingProblem(

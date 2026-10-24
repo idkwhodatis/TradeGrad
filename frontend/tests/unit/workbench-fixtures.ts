@@ -109,6 +109,7 @@ export function detail(): DecisionDetail {
     },
     decision: {
       decision_id: "decision-1",
+      session_date: "2024-01-02",
       callback_phase: "on_bar",
       data_event_id: "event-1",
       decision_time: "2024-01-02T07:00:00Z",
@@ -138,6 +139,7 @@ export function detail(): DecisionDetail {
     features: {
       items: [
         {
+          ordinal: 0,
           stage_id: "liquidity",
           observation: {
             feature_id: "volume",
@@ -158,6 +160,7 @@ export function detail(): DecisionDetail {
     predicates: {
       items: [
         {
+          ordinal: 0,
           stage_id: "liquidity",
           observation: {
             condition_id: "liquid",

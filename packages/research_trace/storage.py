@@ -447,6 +447,7 @@ class TraceReader:
         decision_id=None,
         stage_id=None,
         instrument_id=None,
+        record_ordinal=None,
         eligibility=None,
         reason=None,
         rank_min=None,
@@ -503,6 +504,16 @@ class TraceReader:
             raise TraceStorageError(
                 "invalid_trace_query", "Invalid trace candidate filters"
             )
+        if record_ordinal is not None and (
+            table not in {"features", "predicates", "candidates"}
+            or stage_id is None
+            or type(record_ordinal) is not int
+            or not 0 <= record_ordinal <= 2**63 - 1
+        ):
+            raise TraceStorageError(
+                "invalid_trace_query",
+                "A recorded ordinal requires a stage and a nonnegative integer within a detail table",
+            )
         refs = [
             ref
             for ref in self.manifest.artifacts
@@ -525,6 +536,7 @@ class TraceReader:
             ("decision_id", "=", decision_id),
             ("stage_id", "=", stage_id),
             ("instrument_id", "=", instrument_id),
+            ("ordinal", "=", record_ordinal),
             ("eligibility", "=", eligibility),
             ("reason", "=", reason),
             ("rank", ">=", rank_min),

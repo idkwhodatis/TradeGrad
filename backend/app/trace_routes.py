@@ -116,6 +116,7 @@ def read_trace_decision(
     pins: Pins,
     stage_id: str | None = Query(None, min_length=1, max_length=200),
     instrument_id: str | None = Query(None, min_length=1, max_length=200),
+    record_ordinal: int | None = Query(None, ge=0, le=2**63 - 1),
     offset: int = Query(0, ge=0, le=100000),
     limit: int = Query(100, ge=1, le=500),
 ):
@@ -125,6 +126,7 @@ def read_trace_decision(
         decision_id,
         stage_id=stage_id,
         instrument_id=instrument_id,
+        record_ordinal=record_ordinal,
         offset=offset,
         limit=limit,
     )
@@ -145,6 +147,7 @@ def read_trace_candidates(
     pins: Pins,
     stage_id: str | None = Query(None, min_length=1, max_length=200),
     instrument_id: str | None = Query(None, min_length=1, max_length=200),
+    record_ordinal: int | None = Query(None, ge=0, le=2**63 - 1),
     eligibility: Literal["eligible", "ineligible", "unknown", "not_sampled"]
     | None = None,
     reason: NonTradeReason | None = None,
@@ -161,6 +164,7 @@ def read_trace_candidates(
         decision_id,
         stage_id=stage_id,
         instrument_id=instrument_id,
+        record_ordinal=record_ordinal,
         eligibility=eligibility,
         reason=reason,
         rank_min=rank_min,

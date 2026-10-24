@@ -1005,6 +1005,11 @@
           "observation": {
             "$ref": "#/components/schemas/CandidateObservation"
           },
+          "ordinal": {
+            "minimum": 0.0,
+            "title": "Ordinal",
+            "type": "integer"
+          },
           "stage_id": {
             "title": "Stage Id",
             "type": "string"
@@ -1012,6 +1017,7 @@
         },
         "required": [
           "stage_id",
+          "ordinal",
           "observation"
         ],
         "title": "CandidateRow",
@@ -1933,9 +1939,15 @@
             ],
             "title": "Scope",
             "type": "string"
+          },
+          "session_date": {
+            "format": "date",
+            "title": "Session Date",
+            "type": "string"
           }
         },
         "required": [
+          "session_date",
           "decision_id",
           "data_event_id",
           "event_seq",
@@ -2757,6 +2769,109 @@
         "title": "EventPublic",
         "type": "object"
       },
+      "ExecutionEvidenceRow": {
+        "additionalProperties": false,
+        "properties": {
+          "association_basis": {
+            "enum": [
+              "logical_order_id",
+              "child_order_id",
+              "fill_id",
+              "unpaired_native_execution"
+            ],
+            "title": "Association Basis",
+            "type": "string"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "string"
+          },
+          "link": {
+            "$ref": "#/components/schemas/OrderLink"
+          },
+          "logical_order_id": {
+            "title": "Logical Order Id",
+            "type": "string"
+          },
+          "missing_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Reason"
+          },
+          "record": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record"
+          },
+          "record_id": {
+            "title": "Record Id",
+            "type": "string"
+          },
+          "record_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Index"
+          },
+          "record_kind": {
+            "enum": [
+              "logical_order",
+              "child_order",
+              "fill"
+            ],
+            "title": "Record Kind",
+            "type": "string"
+          },
+          "stage_id": {
+            "title": "Stage Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "available",
+              "not_collected",
+              "no_matching_record"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage_id",
+          "logical_order_id",
+          "instrument_id",
+          "record_kind",
+          "record_id",
+          "record_index",
+          "status",
+          "association_basis",
+          "record",
+          "missing_reason",
+          "link"
+        ],
+        "title": "ExecutionEvidenceRow",
+        "type": "object"
+      },
       "ExperimentCreate": {
         "additionalProperties": false,
         "properties": {
@@ -3205,6 +3320,11 @@
           "observation": {
             "$ref": "#/components/schemas/Feature"
           },
+          "ordinal": {
+            "minimum": 0.0,
+            "title": "Ordinal",
+            "type": "integer"
+          },
           "stage_id": {
             "title": "Stage Id",
             "type": "string"
@@ -3212,6 +3332,7 @@
         },
         "required": [
           "stage_id",
+          "ordinal",
           "observation"
         ],
         "title": "FeatureRow",
@@ -10515,6 +10636,11 @@
           "observation": {
             "$ref": "#/components/schemas/Predicate"
           },
+          "ordinal": {
+            "minimum": 0.0,
+            "title": "Ordinal",
+            "type": "integer"
+          },
           "stage_id": {
             "title": "Stage Id",
             "type": "string"
@@ -10522,6 +10648,7 @@
         },
         "required": [
           "stage_id",
+          "ordinal",
           "observation"
         ],
         "title": "PredicateRow",
@@ -11422,6 +11549,509 @@
           }
         },
         "title": "QuotaUpdate",
+        "type": "object"
+      },
+      "ReplayExecutionPage": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/TraceContext"
+          },
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "instrument_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrument Id"
+          },
+          "items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ExecutionEvidenceRow"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Items"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "logical_order_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logical Order Id"
+          },
+          "missing_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Reason"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "stage_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage Id"
+          },
+          "status": {
+            "enum": [
+              "available",
+              "no_linked_records",
+              "not_collected"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "context",
+          "decision_id",
+          "instrument_id",
+          "stage_id",
+          "logical_order_id",
+          "status",
+          "missing_reason",
+          "items",
+          "total",
+          "offset",
+          "limit",
+          "warnings"
+        ],
+        "title": "ReplayExecutionPage",
+        "type": "object"
+      },
+      "ReplayInstrument": {
+        "additionalProperties": false,
+        "properties": {
+          "configured_evaluation_member": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configured Evaluation Member"
+          },
+          "configured_session_member": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configured Session Member"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "string"
+          },
+          "listing_id": {
+            "format": "uuid",
+            "title": "Listing Id",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "listing_id",
+          "symbol",
+          "configured_evaluation_member",
+          "configured_session_member"
+        ],
+        "title": "ReplayInstrument",
+        "type": "object"
+      },
+      "ReplayInstrumentPage": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/TraceContext"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReplayInstrument"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "market": {
+            "$ref": "#/components/schemas/ReplayMarketContext"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "session_date": {
+            "format": "date",
+            "title": "Session Date",
+            "type": "string"
+          },
+          "source_association": {
+            "$ref": "#/components/schemas/WorkbenchSourceAssociation"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "context",
+          "market",
+          "source_association",
+          "session_date",
+          "items",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "title": "ReplayInstrumentPage",
+        "type": "object"
+      },
+      "ReplayMarketContext": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Dataset Sha256",
+            "type": "string"
+          },
+          "dataset_version_id": {
+            "format": "uuid",
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "historical_membership_status": {
+            "enum": [
+              "user_fixed_assumption",
+              "current_snapshot_only",
+              "historical_intervals_declared",
+              "point_in_time_evidence_declared",
+              "not_collected"
+            ],
+            "title": "Historical Membership Status",
+            "type": "string"
+          },
+          "ledger_origin": {
+            "title": "Ledger Origin",
+            "type": "string"
+          },
+          "membership_reason": {
+            "title": "Membership Reason",
+            "type": "string"
+          },
+          "membership_status": {
+            "enum": [
+              "available",
+              "not_collected"
+            ],
+            "title": "Membership Status",
+            "type": "string"
+          },
+          "result_trust": {
+            "title": "Result Trust",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "universe_as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Universe As Of"
+          },
+          "universe_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Universe Sha256"
+          },
+          "universe_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Universe State"
+          },
+          "universe_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Universe Version Id"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "window_end": {
+            "format": "date",
+            "title": "Window End",
+            "type": "string"
+          },
+          "window_start": {
+            "format": "date",
+            "title": "Window Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dataset_version_id",
+          "dataset_sha256",
+          "universe_version_id",
+          "universe_sha256",
+          "universe_state",
+          "universe_as_of",
+          "historical_membership_status",
+          "membership_status",
+          "membership_reason",
+          "timezone",
+          "window_start",
+          "window_end",
+          "result_trust",
+          "ledger_origin",
+          "warnings"
+        ],
+        "title": "ReplayMarketContext",
+        "type": "object"
+      },
+      "ReplayMarketPage": {
+        "additionalProperties": false,
+        "properties": {
+          "bars": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PreviewBar"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bars"
+          },
+          "context": {
+            "$ref": "#/components/schemas/TraceContext"
+          },
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "decision_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Time"
+          },
+          "end": {
+            "format": "date",
+            "title": "End",
+            "type": "string"
+          },
+          "information_cutoff": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Information Cutoff"
+          },
+          "instrument": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReplayInstrument"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "string"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "market": {
+            "$ref": "#/components/schemas/ReplayMarketContext"
+          },
+          "missing_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Reason"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "session_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Date"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "available",
+              "no_rows",
+              "outside_configured_universe",
+              "not_collected",
+              "unsupported"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "context",
+          "market",
+          "decision_id",
+          "session_date",
+          "instrument_id",
+          "instrument",
+          "status",
+          "missing_reason",
+          "information_cutoff",
+          "decision_time",
+          "bars",
+          "total",
+          "offset",
+          "limit",
+          "start",
+          "end"
+        ],
+        "title": "ReplayMarketPage",
         "type": "object"
       },
       "ResearchCapabilities": {
@@ -19915,6 +20545,24 @@
           },
           {
             "in": "query",
+            "name": "record_ordinal",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 9223372036854775807,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Record Ordinal"
+            }
+          },
+          {
+            "in": "query",
             "name": "offset",
             "required": false,
             "schema": {
@@ -20111,6 +20759,24 @@
                 }
               ],
               "title": "Instrument Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "record_ordinal",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 9223372036854775807,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Record Ordinal"
             }
           },
           {
@@ -20372,6 +21038,603 @@
         "summary": "Read Trace Candidates",
         "tags": [
           "research-traces"
+        ]
+      }
+    },
+    "/api/v1/evaluations/{evaluation_id}/decisions/{decision_id}/execution": {
+      "get": {
+        "operationId": "read_replay_execution",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "decision_id",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Decision Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "stage_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Stage Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "logical_order_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Logical Order Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "execution_attempt_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Execution Attempt Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "result_manifest_sha256",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-f0-9]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Result Manifest Sha256"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trace_manifest_sha256",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-f0-9]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trace Manifest Sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplayExecutionPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Replay Execution",
+        "tags": [
+          "decision-replay"
+        ]
+      }
+    },
+    "/api/v1/evaluations/{evaluation_id}/decisions/{decision_id}/market": {
+      "get": {
+        "operationId": "read_replay_market",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "decision_id",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Decision Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_id",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Instrument Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "execution_attempt_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Execution Attempt Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "result_manifest_sha256",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-f0-9]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Result Manifest Sha256"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trace_manifest_sha256",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-f0-9]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trace Manifest Sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplayMarketPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Replay Market",
+        "tags": [
+          "decision-replay"
+        ]
+      }
+    },
+    "/api/v1/evaluations/{evaluation_id}/replay-instruments": {
+      "get": {
+        "operationId": "read_replay_instruments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "session_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "execution_attempt_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Execution Attempt Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "result_manifest_sha256",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-f0-9]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Result Manifest Sha256"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trace_manifest_sha256",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-f0-9]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trace Manifest Sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplayInstrumentPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Replay Instruments",
+        "tags": [
+          "decision-replay"
         ]
       }
     },

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import type { PortablePreflightPublic } from "@/client/types.gen";
+import { researchCaptureDraftSchema } from "@/lib/research-capture";
 import {
   portableFingerprint,
   portableFormSchema,
@@ -22,7 +23,10 @@ const submissionSchema = z.strictObject({
 });
 const draftSchema = z.strictObject({
   version: z.literal(1),
-  body: portableFormSchema,
+  body: z.strictObject({
+    ...portableFormSchema.shape,
+    research_capture: researchCaptureDraftSchema.nullable().optional(),
+  }),
   pending: submissionSchema.nullable(),
 });
 const storageKey = (owner: string) =>

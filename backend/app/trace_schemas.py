@@ -61,6 +61,7 @@ class DecisionPage(TraceView):
 
 
 class DecisionHeader(TraceView):
+    session_date: date
     decision_id: str
     data_event_id: str
     event_seq: int
@@ -88,16 +89,19 @@ class TraceStage(TraceView):
 
 class FeatureRow(TraceView):
     stage_id: str
+    ordinal: int = Field(ge=0, strict=True)
     observation: Feature
 
 
 class PredicateRow(TraceView):
     stage_id: str
+    ordinal: int = Field(ge=0, strict=True)
     observation: Predicate
 
 
 class CandidateRow(TraceView):
     stage_id: str
+    ordinal: int = Field(ge=0, strict=True)
     observation: CandidateObservation
 
 

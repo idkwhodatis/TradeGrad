@@ -1,3 +1,5 @@
+import type { CandidateObservation } from "@/client/types.gen";
+
 /** URL state is the research evidence identity, not merely display preferences. */
 export const workbenchTabs = [
   "description",
@@ -16,6 +18,24 @@ export type WorkbenchSelection = {
   result_manifest_sha256?: string;
   trace_manifest_sha256?: string;
   trace_status?: "available" | "not_collected";
+  session_date?: string;
+  event_offset?: number;
+  instrument_offset?: number;
+  candidate_offset?: number;
+  detail_offset?: number;
+  execution_offset?: number;
+  market_offset?: number;
+  market_start?: string;
+  market_end?: string;
+  eligibility?: CandidateObservation["eligibility"];
+  reason?: CandidateObservation["reason"];
+  rank_min?: number;
+  rank_max?: number;
+  score_min?: number;
+  score_max?: number;
+  record_kind?: "candidate" | "feature" | "predicate" | "order";
+  record_id?: string;
+  record_ordinal?: number;
   decision_id?: string;
   instrument_id?: string;
   stage_id?: string;
@@ -35,6 +55,10 @@ const textKeys = [
   "result_manifest_sha256",
   "trace_manifest_sha256",
   "decision_id",
+  "session_date",
+  "market_start",
+  "market_end",
+  "record_id",
   "instrument_id",
   "stage_id",
   "rule_id",
@@ -91,15 +115,125 @@ export function workbenchSearch(
         `Invalid research hash: ${key}. The saved evidence was not replaced.`,
       );
   }
+  for (const key of ["session_date", "market_start", "market_end"] as const) {
+    const value = result[key];
+    if (
+      value &&
+      (!/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+        !Number.isFinite(Date.parse(value)) ||
+        new Date(value).toISOString().slice(0, 10) !== value)
+    )
+      throw new Error(
+        `Invalid replay date: ${key}. The evidence was not retargeted.`,
+      );
+  }
+  for (const key of [
+    "record_ordinal",
+    "event_offset",
+    "instrument_offset",
+    "candidate_offset",
+    "detail_offset",
+    "execution_offset",
+    "market_offset",
+    "rank_min",
+    "rank_max",
+    "score_min",
+    "score_max",
+  ] as const) {
+    const raw = search[key];
+    if (raw === undefined) continue;
+    const value =
+      typeof raw === "number" || (typeof raw === "string" && raw.trim() !== "")
+        ? Number(raw)
+        : NaN;
+    if (
+      !Number.isFinite(value) ||
+      ((key.includes("offset") || key === "record_ordinal") &&
+        (!Number.isSafeInteger(value) ||
+          value < 0 ||
+          value >
+            (key === "record_ordinal" ? Number.MAX_SAFE_INTEGER : 100000))) ||
+      (key.startsWith("rank_") && (!Number.isSafeInteger(value) || value < 1))
+    )
+      throw new Error(
+        `Invalid replay filter: ${key}. No unfiltered evidence was substituted.`,
+      );
+    result[key] = value;
+  }
+  for (const [key, values] of [
+    ["eligibility", eligibilityValues],
+    ["reason", candidateReasons],
+    ["record_kind", ["candidate", "feature", "predicate", "order"]],
+  ] as const) {
+    const value = search[key];
+    if (value === undefined) continue;
+    if (
+      typeof value !== "string" ||
+      !(values as readonly string[]).includes(value)
+    )
+      throw new Error(`Invalid replay selection: ${key}.`);
+    Object.assign(result, { [key]: value });
+  }
   return result;
 }
+export const eligibilityValues = [
+  "eligible",
+  "ineligible",
+  "unknown",
+  "not_sampled",
+] as const;
+export const candidateReasons = [
+  "outside_universe",
+  "feature_unavailable",
+  "eligibility_filter",
+  "rank_not_selected",
+  "holding_retained",
+  "position_slots",
+  "portfolio_constraint",
+  "cash_constraint",
+  "timing_not_triggered",
+  "order_rejected",
+  "order_unfilled",
+  "partial_fill",
+  "not_evaluated",
+  "not_collected",
+  "not_sampled",
+  "selected",
+  "exit",
+] as const;
 export function selectionProblem(value: WorkbenchSelection): string | null {
+  if (
+    value.record_ordinal !== undefined &&
+    (!value.stage_id ||
+      !["candidate", "feature", "predicate"].includes(value.record_kind ?? ""))
+  )
+    return "An exact observation ordinal requires its recorded stage and observation kind.";
+  if (Boolean(value.record_kind) !== Boolean(value.record_id))
+    return "A selected replay record needs its actual kind and ID. No replacement record was selected.";
+  if (value.record_id && !value.decision_id)
+    return "Choose a specific decision event before opening a recorded condition or order.";
+  if (
+    value.rank_min !== undefined &&
+    value.rank_max !== undefined &&
+    value.rank_min > value.rank_max
+  )
+    return "Minimum rank cannot exceed maximum rank.";
+  if (
+    value.score_min !== undefined &&
+    value.score_max !== undefined &&
+    value.score_min > value.score_max
+  )
+    return "Minimum score cannot exceed maximum score.";
+  if (
+    value.market_start &&
+    value.market_end &&
+    value.market_start >= value.market_end
+  )
+    return "Retrospective chart end must follow start (exclusive).";
   if (Boolean(value.spec_revision) !== Boolean(value.spec_sha256))
     return "A saved description needs both its revision and hash. No latest revision was substituted.";
   if (value.trace_status === "available" && !value.trace_manifest_sha256)
     return "An available trace selection needs its exact trace hash. No newer trace was substituted.";
-  if (value.trace_status === "not_collected" && value.trace_manifest_sha256)
-    return "A missing trace selection cannot include a trace hash. No replacement was loaded.";
   const partialPins = Boolean(
     value.result_manifest_sha256 || value.trace_manifest_sha256,
   );
@@ -135,5 +269,56 @@ export function changeSelection(
   value: WorkbenchSelection,
   patch: Partial<WorkbenchSelection>,
 ): WorkbenchSelection {
-  return { ...value, ...patch };
+  const next = { ...value, ...patch };
+  if (
+    !Object.hasOwn(patch, "record_kind") &&
+    ["decision_id", "stage_id", "instrument_id"].some(
+      (key) =>
+        Object.hasOwn(patch, key) &&
+        value[key as "decision_id" | "stage_id" | "instrument_id"] !==
+          patch[key as "decision_id" | "stage_id" | "instrument_id"],
+    )
+  ) {
+    next.record_kind = undefined;
+    next.record_id = undefined;
+    next.record_ordinal = undefined;
+  }
+
+  if (
+    Object.hasOwn(patch, "record_kind") &&
+    patch.record_kind !== "feature" &&
+    patch.record_kind !== "predicate" &&
+    patch.record_kind !== "candidate"
+  ) {
+    next.record_ordinal = undefined;
+  }
+  return next;
+}
+
+/** Clear all leaf-dependent observations without losing exact source/spec pins. */
+export function clearedReplaySelection(): Partial<WorkbenchSelection> {
+  return {
+    session_date: undefined,
+    event_offset: undefined,
+    instrument_offset: undefined,
+    candidate_offset: undefined,
+    detail_offset: undefined,
+    execution_offset: undefined,
+    market_offset: undefined,
+    market_start: undefined,
+    market_end: undefined,
+    eligibility: undefined,
+    reason: undefined,
+    rank_min: undefined,
+    rank_max: undefined,
+    score_min: undefined,
+    score_max: undefined,
+    record_kind: undefined,
+    record_id: undefined,
+    record_ordinal: undefined,
+    decision_id: undefined,
+    instrument_id: undefined,
+    stage_id: undefined,
+    rule_id: undefined,
+  };
 }

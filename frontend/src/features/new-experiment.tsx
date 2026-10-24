@@ -1,4 +1,6 @@
 import { BenchmarkSelector } from "@/components/benchmark-selector";
+import { ResearchCaptureControls } from "@/components/research-capture-controls";
+import { captureSummary } from "@/lib/research-capture";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -840,6 +842,11 @@ function ExperimentWizard({
             )}
             {step === 2 && (
               <>
+                <ResearchCaptureControls
+                  value={body.research_capture}
+                  onChange={(capture) => setValue("research_capture", capture)}
+                  disabled={!!busy}
+                />
                 <p className="notice">
                   Fees are fractional rates: 0.0005 means 0.05%, not 5%. These
                   are historical demonstration assumptions, not current broker
@@ -1095,6 +1102,7 @@ function ExperimentWizard({
                       ? `${body.windows.holdout.start} → ${body.windows.holdout.end} (reserved only)`
                       : "Not reserved",
                     "Warm-up sessions": body.warmup.sessions,
+                    "Research capture": captureSummary(body.research_capture),
                     "Maximum iterations": body.optimizer.max_iterations,
                     "Model profile":
                       selectedModelProfile?.label || "Unavailable or changed",

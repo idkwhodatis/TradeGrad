@@ -133,12 +133,47 @@ describe("portable render contracts", () => {
       "Maximum model calls",
       "Maximum charged or reserved tokens",
       "Run strict portable preflight",
+      "Observation capture mode",
+      "Observation stage IDs",
+      "Observation instrument IDs",
+      "Maximum saved decisions",
+      "Maximum saved detail rows",
+      "Maximum uncompressed capture bytes",
     ])
       expect(html).toContain(phrase);
     expect(html).toMatch(
       /<button[^>]*disabled=""[^>]*>Submit portable experiment/,
     );
     expect(html).not.toContain("Portable preflight passed");
+  });
+  it("restores editable portable capture and blocks invalid capture before preflight", async () => {
+    const { PortableConfigForm } =
+      await import("../../src/features/portable/experiment");
+    const { body, catalog } = portableFixture();
+    body.research_capture = {
+      mode: "research",
+      observation_window: { start: "2024-04-01", end: "" },
+      stage_ids: ["allocation"],
+      max_decisions: 120,
+    };
+    const html = await markup(PortableConfigForm, {
+      owner: "owner-a",
+      initial: body,
+      catalog,
+      onChangeInputs: () => {},
+    });
+    expect(html).toContain('id="portable.research_capture.mode"');
+    expect(html).toContain('value="research" selected=""');
+    expect(html).toContain(
+      'id="portable.research_capture.observation_window.end"',
+    );
+    expect(html).toContain('value="120"');
+    expect(html).toContain("allocation");
+    expect(html).toContain("Research capture observation_window.end");
+    expect(html).toMatch(
+      /<button[^>]*disabled=""[^>]*>Run strict portable preflight/,
+    );
+    expect(html).toContain("100-listing ABI cap is unchanged");
   });
   it("shows exact portable operator selection, request risk and unavailable-profile blocking", async () => {
     const { PortableConfigForm } =

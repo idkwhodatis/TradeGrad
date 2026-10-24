@@ -533,6 +533,10 @@ export type CandidatePublic = {
 export type CandidateRow = {
     observation: CandidateObservation;
     /**
+     * Ordinal
+     */
+    ordinal: number;
+    /**
      * Stage Id
      */
     stage_id: string;
@@ -1086,6 +1090,10 @@ export type DecisionHeader = {
      * Scope
      */
     scope: 'portfolio' | 'instrument';
+    /**
+     * Session Date
+     */
+    session_date: string;
 };
 
 /**
@@ -1555,6 +1563,55 @@ export type EventPublic = {
 };
 
 /**
+ * ExecutionEvidenceRow
+ */
+export type ExecutionEvidenceRow = {
+    /**
+     * Association Basis
+     */
+    association_basis: 'logical_order_id' | 'child_order_id' | 'fill_id' | 'unpaired_native_execution';
+    /**
+     * Instrument Id
+     */
+    instrument_id: string;
+    link: OrderLink;
+    /**
+     * Logical Order Id
+     */
+    logical_order_id: string;
+    /**
+     * Missing Reason
+     */
+    missing_reason: string | null;
+    /**
+     * Record
+     */
+    record: {
+        [key: string]: JsonValue;
+    } | null;
+    /**
+     * Record Id
+     */
+    record_id: string;
+    /**
+     * Record Index
+     */
+    record_index: number | null;
+    /**
+     * Record Kind
+     */
+    record_kind: 'logical_order' | 'child_order' | 'fill';
+    /**
+     * Stage Id
+     */
+    stage_id: string;
+    /**
+     * Status
+     */
+    status: 'available' | 'not_collected' | 'no_matching_record';
+};
+
+/**
  * ExperimentCreate
  */
 export type ExperimentCreate = {
@@ -1780,6 +1837,10 @@ export type FeaturePage = {
  */
 export type FeatureRow = {
     observation: Feature;
+    /**
+     * Ordinal
+     */
+    ordinal: number;
     /**
      * Stage Id
      */
@@ -5787,6 +5848,10 @@ export type PredicatePage = {
 export type PredicateRow = {
     observation: Predicate;
     /**
+     * Ordinal
+     */
+    ordinal: number;
+    /**
      * Stage Id
      */
     stage_id: string;
@@ -6288,6 +6353,239 @@ export type QuotaUpdate = {
      * Max Active Runs
      */
     max_active_runs?: number | null;
+};
+
+/**
+ * ReplayExecutionPage
+ */
+export type ReplayExecutionPage = {
+    context: TraceContext;
+    /**
+     * Decision Id
+     */
+    decision_id: string;
+    /**
+     * Instrument Id
+     */
+    instrument_id: string | null;
+    /**
+     * Items
+     */
+    items: Array<ExecutionEvidenceRow> | null;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Logical Order Id
+     */
+    logical_order_id: string | null;
+    /**
+     * Missing Reason
+     */
+    missing_reason: string | null;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Stage Id
+     */
+    stage_id: string | null;
+    /**
+     * Status
+     */
+    status: 'available' | 'no_linked_records' | 'not_collected';
+    /**
+     * Total
+     */
+    total: number | null;
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+};
+
+/**
+ * ReplayInstrument
+ */
+export type ReplayInstrument = {
+    /**
+     * Configured Evaluation Member
+     */
+    configured_evaluation_member: boolean | null;
+    /**
+     * Configured Session Member
+     */
+    configured_session_member: boolean | null;
+    /**
+     * Instrument Id
+     */
+    instrument_id: string;
+    /**
+     * Listing Id
+     */
+    listing_id: string;
+    /**
+     * Symbol
+     */
+    symbol: string;
+};
+
+/**
+ * ReplayInstrumentPage
+ */
+export type ReplayInstrumentPage = {
+    context: TraceContext;
+    /**
+     * Items
+     */
+    items: Array<ReplayInstrument>;
+    /**
+     * Limit
+     */
+    limit: number;
+    market: ReplayMarketContext;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Session Date
+     */
+    session_date: string;
+    source_association: WorkbenchSourceAssociation;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * ReplayMarketContext
+ */
+export type ReplayMarketContext = {
+    /**
+     * Dataset Sha256
+     */
+    dataset_sha256: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Historical Membership Status
+     */
+    historical_membership_status: 'user_fixed_assumption' | 'current_snapshot_only' | 'historical_intervals_declared' | 'point_in_time_evidence_declared' | 'not_collected';
+    /**
+     * Ledger Origin
+     */
+    ledger_origin: string;
+    /**
+     * Membership Reason
+     */
+    membership_reason: string;
+    /**
+     * Membership Status
+     */
+    membership_status: 'available' | 'not_collected';
+    /**
+     * Result Trust
+     */
+    result_trust: string;
+    /**
+     * Timezone
+     */
+    timezone: string;
+    /**
+     * Universe As Of
+     */
+    universe_as_of: string | null;
+    /**
+     * Universe Sha256
+     */
+    universe_sha256: string | null;
+    /**
+     * Universe State
+     */
+    universe_state: string | null;
+    /**
+     * Universe Version Id
+     */
+    universe_version_id: string | null;
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+    /**
+     * Window End
+     */
+    window_end: string;
+    /**
+     * Window Start
+     */
+    window_start: string;
+};
+
+/**
+ * ReplayMarketPage
+ */
+export type ReplayMarketPage = {
+    /**
+     * Bars
+     */
+    bars: Array<PreviewBar> | null;
+    context: TraceContext;
+    /**
+     * Decision Id
+     */
+    decision_id: string;
+    /**
+     * Decision Time
+     */
+    decision_time: string | null;
+    /**
+     * End
+     */
+    end: string;
+    /**
+     * Information Cutoff
+     */
+    information_cutoff: string | null;
+    instrument: ReplayInstrument | null;
+    /**
+     * Instrument Id
+     */
+    instrument_id: string;
+    /**
+     * Limit
+     */
+    limit: number;
+    market: ReplayMarketContext;
+    /**
+     * Missing Reason
+     */
+    missing_reason: string | null;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Session Date
+     */
+    session_date: string | null;
+    /**
+     * Start
+     */
+    start: string;
+    /**
+     * Status
+     */
+    status: 'available' | 'no_rows' | 'outside_configured_universe' | 'not_collected' | 'unsupported';
+    /**
+     * Total
+     */
+    total: number | null;
 };
 
 /**
@@ -10616,6 +10914,10 @@ export type ReadTraceDecisionData = {
          */
         instrument_id?: string | null;
         /**
+         * Record Ordinal
+         */
+        record_ordinal?: number | null;
+        /**
          * Offset
          */
         offset?: number;
@@ -10690,6 +10992,10 @@ export type ReadTraceCandidatesData = {
          * Instrument Id
          */
         instrument_id?: string | null;
+        /**
+         * Record Ordinal
+         */
+        record_ordinal?: number | null;
         /**
          * Eligibility
          */
@@ -10767,6 +11073,231 @@ export type ReadTraceCandidatesResponses = {
 };
 
 export type ReadTraceCandidatesResponse = ReadTraceCandidatesResponses[keyof ReadTraceCandidatesResponses];
+
+export type ReadReplayExecutionData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+        /**
+         * Decision Id
+         */
+        decision_id: string;
+    };
+    query?: {
+        /**
+         * Instrument Id
+         */
+        instrument_id?: string | null;
+        /**
+         * Stage Id
+         */
+        stage_id?: string | null;
+        /**
+         * Logical Order Id
+         */
+        logical_order_id?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Execution Attempt Id
+         */
+        execution_attempt_id?: string | null;
+        /**
+         * Result Manifest Sha256
+         */
+        result_manifest_sha256?: string | null;
+        /**
+         * Trace Manifest Sha256
+         */
+        trace_manifest_sha256?: string | null;
+    };
+    url: '/api/v1/evaluations/{evaluation_id}/decisions/{decision_id}/execution';
+};
+
+export type ReadReplayExecutionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadReplayExecutionError = ReadReplayExecutionErrors[keyof ReadReplayExecutionErrors];
+
+export type ReadReplayExecutionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReplayExecutionPage;
+};
+
+export type ReadReplayExecutionResponse = ReadReplayExecutionResponses[keyof ReadReplayExecutionResponses];
+
+export type ReadReplayMarketData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+        /**
+         * Decision Id
+         */
+        decision_id: string;
+    };
+    query: {
+        /**
+         * Instrument Id
+         */
+        instrument_id: string;
+        /**
+         * Start
+         */
+        start?: string | null;
+        /**
+         * End
+         */
+        end?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Execution Attempt Id
+         */
+        execution_attempt_id?: string | null;
+        /**
+         * Result Manifest Sha256
+         */
+        result_manifest_sha256?: string | null;
+        /**
+         * Trace Manifest Sha256
+         */
+        trace_manifest_sha256?: string | null;
+    };
+    url: '/api/v1/evaluations/{evaluation_id}/decisions/{decision_id}/market';
+};
+
+export type ReadReplayMarketErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadReplayMarketError = ReadReplayMarketErrors[keyof ReadReplayMarketErrors];
+
+export type ReadReplayMarketResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReplayMarketPage;
+};
+
+export type ReadReplayMarketResponse = ReadReplayMarketResponses[keyof ReadReplayMarketResponses];
+
+export type ReadReplayInstrumentsData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: {
+        /**
+         * Session Date
+         */
+        session_date?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Execution Attempt Id
+         */
+        execution_attempt_id?: string | null;
+        /**
+         * Result Manifest Sha256
+         */
+        result_manifest_sha256?: string | null;
+        /**
+         * Trace Manifest Sha256
+         */
+        trace_manifest_sha256?: string | null;
+    };
+    url: '/api/v1/evaluations/{evaluation_id}/replay-instruments';
+};
+
+export type ReadReplayInstrumentsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadReplayInstrumentsError = ReadReplayInstrumentsErrors[keyof ReadReplayInstrumentsErrors];
+
+export type ReadReplayInstrumentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReplayInstrumentPage;
+};
+
+export type ReadReplayInstrumentsResponse = ReadReplayInstrumentsResponses[keyof ReadReplayInstrumentsResponses];
 
 export type ReadTraceManifestData = {
     body?: never;

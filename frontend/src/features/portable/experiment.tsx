@@ -1,4 +1,6 @@
 import { BenchmarkSelector } from "@/components/benchmark-selector";
+import { ResearchCaptureControls } from "@/components/research-capture-controls";
+import { withResearchCapture } from "@/lib/research-capture";
 import { benchmarkSelectionIssue } from "@/lib/benchmarks";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -708,6 +710,15 @@ export function PortableConfigForm({
             252,
           )}
         </fieldset>
+      </Panel>
+      <Panel title="Research observation capture">
+        <ResearchCaptureControls
+          value={body.research_capture}
+          onChange={(capture) => edit(withResearchCapture(body, capture))}
+          disabled={draft.busy || checking || Boolean(accepted)}
+          prefix="portable.research_capture"
+          portable
+        />
       </Panel>
       <Panel title="Optional immutable benchmark">
         <BenchmarkSelector

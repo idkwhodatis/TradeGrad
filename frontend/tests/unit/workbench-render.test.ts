@@ -201,15 +201,22 @@ describe("five-tab workbench shell", () => {
     expect(html).toContain("Algorithm references (not code parents)");
   });
   it.each([
-    ["replay", "I3"],
     ["comparison", "I4"],
     ["verification", "I5"],
     ["notes", "I6"],
   ])("keeps %s honestly pending", async (tab, phase) => {
     const html = await renderWorkbench(tab);
     expect(html).toContain(phase);
-    expect(html).toContain("pending: not implemented in this I2 phase");
+    expect(html).toContain("pending: not implemented in this phase");
     expect(html).toContain(`spec_sha256=${hashes.spec}`);
     expect(html).not.toContain("Actual selected stage observations");
   });
+});
+
+it("opens real replay controls only after an actual leaf is selected", async () => {
+  const html = await renderWorkbench("replay");
+  expect(html).toContain("Decision event selection");
+  expect(html).toContain("Choose an actual leaf Evaluation");
+  expect(html).toContain("Diagnostic replay unavailable");
+  expect(html).not.toContain("I3 decision replay is pending");
 });

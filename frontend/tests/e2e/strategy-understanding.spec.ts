@@ -327,8 +327,29 @@ for (const templateId of ["daily_timing", "cross_sectional"] as const) {
     ).toEqual(strategy);
 
     if (templateId === "daily_timing") {
+      await page
+        .getByRole("link", { name: "Decision replay", exact: true })
+        .click();
+      await expectSelection(page, { tab: "replay", rule_id: first.rule_id });
+      await expect(
+        page.getByRole("heading", {
+          name: "Decision event selection",
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByText(
+          "Choose an actual leaf Evaluation before opening decision replay.",
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", {
+          name: "Diagnostic replay unavailable (I5 pending)",
+          exact: true,
+        }),
+      ).toBeDisabled();
       for (const [name, tab, phase] of [
-        ["Decision replay", "replay", "I3"],
         ["Version comparison", "comparison", "I4"],
         ["Verification", "verification", "I5"],
         ["Notes", "notes", "I6"],

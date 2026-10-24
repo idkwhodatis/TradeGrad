@@ -125,11 +125,15 @@ export const workbenchTraceOptions = (selection: WorkbenchSelection) =>
       selection.evaluation_id &&
       selection.execution_attempt_id &&
       selection.result_manifest_sha256 &&
-      selection.trace_status !== "not_collected",
+      (selection.trace_status !== "not_collected" ||
+        Boolean(selection.trace_manifest_sha256)),
     ),
     staleTime: Infinity,
   });
-export const selectedDecisionOptions = (selection: WorkbenchSelection) =>
+export const selectedDecisionOptions = (
+  selection: WorkbenchSelection,
+  recordOrdinal?: number,
+) =>
   queryOptions({
     queryKey: [
       "workbench-decision",
@@ -138,6 +142,8 @@ export const selectedDecisionOptions = (selection: WorkbenchSelection) =>
       selection.decision_id,
       selection.instrument_id,
       selection.stage_id,
+      selection.detail_offset ?? 0,
+      recordOrdinal,
     ],
     queryFn: async ({ signal }) =>
       (
@@ -150,8 +156,9 @@ export const selectedDecisionOptions = (selection: WorkbenchSelection) =>
             ...tracePins(selection),
             instrument_id: selection.instrument_id,
             stage_id: selection.stage_id,
+            record_ordinal: recordOrdinal,
             limit: 50,
-            offset: 0,
+            offset: selection.detail_offset ?? 0,
           },
           signal,
         })
@@ -161,8 +168,7 @@ export const selectedDecisionOptions = (selection: WorkbenchSelection) =>
       selection.execution_attempt_id &&
       selection.result_manifest_sha256 &&
       selection.trace_manifest_sha256 &&
-      selection.decision_id &&
-      selection.stage_id,
+      selection.decision_id,
     ),
     staleTime: Infinity,
   });

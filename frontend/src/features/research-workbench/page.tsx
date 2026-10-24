@@ -12,6 +12,7 @@ import { Metadata, Pagination } from "@/components/data-common";
 import { Button } from "@/components/ui/button";
 import { currentUserOptions, strategyOptions } from "@/lib/api";
 import { candidateOptions } from "@/lib/research-api";
+import { decisionMatches } from "@/lib/replay-evidence";
 import {
   evidenceMatches,
   leafSelection,
@@ -19,6 +20,8 @@ import {
   workbenchRunTarget,
 } from "@/lib/workbench-evidence";
 import {
+  changeSelection,
+  clearedReplaySelection,
   resourceSelection,
   selectionProblem,
   workbenchTabs,
@@ -34,6 +37,7 @@ import {
   type SourceResource,
 } from "@/lib/workbench-api";
 import { AnchoredSource } from "./anchored-source";
+import { DecisionReplay } from "./decision-replay";
 import { DescriptionRevisions } from "./description-revisions";
 import { LineageSidebar } from "./lineage";
 import { RuleCards } from "./rule-cards";
@@ -147,7 +151,8 @@ function Workbench({
         selection.evaluation_id &&
         selection.execution_attempt_id &&
         selection.result_manifest_sha256 &&
-        selection.trace_status !== "not_collected",
+        (selection.trace_status !== "not_collected" ||
+          Boolean(selection.trace_manifest_sha256)),
       ),
   });
   const detail = useQuery({
@@ -161,7 +166,8 @@ function Workbench({
         selection.result_manifest_sha256 &&
         selection.trace_manifest_sha256 &&
         selection.decision_id &&
-        selection.stage_id,
+        selection.stage_id &&
+        (selection.tab || "description") === "description",
       ),
   });
   const activeTab = selection.tab || "description";
@@ -175,7 +181,7 @@ function Workbench({
   const update = useCallback(
     (patch: Partial<WorkbenchSelection>, replace = false) =>
       void navigate({
-        search: (previous) => ({ ...previous, ...patch }),
+        search: (previous) => changeSelection(previous, patch),
         replace,
       }),
     [navigate],
@@ -238,28 +244,21 @@ function Workbench({
     if (
       leafVerified &&
       trace.data &&
-      !selection.trace_manifest_sha256 &&
-      !selection.trace_status &&
+      ((!selection.trace_manifest_sha256 && !selection.trace_status) ||
+        selection.trace_status !== trace.data.context.status) &&
       evidenceMatches(selection, trace.data.context)
     )
       update(
         {
           trace_manifest_sha256:
             trace.data.context.trace_manifest_sha256 ?? undefined,
-          trace_status: trace.data.context.trace_manifest_sha256
-            ? "available"
-            : "not_collected",
+          trace_status: trace.data.context.status,
         },
         true,
       );
   }, [trace.data, selection, update, leafVerified]);
   const trustedDetail =
-    leafVerified &&
-    detail.data &&
-    evidenceMatches(selection, detail.data.context) &&
-    detail.data.decision?.decision_id === selection.decision_id &&
-    detail.data.stage_id === selection.stage_id &&
-    (detail.data.instrument_id ?? undefined) === selection.instrument_id
+    leafVerified && detail.data && decisionMatches(selection, detail.data)
       ? detail.data
       : undefined;
   function openSource(value: SourceResource, seedId: string) {
@@ -295,7 +294,8 @@ function Workbench({
     return <Loading text="Loading exact source and description…" />;
   const pinnedTrace =
     leafVerified &&
-    selection.trace_status !== "not_collected" &&
+    (selection.trace_status !== "not_collected" ||
+      Boolean(selection.trace_manifest_sha256)) &&
     trace.data &&
     evidenceMatches(selection, trace.data.context)
       ? trace.data
@@ -360,6 +360,7 @@ function Workbench({
               onChange={(event) => {
                 if (!event.target.value) {
                   update({
+                    ...clearedReplaySelection(),
                     evaluation_id: undefined,
                     execution_attempt_id: undefined,
                     result_manifest_sha256: undefined,
@@ -447,14 +448,17 @@ function Workbench({
           )}
           {selection.trace_status === "not_collected" && (
             <p className="notice mt-3">
-              No trace was pinned for this selection. Internal values and branch
-              outcomes are not inferred. Choose a newly recorded leaf explicitly
-              to inspect new evidence.
+              No detailed observations are available for this selection. Any
+              registered manifest hash remains pinned, including capture-off or
+              unsupported evidence. Internal values and branch outcomes are not
+              inferred. Choose another leaf explicitly to inspect different
+              evidence.
             </p>
           )}
           {trace.error && <ErrorState error={trace.error} />}
           {leafVerified &&
-            selection.trace_status !== "not_collected" &&
+            (selection.trace_status !== "not_collected" ||
+              Boolean(selection.trace_manifest_sha256)) &&
             trace.data &&
             !pinnedTrace && (
               <ErrorState
@@ -575,18 +579,26 @@ function Workbench({
               onSelect={selectSpec}
             />
           </>
+        ) : activeTab === "replay" ? (
+          <DecisionReplay
+            selection={selection}
+            update={update}
+            leaf={leaf.data}
+            trace={pinnedTrace}
+            verified={leafVerified}
+            code={currentSource}
+            codeSha256={currentHash}
+          />
         ) : (
           <Panel title={labels[activeTab]}>
             <p className="notice">
-              {activeTab === "replay"
-                ? "I3 decision replay"
-                : activeTab === "comparison"
-                  ? "I4 immutable version comparison"
-                  : activeTab === "verification"
-                    ? "I5 diagnostic and controlled verification"
-                    : "I6 versioned evidence notes"}{" "}
-              is pending: not implemented in this I2 phase. Your exact selection
-              is preserved. No replay, comparison, validation result or note has
+              {activeTab === "comparison"
+                ? "I4 immutable version comparison"
+                : activeTab === "verification"
+                  ? "I5 diagnostic and controlled verification"
+                  : "I6 versioned evidence notes"}{" "}
+              is pending: not implemented in this phase. Your exact selection is
+              preserved. No replay, comparison, validation result or note has
               been fabricated.
             </p>
           </Panel>

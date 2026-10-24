@@ -362,28 +362,8 @@ def _indicator_view(bundle, symbol, days, zone):
     )
 
 
-def price_replay(
-    result, settings, *, listing_id, start=None, end=None, offset=0, limit=250
-):
-    context = exploration_context(result)
-    window = result.bundle["window"]
-    start = start or date.fromisoformat(window["start"])
-    end = end or date.fromisoformat(window["end"])
-    if (
-        start >= end
-        or start < date.fromisoformat(window["start"])
-        or end > date.fromisoformat(window["end"])
-        or type(offset) is not int
-        or not 0 <= offset <= 100000
-        or type(limit) is not int
-        or not 1 <= limit <= MAX_BARS
-    ):
-        raise DomainError(
-            "invalid_result_query",
-            "Replay requires a bounded page within this evaluation's [start, end) window",
-            422,
-        )
-    symbol = result_symbol(result, listing_id)
+def frozen_price_bars(result, settings, *, listing_id, start, end):
+    """Shared checksum-bound OHLCV reader; no markers, indicators or provider IO."""
     refs = result.dataset.manifest.get("preview_files", {}).get(str(listing_id))
     if refs is None:
         raise DomainError(
@@ -436,6 +416,34 @@ def price_replay(
                 seen.add(day)
                 bars.append(row)
     bars.sort(key=lambda row: row["session_date"])
+    return bars
+
+
+def price_replay(
+    result, settings, *, listing_id, start=None, end=None, offset=0, limit=250
+):
+    context = exploration_context(result)
+    window = result.bundle["window"]
+    start = start or date.fromisoformat(window["start"])
+    end = end or date.fromisoformat(window["end"])
+    if (
+        start >= end
+        or start < date.fromisoformat(window["start"])
+        or end > date.fromisoformat(window["end"])
+        or type(offset) is not int
+        or not 0 <= offset <= 100000
+        or type(limit) is not int
+        or not 1 <= limit <= MAX_BARS
+    ):
+        raise DomainError(
+            "invalid_result_query",
+            "Replay requires a bounded page within this evaluation's [start, end) window",
+            422,
+        )
+    symbol = result_symbol(result, listing_id)
+    bars = frozen_price_bars(
+        result, settings, listing_id=listing_id, start=start, end=end
+    )
     page = bars[offset : offset + limit]
     days = {bar["session_date"] for bar in page}
     zone = ZoneInfo(context.timezone)

@@ -185,6 +185,16 @@ export type PortableForm = z.infer<typeof portableFormSchema>;
 export const portableRequest = (body: PortableForm): PortableRunCreate => body;
 export function portableIssues(body: PortableForm): string[] {
   const issues: string[] = [];
+  if (body.research_capture != null) {
+    const capture = researchCaptureSchema.safeParse(body.research_capture);
+    if (!capture.success)
+      issues.push(
+        ...capture.error.issues.map(
+          (issue) =>
+            `Research capture ${issue.path.join(".")}: ${issue.message}`,
+        ),
+      );
+  }
   const present = Object.entries(body.windows).filter(
     ([, value]) => value !== null,
   );

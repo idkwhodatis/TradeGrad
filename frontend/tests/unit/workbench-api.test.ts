@@ -123,8 +123,11 @@ describe("workbench uses generated authenticated APIs with exact pins", () => {
   it("does not enable trace/detail fetching for absent or incompletely pinned evidence", () => {
     expect(api.workbenchTraceOptions({}).enabled).toBe(false);
     expect(
-      api.workbenchTraceOptions({ ...selection, trace_status: "not_collected" })
-        .enabled,
+      api.workbenchTraceOptions({
+        ...selection,
+        trace_status: "not_collected",
+        trace_manifest_sha256: undefined,
+      }).enabled,
     ).toBe(false);
     expect(
       api.selectedDecisionOptions({
@@ -135,6 +138,19 @@ describe("workbench uses generated authenticated APIs with exact pins", () => {
     expect(
       api.selectedDecisionOptions({ ...selection, decision_id: undefined })
         .enabled,
+    ).toBe(false);
+  });
+  it("retains registered capture-off manifest discovery without enabling replay observations", () => {
+    expect(
+      api.workbenchTraceOptions({ ...selection, trace_status: "not_collected" })
+        .enabled,
+    ).toBe(true);
+    expect(
+      api.workbenchTraceOptions({
+        ...selection,
+        trace_status: "not_collected",
+        trace_manifest_sha256: undefined,
+      }).enabled,
     ).toBe(false);
   });
   it("separates cache entries by result, trace and selected stage", () => {

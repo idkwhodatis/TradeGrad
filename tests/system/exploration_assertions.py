@@ -47,3 +47,14 @@ def assert_mode_exploration(
     # Reading/sorting projections never rewrites the authoritative result bytes.
     download = "/result/download" if mode.endswith("final") else "/results/download"
     assert h.request(client, "GET", path + download).content == content
+
+    from workbench_assertions import assert_replay_leaf
+
+    assert_replay_leaf(
+        h,
+        client,
+        other,
+        evaluation_id=evaluation_id,
+        bundle=bundle,
+        result_sha256=hashlib.sha256(content).hexdigest(),
+    )

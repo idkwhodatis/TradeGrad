@@ -112,7 +112,7 @@ describe("immutable workbench route selection", () => {
     expect(next.trace_manifest_sha256).toBeUndefined();
     expect(
       selectionProblem({ ...next, trace_manifest_sha256: hashes.trace }),
-    ).toContain("missing trace");
+    ).toBeNull();
   });
   it("rejects cross-candidate or changed artifact bindings", () => {
     expect(leafBindingProblem(selection, ids.strategy, leaf)).toBeNull();

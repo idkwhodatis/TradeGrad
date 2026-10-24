@@ -614,6 +614,10 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
 
     app.include_router(trace_router, prefix=PREFIX)
 
+    from backend.app.replay_routes import router as replay_router
+
+    app.include_router(replay_router, prefix=PREFIX)
+
     from backend.app.workbench_routes import router as workbench_router
 
     app.include_router(workbench_router, prefix=PREFIX)

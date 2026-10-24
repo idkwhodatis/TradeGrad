@@ -344,10 +344,31 @@ def _event(trace, decision_id):
     }
 
 
+def _validate_record_ordinal(record_ordinal, stage_id):
+    if record_ordinal is not None and (
+        stage_id is None
+        or type(record_ordinal) is not int
+        or not 0 <= record_ordinal <= 2**63 - 1
+    ):
+        raise DomainError(
+            "invalid_trace_query",
+            "An exact recorded ordinal requires its stage and a nonnegative integer",
+            422,
+        )
+
+
 @_structural_view
 def decision_view(
-    trace, decision_id, *, instrument_id=None, stage_id=None, offset=0, limit=100
+    trace,
+    decision_id,
+    *,
+    instrument_id=None,
+    stage_id=None,
+    record_ordinal=None,
+    offset=0,
+    limit=100,
 ):
+    _validate_record_ordinal(record_ordinal, stage_id)
     empty = {"items": None, "total": None, "offset": offset, "limit": limit}
     if trace.reader is None:
         return DecisionDetail(
@@ -374,17 +395,22 @@ def decision_view(
             **event,
             stage_id=stage_id,
             instrument_id=instrument_id,
+            record_ordinal=record_ordinal,
             offset=offset,
             limit=limit,
         )
         page["items"] = [
-            {"stage_id": item["stage_id"], "observation": item["payload"]}
+            {
+                "stage_id": item["stage_id"],
+                "ordinal": item["ordinal"],
+                "observation": item["payload"],
+            }
             for item in page["items"]
         ]
         details[table] = page
     return DecisionDetail(
         context=trace.context,
-        decision=decision["items"][0]["payload"],
+        decision={**decision["items"][0]["payload"], "session_date": event["start"]},
         stages=[item["payload"] for item in stages["items"]],
         **details,
         instrument_id=instrument_id,
@@ -394,6 +420,7 @@ def decision_view(
 
 @_structural_view
 def candidates_view(trace, decision_id, *, offset=0, limit=100, **filters):
+    _validate_record_ordinal(filters.get("record_ordinal"), filters.get("stage_id"))
     if trace.reader is None:
         return CandidatePage(
             context=trace.context,
@@ -406,7 +433,11 @@ def candidates_view(trace, decision_id, *, offset=0, limit=100, **filters):
     event = _event(trace, decision_id)
     page = _query(trace, "candidates", **event, offset=offset, limit=limit, **filters)
     page["items"] = [
-        {"stage_id": item["stage_id"], "observation": item["payload"]}
+        {
+            "stage_id": item["stage_id"],
+            "ordinal": item["ordinal"],
+            "observation": item["payload"],
+        }
         for item in page["items"]
     ]
     return CandidatePage(context=trace.context, decision_id=decision_id, **page)
