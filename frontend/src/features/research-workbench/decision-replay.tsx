@@ -24,13 +24,13 @@ import {
   executionPageMatches,
   instrumentPageMatches,
   marketPageMatches,
-  marketTime,
   observationValue,
   replayAdmitted,
   selectedRecord,
 } from "@/lib/replay-evidence";
 import type { WorkbenchSelection } from "@/lib/workbench-selection";
 import { AnchoredSource } from "./anchored-source";
+import { ReplayDecisionIdentity } from "./replay-timing";
 import {
   CandidateFilters,
   CandidateObservations,
@@ -410,27 +410,10 @@ export function DecisionReplay({
           <Mismatch label="Decision details or session date" />
         )}
         {validDetail?.decision && (
-          <div data-testid="replay-event-identity">
-            <Metadata
-              values={{
-                "Decision ID": validDetail.decision.decision_id,
-                "Source data event": validDetail.decision.data_event_id,
-                "Callback phase": validDetail.decision.callback_phase,
-                "Event sequence": validDetail.decision.event_seq,
-                "Decision scope": validDetail.decision.scope,
-                "Market timezone": validDetail.decision.market_timezone,
-                "Information cutoff": marketTime(
-                  validDetail.decision.information_cutoff,
-                  validDetail.decision.market_timezone,
-                ),
-                "Decision time": marketTime(
-                  validDetail.decision.decision_time,
-                  validDetail.decision.market_timezone,
-                ),
-                "Session date": validDetail.decision.session_date,
-              }}
-            />
-          </div>
+          <ReplayDecisionIdentity
+            decision={validDetail.decision}
+            context={validDetail.context}
+          />
         )}
         <DiagnosticUnavailable verified={verified} update={update} />
       </Panel>
@@ -501,6 +484,7 @@ export function DecisionReplay({
                           cutoff={validMarket.information_cutoff}
                           decisionTime={validMarket.decision_time}
                           timezone={validMarket.market.timezone}
+                          context={validMarket.context}
                         />
                       </Suspense>
                     ) : null}

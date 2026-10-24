@@ -45,7 +45,10 @@ async function save(page: Page, path = "/research-notes") {
 async function relogin(page: Page, url: string) {
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await page.goto(url);
-  await expect(page).toHaveURL(/\/login\?returnTo=/);
+  await expect(page).toHaveURL(/\/login\?next=/);
+  expect(new URL(page.url()).searchParams.get("next")).toBe(
+    new URL(url).pathname + new URL(url).search,
+  );
   await page.getByLabel("Email address").fill(account().email);
   await page.getByLabel("Password", { exact: true }).fill(account().password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();

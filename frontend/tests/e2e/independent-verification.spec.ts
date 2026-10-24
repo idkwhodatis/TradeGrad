@@ -100,7 +100,10 @@ async function pinnedUrl(page: Page, values: Record<string, string | number>) {
 async function reloginAtPinnedEvidence(page: Page, url: string) {
   await page.evaluate(() => sessionStorage.removeItem("tradegrad.session.v1"));
   await page.goto(url);
-  await expect(page).toHaveURL(/\/login\?returnTo=/);
+  await expect(page).toHaveURL(/\/login\?next=/);
+  expect(new URL(page.url()).searchParams.get("next")).toBe(
+    new URL(url).pathname + new URL(url).search,
+  );
   const user = account();
   await page.getByLabel("Email address").fill(user.email);
   await page.getByLabel("Password", { exact: true }).fill(user.password);
@@ -638,7 +641,9 @@ test("actual three-arm manual control retains failed outcomes, immutable conditi
     timeout: 210000,
   });
   await expect(
-    page.getByText("Both decision pre-states must be read", { exact: false }),
+    page
+      .getByTestId("comparison-prestates")
+      .getByText("Both decision pre-states must be read", { exact: false }),
   ).toBeVisible();
   await page.goto(savedControlUrl);
   await pinnedUrl(page, {

@@ -480,6 +480,12 @@ def export_native_result(
             "timestamps": "ISO 8601 with the native result timezone offset; durations are integer nanoseconds.",
         },
     }
+    if identity.get("profile") == "corrected_explicit_config":
+        engine["series_semantics"]["timestamps"] += (
+            " Date-only daily CSV inputs use market-local midnight session labels,"
+            " not observed exchange-close or data-availability instants. This"
+            " labeling does not certify intraday timing or absence of look-ahead."
+        )
     order_columns = list(orders.columns)
     trace = {
         "scope": "observable_native_orders_only",

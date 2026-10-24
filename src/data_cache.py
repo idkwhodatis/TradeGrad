@@ -23,6 +23,35 @@ TRANSFORM_VERSION = "tradegrad-csv-v3"
 CACHE_DTYPES = {"object", "float64", "float32", "int64", "int32", "uint64", "bool", "datetime64[ns]"}
 
 
+def localize_market_dates(data: dict[str, pd.DataFrame], timezone: str) -> dict[str, pd.DataFrame]:
+    """Give native daily session labels an explicit market timezone.
+
+    AKQuant 0.3.27's naive input default is Shanghai, independently of its
+    configured strategy timezone. Passing naive US dates therefore shifts bars,
+    window membership and cross-sectional callbacks to the previous session.
+    Localize before the engine derives *either* its feed or trading-day metadata.
+
+    A date-only value remains a local-midnight session label, NOT an observed
+    exchange close or a claim that the completed bar was available at midnight.
+    Already-aware inputs retain their actual instant. No bars are filled, moved
+    to a guessed closing hour, or rewritten in the immutable CSV/content cache.
+    Keep this outside load_data so the source_compat path and raw cache stay exact.
+    """
+    localized = {}
+    for symbol, frame in data.items():
+        dates = frame["date"]
+        if dates.isna().any():
+            raise ValueError("Invalid native market date")
+        copy = frame.copy(deep=False)
+        copy["date"] = (
+            dates.dt.tz_localize(timezone, ambiguous="raise", nonexistent="raise")
+            if dates.dt.tz is None
+            else dates.dt.tz_convert(timezone)
+        )
+        localized[symbol] = copy
+    return localized
+
+
 def _paths(data_dir: str, symbols: list[str] | None):
     root = Path(data_dir)
     if symbols is None:

@@ -2384,6 +2384,16 @@
           "left_source": {
             "$ref": "#/components/schemas/ComparisonSource"
           },
+          "left_timestamp_evidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TimestampEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "manifest": {
             "$ref": "#/components/schemas/ComparisonManifest"
           },
@@ -2399,6 +2409,16 @@
           },
           "right_source": {
             "$ref": "#/components/schemas/ComparisonSource"
+          },
+          "right_timestamp_evidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TimestampEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -20404,6 +20424,35 @@
         "title": "StrategySpec",
         "type": "object"
       },
+      "TimestampEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "timestamp_caveat": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamp Caveat"
+          },
+          "timestamp_semantics": {
+            "default": "unknown",
+            "enum": [
+              "native_daily_session_labels",
+              "native_recorded_unqualified",
+              "portable_engine_instants",
+              "unknown"
+            ],
+            "title": "Timestamp Semantics",
+            "type": "string"
+          }
+        },
+        "title": "TimestampEvidence",
+        "type": "object"
+      },
       "Token": {
         "properties": {
           "access_token": {
@@ -20473,6 +20522,28 @@
               "not_collected"
             ],
             "title": "Status",
+            "type": "string"
+          },
+          "timestamp_caveat": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamp Caveat"
+          },
+          "timestamp_semantics": {
+            "default": "unknown",
+            "enum": [
+              "native_daily_session_labels",
+              "native_recorded_unqualified",
+              "portable_engine_instants",
+              "unknown"
+            ],
+            "title": "Timestamp Semantics",
             "type": "string"
           },
           "trace_manifest_sha256": {

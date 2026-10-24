@@ -1,20 +1,21 @@
-import os
-import re
 import argparse
+import bisect
+import datetime
 import json
 import math
+import os
+import re
 from pathlib import Path
-import bisect
-import pandas as pd
-import datetime
+
 import akquant as aq
+import pandas as pd
 
 try:
+    from .data_cache import load_data, localize_market_dates
     from .market import MARKETS, backtest_kwargs
-    from .data_cache import load_data
 except ImportError:  # run as a script by the loss layer
+    from data_cache import load_data, localize_market_dates
     from market import MARKETS, backtest_kwargs
-    from data_cache import load_data
 
 
 def parse_args():
@@ -225,6 +226,9 @@ def run_backtest(
         from packages.tradegrad_adapter.results import validate_engine_overrides
 
         engine_kwargs.update(validate_engine_overrides(engine_overrides))
+
+    if profile == "corrected_explicit_config":
+        data_map = localize_market_dates(data_map, engine_kwargs["timezone"])
 
     context = {"all_symbols": all_symbols, "date2symbols": date2symbols}
     if strategy_contract is not None:

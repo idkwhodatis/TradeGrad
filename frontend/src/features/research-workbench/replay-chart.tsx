@@ -10,8 +10,12 @@ import {
   TooltipComponent,
 } from "echarts/components";
 import { SVGRenderer } from "echarts/renderers";
-import type { FeatureRow, PreviewBar } from "@/client/types.gen";
+import type { FeatureRow, PreviewBar, TraceContext } from "@/client/types.gen";
 import { savedFeaturePoints } from "@/lib/replay-evidence";
+import {
+  ReplayTimestampCaveat,
+  replayTimestampPresentation,
+} from "./replay-timing";
 use([
   CandlestickChart,
   ScatterChart,
@@ -31,6 +35,7 @@ export type ReplayChartProps = {
   cutoff: string;
   decisionTime: string;
   timezone: string;
+  context?: TraceContext;
 };
 export function replayChartOptions({
   bars,
@@ -39,7 +44,9 @@ export function replayChartOptions({
   cutoff,
   decisionTime,
   timezone,
+  context,
 }: ReplayChartProps) {
+  const timing = replayTimestampPresentation(context);
   const points = savedFeaturePoints(features, instrument, cutoff);
   const units = [...new Set(points.map((p) => p.unit))];
   const grid = [
@@ -56,7 +63,7 @@ export function replayChartOptions({
     animation: false,
     aria: {
       enabled: true,
-      description: `Immutable retrospective OHLC for ${instrument}. Cutoff and decision markers use saved timestamps, market timezone ${timezone}. Saved features are separate points in their own units, never recomputed or interpolated.`,
+      description: `Immutable retrospective OHLC for ${instrument}. ${timing.markerDescription} Market timezone ${timezone}. ${timing.caveat ?? ""} Saved features are separate points in their own units, never recomputed or interpolated.`,
     },
     tooltip: { trigger: "item", renderMode: "richText" },
     legend: { type: "scroll", top: 0 },
@@ -64,7 +71,14 @@ export function replayChartOptions({
     xAxis: grid.map((_, index) => ({
       type: "time",
       gridIndex: index,
-      name: index === 0 ? "UTC timestamp · market zone shown in evidence" : "",
+      name:
+        index === 0
+          ? timing.instants
+            ? "UTC timestamp · market zone shown in evidence"
+            : timing.semantics === "native_daily_session_labels"
+              ? "UTC session labels · not availability instants"
+              : "UTC saved coordinates · availability unverified"
+          : "",
       min: Math.min(
         Date.parse(bars[0].session_date),
         Date.parse(cutoff),
@@ -106,12 +120,12 @@ export function replayChartOptions({
           label: { position: "insideEndTop", formatter: "{b}" },
           data: [
             {
-              name: "Information cutoff",
+              name: timing.cutoffLabel,
               xAxis: Date.parse(cutoff),
               lineStyle: { color: "#876925", type: "dashed" },
             },
             {
-              name: "Decision time",
+              name: timing.decisionLabel,
               xAxis: Date.parse(decisionTime),
               lineStyle: { color: "#5753a8", type: "solid" },
             },
@@ -137,14 +151,9 @@ export default function ReplayChart({
   cutoff,
   decisionTime,
   timezone,
-}: {
-  bars: PreviewBar[];
-  features: FeatureRow[] | null;
-  instrument: string;
-  cutoff: string;
-  decisionTime: string;
-  timezone: string;
-}) {
+  context,
+}: ReplayChartProps) {
+  const timing = replayTimestampPresentation(context);
   const container = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!container.current || !bars.length) return;
@@ -157,6 +166,7 @@ export default function ReplayChart({
         cutoff,
         decisionTime,
         timezone,
+        context,
       }),
     );
     const observer =
@@ -168,7 +178,7 @@ export default function ReplayChart({
       observer?.disconnect();
       chart.dispose();
     };
-  }, [bars, features, instrument, cutoff, decisionTime, timezone]);
+  }, [bars, features, instrument, cutoff, decisionTime, timezone, context]);
   return (
     <figure>
       <div
@@ -186,14 +196,17 @@ export default function ReplayChart({
         }}
         role="img"
         aria-label="Retrospective market prices, information cutoff, decision time and actually saved feature points"
+        aria-description={`${timing.markerDescription} ${timing.caveat ?? ""}`}
       />
       <figcaption className="text-xs muted">
-        Daily OHLC bars use session-date coordinates; cutoff and decision lines
-        use their exact saved instants (UTC axis). Subsequent prices are
-        hindsight only, not decision inputs. Only numeric valid selected-event
-        features at or before the cutoff are plotted, in separate unit panes. No
+        Daily OHLC bars use session-date coordinates. {timing.markerDescription}{" "}
+        Subsequent prices are hindsight only, not decision inputs. Only numeric
+        valid selected-event features whose saved coordinates are at or before
+        the saved cutoff are plotted, in separate unit panes. This coordinate
+        filter does not independently establish data availability. No
         interpolation, indicator recomputation or inferred explanation.
       </figcaption>
+      <ReplayTimestampCaveat context={context} />
     </figure>
   );
 }

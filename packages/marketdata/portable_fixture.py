@@ -24,6 +24,13 @@ GENERATOR_VERSION = PORTABLE_FIXTURE_VERSION
 
 
 def portable_fixture_result(request: BarsRequest) -> ProviderResult:
+    from .native_research_fixture import (
+        research_fixture_result,
+        validate_fixture_request,
+    )
+
+    if validate_fixture_request(request) is not None:
+        return research_fixture_result(request)
     if request.price_mode not in {"raw", "provider_native"}:
         raise ValueError("Portable synthetic fixture requires raw prices")
     if request.start < date(2024, 1, 2) or request.end > date(2025, 1, 1):
@@ -104,6 +111,17 @@ def portable_fixture_result(request: BarsRequest) -> ProviderResult:
 
 def action_coverage(request: BarsRequest, result: ProviderResult) -> dict:
     """Unknown is preserved; an empty actions array alone proves nothing."""
+    from .native_research_fixture import VERSION, profile_metadata
+
+    version = GENERATOR_VERSION
+    metadata = {
+        "is_synthetic": True,
+        "price_basis": "unadjusted",
+        "corporate_actions": "none_by_construction",
+        "generator_version": GENERATOR_VERSION,
+    }
+    if result.price_semantics.algorithm_version == VERSION:
+        version, metadata = VERSION, profile_metadata()
     records = []
     for listing in request.listings:
         sources = [
@@ -111,16 +129,10 @@ def action_coverage(request: BarsRequest, result: ProviderResult) -> dict:
             for p in result.provenance
             if p.connector == "portable_fixture"
             and p.provider == "synthetic"
-            and p.endpoint == GENERATOR_VERSION
+            and p.endpoint == version
             and p.evidence == "fixture"
             and p.requested_params.get("listing_id") == listing.listing_id
-            and p.effective_params
-            == {
-                "is_synthetic": True,
-                "price_basis": "unadjusted",
-                "corporate_actions": "none_by_construction",
-                "generator_version": GENERATOR_VERSION,
-            }
+            and p.effective_params == metadata
         ]
         # Blocks may be combined; demand exact gap-free coverage of requested dates.
         intervals = sorted(
@@ -142,7 +154,7 @@ def action_coverage(request: BarsRequest, result: ProviderResult) -> dict:
         complete = (
             complete
             and cursor >= str(request.end)
-            and result.price_semantics.algorithm_version == GENERATOR_VERSION
+            and result.price_semantics.algorithm_version == version
             and not result.actions
         )
         records.append(
@@ -162,7 +174,7 @@ def action_coverage(request: BarsRequest, result: ProviderResult) -> dict:
         "listings": records,
         "is_synthetic": bool(records)
         and all(r["status"] == "known_none" for r in records),
-        "generator_version": GENERATOR_VERSION
+        "generator_version": version
         if records and all(r["status"] == "known_none" for r in records)
         else None,
     }
@@ -180,6 +192,7 @@ class PortableFixtureProvider:
 
     def capabilities(self):
         from .contracts import Capability
+        from .native_research_fixture import END, START, SYMBOLS, VERSION
 
         common = {
             "connector": "portable_fixture",
@@ -194,13 +207,34 @@ class PortableFixtureProvider:
             Capability(
                 feature="point_in_time_universe", status="unsupported", **common
             ),
+            Capability(
+                feature="native_research_daily_bars",
+                status="documented",
+                **{
+                    **common,
+                    "endpoint": VERSION,
+                    "symbols": list(SYMBOLS),
+                    "start": START,
+                    "end": END,
+                    "note": "Separate synthetic native research profile; frozen eight-session price cycles, requested user-fixed universe, no portable capacity expansion.",
+                },
+            ),
         ]
 
     def resolve_instruments(self, symbols):
         from .contracts import ResolutionResult, make_listing
+        from .native_research_fixture import (
+            SYMBOLS,
+            fixture_profile_for_symbols,
+            research_listing,
+        )
 
+        fixture_profile_for_symbols(symbols)
         data, unresolved = [], []
         for symbol in symbols:
+            if symbol in SYMBOLS:
+                data.append(research_listing(symbol))
+                continue
             cn = symbol in {"600000", "000001"}
             if not cn and symbol not in {"AAPL", "MSFT"}:
                 unresolved.append(symbol)

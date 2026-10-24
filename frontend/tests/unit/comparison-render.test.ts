@@ -278,6 +278,68 @@ describe("scope-limited behavior outcomes", () => {
     expect(html).toContain(`spec_sha256=${hashes.spec}`);
     expect(html).toContain("not a local counterfactual");
   });
+  it.each(["left", "right"] as const)(
+    "qualifies %s native session labels independently of the portable comparison side",
+    async (nativeSide) => {
+      const value = result();
+      const portableSide = nativeSide === "left" ? "right" : "left";
+      const caveat =
+        "Native daily timestamps are market-local midnight session labels, not observed exchange-close or data-availability instants.";
+      value[`${nativeSide}_timestamp_evidence`] = {
+        timestamp_semantics: "native_daily_session_labels",
+        timestamp_caveat: caveat,
+      };
+      value[`${portableSide}_timestamp_evidence`] = {
+        timestamp_semantics: "portable_engine_instants",
+        timestamp_caveat: null,
+      };
+      const html = await routed(
+        createElement(ComparisonPrestates, {
+          result: value,
+          event: eventRow(),
+        }),
+      );
+      const sideHtml = (side: string) =>
+        html.match(
+          new RegExp(
+            `<section[^>]*data-testid="comparison-prestate-${side}"[\\s\\S]*?</section>`,
+          ),
+        )![0];
+      expect(sideHtml(nativeSide)).toContain(
+        "Information cutoff (session label)",
+      );
+      expect(sideHtml(nativeSide)).toContain("Decision session label");
+      expect(sideHtml(nativeSide)).toContain(caveat);
+      expect(sideHtml(portableSide)).toContain(">Information cutoff<");
+      expect(sideHtml(portableSide)).toContain(">Decision time<");
+      expect(sideHtml(portableSide)).not.toContain(caveat);
+      expect(html).toContain(`result_manifest_sha256=${hashes.result}`);
+      expect(html).toContain("right-decision-7");
+    },
+  );
+  it("keeps older comparison sides unqualified rather than upgrading them to native midnight or actual instants", async () => {
+    const value = result();
+    value.left_timestamp_evidence = {
+      timestamp_semantics: "native_recorded_unqualified",
+      timestamp_caveat:
+        "Historical source timing has not been independently verified.",
+    };
+    const html = await routed(
+      createElement(ComparisonPrestates, {
+        result: value,
+        event: eventRow(),
+      }),
+    );
+    expect(html).toContain(
+      "Historical source timing has not been independently verified.",
+    );
+    expect(html).toContain("Saved timestamp semantics are unavailable");
+    expect(
+      html.match(/Information cutoff \(timing unverified\)/g),
+    ).toHaveLength(2);
+    expect(html).not.toContain("market-local midnight session labels");
+    expect(html).not.toContain("exact saved instants");
+  });
 });
 describe("record and execution drilldown cannot invent a join", () => {
   const predicate = { ...detail().predicates.items![0].observation };

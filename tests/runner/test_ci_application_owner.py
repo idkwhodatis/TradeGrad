@@ -5,12 +5,14 @@ import json
 import signal
 from pathlib import Path
 from types import SimpleNamespace
+from xml.etree import ElementTree as ET
 
 import pytest
 
 from script import ci_application_browser as gate
 from script import ci_process_owner as ownership
 from script.ci_test_environment import create_environment
+from script.research_browser_acceptance import REQUIRED_RESEARCH_CASES
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -293,10 +295,17 @@ class FakeOwner:
         self.ran.append((arguments, kwargs))
         env = kwargs["env"]
         if "PLAYWRIGHT_JUNIT_OUTPUT_FILE" in env:
+            report = ET.Element("testsuite")
+            for _ in range(3):
+                ET.SubElement(report, "testcase", name="public @provider-flow")
+            if env.get("E2E_LIVE_PROVIDERS") == "0":
+                for filename, titles in REQUIRED_RESEARCH_CASES.items():
+                    for title in titles:
+                        ET.SubElement(
+                            report, "testcase", name=title, classname=filename
+                        )
             Path(env["PLAYWRIGHT_JUNIT_OUTPUT_FILE"]).write_text(
-                "<testsuite>"
-                + '<testcase name="public @provider-flow"/>' * 3
-                + "</testsuite>"
+                ET.tostring(report, encoding="unicode")
             )
         if "script.benchmark_v1" in arguments:
             return json.dumps(

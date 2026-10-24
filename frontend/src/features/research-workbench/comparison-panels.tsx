@@ -25,6 +25,10 @@ import {
   type WorkbenchSelection,
 } from "@/lib/workbench-selection";
 import { AnchoredSource } from "./anchored-source";
+import {
+  ReplayTimestampCaveat,
+  replayTimestampPresentation,
+} from "./replay-timing";
 const ComparisonChart = lazy(() => import("./comparison-chart"));
 export function configurationValue(present: boolean, value: unknown): string {
   if (!present) return "Missing / not recorded";
@@ -354,6 +358,8 @@ export function ComparisonPrestates({
       <div className="comparison-sides">
         {(["left", "right"] as const).map((side) => {
           const value = event?.[side];
+          const timestampEvidence = result[`${side}_timestamp_evidence`];
+          const timing = replayTimestampPresentation(timestampEvidence);
           const target = event
             ? comparisonReplayTarget(result, side, event)
             : null;
@@ -376,13 +382,15 @@ export function ComparisonPrestates({
                       "Decision ID":
                         value?.decision_id ?? "No paired event on this side",
                       "Evidence state": event[`${side}_state`],
-                      "Information cutoff":
+                      [timing.cutoffLabel]:
                         value?.information_cutoff ?? "Not recorded",
-                      "Decision time": value?.decision_time ?? "Not recorded",
+                      [timing.decisionLabel]:
+                        value?.decision_time ?? "Not recorded",
                       "Market timezone":
                         value?.market_timezone ?? "Not recorded",
                     }}
                   />
+                  <ReplayTimestampCaveat context={timestampEvidence} />
                   {value?.pre_state !== undefined &&
                   value.pre_state !== null ? (
                     <Metadata

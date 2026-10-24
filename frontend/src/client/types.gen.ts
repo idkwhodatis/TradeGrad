@@ -1305,6 +1305,7 @@ export type ComparisonResult = {
      */
     input_sha256: string;
     left_source: ComparisonSource;
+    left_timestamp_evidence?: TimestampEvidence | null;
     manifest: ComparisonManifest;
     /**
      * Manifest Artifact Id
@@ -1315,6 +1316,7 @@ export type ComparisonResult = {
      */
     manifest_sha256: string;
     right_source: ComparisonSource;
+    right_timestamp_evidence?: TimestampEvidence | null;
 };
 
 /**
@@ -10875,6 +10877,20 @@ export type StrategySpec = {
 };
 
 /**
+ * TimestampEvidence
+ */
+export type TimestampEvidence = {
+    /**
+     * Timestamp Caveat
+     */
+    timestamp_caveat?: string | null;
+    /**
+     * Timestamp Semantics
+     */
+    timestamp_semantics?: 'native_daily_session_labels' | 'native_recorded_unqualified' | 'portable_engine_instants' | 'unknown';
+};
+
+/**
  * Token
  */
 export type Token = {
@@ -10917,6 +10933,14 @@ export type TraceContext = {
      * Status
      */
     status: 'available' | 'not_collected';
+    /**
+     * Timestamp Caveat
+     */
+    timestamp_caveat?: string | null;
+    /**
+     * Timestamp Semantics
+     */
+    timestamp_semantics?: 'native_daily_session_labels' | 'native_recorded_unqualified' | 'portable_engine_instants' | 'unknown';
     /**
      * Trace Manifest Sha256
      */

@@ -106,17 +106,22 @@ def test_native_strategy_detail_applies_mode_filter(fake_api):
 
 
 def test_readiness_requires_current_settings_schema(fake_api):
+    from backend.app.core.db import REQUIRED_SCHEMA_REVISION
+
     client, session, _ = fake_api
+    session.execute.return_value.scalars.return_value.all.return_value = [
+        REQUIRED_SCHEMA_REVISION
+    ]
     assert client.get("/api/v1/health/ready").status_code == 200
     statement = str(session.execute.call_args.args[0])
-    assert "version_num = '006_provider_connections'" in statement
+    assert statement == "SELECT version_num FROM alembic_version"
 
 
 def test_readiness_fails_closed_on_stale_schema(fake_api):
     from sqlalchemy.exc import NoResultFound
 
     client, session, _ = fake_api
-    session.execute.return_value.scalar_one.side_effect = NoResultFound()
+    session.execute.side_effect = NoResultFound()
     response = client.get("/api/v1/health/ready")
     assert response.status_code == 503
     assert response.json()["database"] is False

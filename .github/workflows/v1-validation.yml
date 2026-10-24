@@ -29,6 +29,7 @@ on:
       - "packages/**"
       - "infra/**"
       - "requirements*.txt"
+      - "docs/evidence/research-trace-capacity*.json"
       - ".github/workflows/v1-validation.yml"
 
 permissions:
@@ -192,6 +193,7 @@ jobs:
           TRADEGRAD_COMPARISON_POSTGRES_REQUIRED: "1"
           TRADEGRAD_INDEPENDENT_POSTGRES_REQUIRED: "1"
           TRADEGRAD_NOTES_POSTGRES_REQUIRED: "1"
+          TRADEGRAD_RESEARCH_FIXTURE_POSTGRES_REQUIRED: "1"
         run: .venv-data/bin/python -m pytest tests/integration -q --junitxml=m1-m2-postgres-junit.xml
       - name: Bind streaming PostgreSQL clients to this job's service container
         shell: bash
@@ -389,9 +391,31 @@ jobs:
           python -m script.ci_acceptance_boundary v1-independent-application-junit.xml
           "${{ steps.acceptance_05i.outcome }}" "${{ steps.acceptance_05i.outputs.exit_code }}"
           "test_real_original_rng_and_audit_survive_independent_replay,test_real_three_arm_no_trade_failure_retry_and_unchanged_optimizer,test_real_exact_maintained_template_diagnostic_verifies_all_semantics"
+      - name: Cold restore completed comparison, diagnostic, controlled arms and versioned notes
+        id: acceptance_05r
+        if: ${{ !cancelled() && steps.acceptance_05i_boundary.outcome == 'success' }}
+        timeout-minutes: 20
+        env:
+          TRADEGRAD_REQUIRE_EVIDENCE_RESTORE: "1"
+          DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
+          RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
+        run: |
+          export API_PYTHON=$(command -v python)
+          set +e
+          .venv-research/bin/python -m pytest tests/system/test_research_evidence_restore.py -q --junitxml=v1-evidence-restore-junit.xml
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+      - name: Confirm completed-evidence restore teardown before the next acceptance group
+        id: acceptance_05r_boundary
+        if: ${{ !cancelled() && steps.acceptance_05r.outcome != 'skipped' }}
+        run: >-
+          python -m script.ci_acceptance_boundary v1-evidence-restore-junit.xml
+          "${{ steps.acceptance_05r.outcome }}" "${{ steps.acceptance_05r.outputs.exit_code }}"
+          "test_real_completed_research_evidence_cold_restore_reopens_exact_http"
       - name: Verify synthetic operator SDK application and isolated profile browser
         id: acceptance_06
-        if: ${{ !cancelled() && steps.acceptance_05i_boundary.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.acceptance_05r_boundary.outcome == 'success' }}
         env:
           # The harness owns a bounded loopback synthetic endpoint and generated
           # test credentials. No production endpoint/key or paid call is enabled.
@@ -551,7 +575,7 @@ jobs:
         run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
       - name: Export outcome-only evidence without diagnostic payloads
         if: always()
-        run: python script/summarize_ci_junit.py v1-research-trace-contracts-junit.xml m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml m3-research-contracts-junit.xml m3-window-engine-junit.xml m3-configured-application-junit.xml m5-portable-contracts-junit.xml v1-portable-upload-admission-junit.xml m5-portable-calendar-junit.xml m5-portable-isolation-junit.xml m5-native-final-application-junit.xml m5-portable-application-junit.xml m5-portable-final-application-junit.xml m6-backup-upgrade-junit.xml v1-operator-model-application-junit.xml v1-portable-operator-application-junit.xml v1-provider-research-application-junit.xml v1-strategy-authoring-application-junit.xml v1-result-exploration-application-junit.xml v1-independent-application-junit.xml v1-operations-application-junit.xml v1-cold-recovery-application-junit.xml frontend/test-results/junit.xml
+        run: python script/summarize_ci_junit.py v1-research-trace-contracts-junit.xml m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml m3-research-contracts-junit.xml m3-window-engine-junit.xml m3-configured-application-junit.xml m5-portable-contracts-junit.xml v1-portable-upload-admission-junit.xml m5-portable-calendar-junit.xml m5-portable-isolation-junit.xml m5-native-final-application-junit.xml m5-portable-application-junit.xml m5-portable-final-application-junit.xml m6-backup-upgrade-junit.xml v1-operator-model-application-junit.xml v1-portable-operator-application-junit.xml v1-provider-research-application-junit.xml v1-strategy-authoring-application-junit.xml v1-result-exploration-application-junit.xml v1-independent-application-junit.xml v1-evidence-restore-junit.xml v1-operations-application-junit.xml v1-cold-recovery-application-junit.xml frontend/test-results/junit.xml
       - name: Preserve bounded test evidence (no traces, credentials or source data)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -615,6 +639,51 @@ jobs:
             var/ci-evidence/*.xml
             var/ci-evidence/compose-images.json
             var/ci-evidence/v1-service-log-policy.json
+          retention-days: 14
+
+  research_capacity:
+    name: I7 exact-head full research-trace capacity and measured budget
+    needs: baseline
+    if: ${{ !((github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'native-final-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[native-final-diagnostic]')) || (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'live-sdk-diagnostic') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-sdk-diagnostic]'))) && inputs.provider_mode != 'live' && !(github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]')) }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Install only the hash-locked API analysis runtime
+        run: |
+          python -m venv .venv-api
+          .venv-api/bin/python -m pip install --require-hashes -r backend/requirements.lock
+          .venv-api/bin/python -m script.validate_runtime_split --runtime api
+      - name: Measure every frozen listing, session and variant without reuse or truncation
+        run: >-
+          .venv-api/bin/python script/research_trace_benchmark.py
+          --work-dir "$RUNNER_TEMP/research-trace-capacity"
+          --report "$RUNNER_TEMP/research-trace-capacity.json"
+          --require-clean
+      - name: Enforce the separate measured baseline and frozen query target
+        run: >-
+          .venv-api/bin/python script/research_trace_benchmark.py
+          --validate-report "$RUNNER_TEMP/research-trace-capacity.json"
+          --baseline docs/evidence/research-trace-capacity-baseline-20261023.json
+          --budget docs/evidence/research-trace-capacity-budget.v1.json
+          --require-clean
+      - name: Preserve bounded source-pinned measurements, not raw trace artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: v1-research-capacity-${{ github.sha }}
+          path: ${{ runner.temp }}/research-trace-capacity.json
+          if-no-files-found: error
           retention-days: 14
 
   live_sdk_diagnostic:

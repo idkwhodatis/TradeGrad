@@ -2,6 +2,10 @@ import type { DecisionDetail, StrategySpec } from "@/client/types.gen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { recordedValue, ruleObservation } from "@/lib/workbench-evidence";
+import {
+  ReplayTimestampCaveat,
+  replayTimestampPresentation,
+} from "./replay-timing";
 
 export function RuleCards({
   spec,
@@ -99,6 +103,9 @@ export function RuleCards({
                     No feature values on this loaded page.
                   </p>
                 )}
+                {!!features?.length && (
+                  <ReplayTimestampCaveat context={detail!.context} />
+                )}
                 {features?.map(({ observation: value }, index) => (
                   <div
                     className="mt-2 text-xs"
@@ -107,8 +114,9 @@ export function RuleCards({
                     <strong>{value.feature_id}</strong>:{" "}
                     {recordedValue(value.value)} {value.unit} · {value.validity}
                     <br />
-                    Information cutoff: {value.information_cutoff} ·{" "}
-                    {value.source}
+                    {
+                      replayTimestampPresentation(detail!.context).cutoffLabel
+                    }: {value.information_cutoff} · {value.source}
                     {value.missing_reason && <p>{value.missing_reason}</p>}
                   </div>
                 ))}

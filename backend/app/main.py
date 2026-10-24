@@ -19,7 +19,11 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.api.deps import CurrentUser, SessionDep
 from backend.app.core.config import Settings, get_settings
-from backend.app.core.db import create_db_engine, session_factory
+from backend.app.core.db import (
+    REQUIRED_SCHEMA_REVISION,
+    create_db_engine,
+    session_factory,
+)
 from backend.app.core.security import (
     DUMMY_HASH,
     create_access_token,
@@ -192,11 +196,14 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
     )
     def health_ready(session: SessionDep, response: Response):
         try:
-            session.execute(
-                text(
-                    "SELECT version_num FROM alembic_version WHERE version_num = '006_provider_connections'"
-                )
-            ).scalar_one()
+            revisions = (
+                session.execute(text("SELECT version_num FROM alembic_version"))
+                .scalars()
+                .all()
+            )
+            if revisions != [REQUIRED_SCHEMA_REVISION]:
+                response.status_code = 503
+                return HealthResponse(status="unavailable", database=False)
         except SQLAlchemyError:
             response.status_code = 503
             return HealthResponse(status="unavailable", database=False)

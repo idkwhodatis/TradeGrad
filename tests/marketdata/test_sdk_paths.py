@@ -4,6 +4,7 @@ import json
 import secrets
 import subprocess
 import sys
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -209,10 +210,21 @@ def test_actual_process_timeout_kills_sdk_and_descendant(monkeypatch, tmp_path):
         )
     assert child_pid_file.exists()
     child_pid = int(child_pid_file.read_text())
+    deadline = time.monotonic() + 2
     for pid in [parent_pids[0], child_pid]:
         stat = Path(f"/proc/{pid}/stat")
-        # The container init may reap a dead orphan asynchronously; zombie isn't running.
-        assert not stat.exists() or stat.read_text().split()[2] == "Z"
+        # communicate() waits for the direct child, not its grandchild. Even a
+        # pending SIGKILL can briefly leave the latter's /proc state as R. Wait
+        # for observed termination, never accept a signal alone as cleanup.
+        while True:
+            try:
+                state = stat.read_text().split()[2]
+            except FileNotFoundError:
+                break
+            if state == "Z":  # Dead orphan; init may reap it asynchronously.
+                break
+            assert time.monotonic() < deadline, "Owned SDK process remained alive"
+            time.sleep(0.01)
 
 
 def test_process_output_growth_is_hard_bounded_before_read(monkeypatch):

@@ -7,6 +7,7 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from backend.app.schemas import AttemptPublic, RunStatus
+from backend.app.trace_schemas import TimestampEvidence
 from packages.research_trace.comparison_contracts import (
     ALGORITHM_VERSION,
     TOLERANCE_VERSION,
@@ -108,6 +109,8 @@ class ComparisonResult(Contract):
     manifest: ComparisonManifest
     left_source: ComparisonSource
     right_source: ComparisonSource
+    left_timestamp_evidence: TimestampEvidence | None = None
+    right_timestamp_evidence: TimestampEvidence | None = None
 
 
 from packages.research_trace.comparison_contracts import ComparisonPage

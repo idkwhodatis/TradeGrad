@@ -1,13 +1,16 @@
-import os
 import argparse
 import json
 import math
-import pandas as pd
+import os
+
 import akquant as aq
+import pandas as pd
 
 try:
+    from .data_cache import localize_market_dates
     from .market import MARKETS, backtest_kwargs
 except ImportError:  # run as a script by the loss layer
+    from data_cache import localize_market_dates
     from market import MARKETS, backtest_kwargs
 
 
@@ -89,6 +92,9 @@ def run_backtest(
         from packages.tradegrad_adapter.results import validate_engine_overrides
 
         engine_kwargs.update(validate_engine_overrides(engine_overrides))
+
+    if profile == "corrected_explicit_config":
+        data_map = localize_market_dates(data_map, engine_kwargs["timezone"])
 
     context = {"target_symbol": symbol}
     if strategy_contract is not None:

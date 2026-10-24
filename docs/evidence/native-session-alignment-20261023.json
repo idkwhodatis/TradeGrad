@@ -1,0 +1,302 @@
+{
+  "versions": {
+    "akquant": "0.3.27",
+    "pandas": "2.3.3",
+    "numpy": "2.3.4"
+  },
+  "old_source_commit": "a706d1790dfef7be4e304948cec8274b3c8bbcc7",
+  "fixture_sha256": "9941f443642fe57278c417e177345a2875a1a5b106a3ba7ca4043e296bb97bc9",
+  "results": {
+    "cn_time": {
+      "source_sha256": "09600e5e14cb293dfd0411b697d4ff95774c045845884620d4686f11485401ba",
+      "old_evaluator_sha256": "1f3a492bbf4b5557f825013505c3e70fd2bf0630ad4180f0cf069ca1b304a263",
+      "before_legacy": {
+        "economic_sha256": "79777b2b2b2092273f02a58ac09450dcb61e563b91b07e27993640de47d9bf27",
+        "performance": {
+          "combined_score": 0.16,
+          "metrics": {
+            "sharpe_ratio": -11.04,
+            "annualized_return": -67.09,
+            "max_drawdown": 29.6,
+            "trade_per_day": 0.42,
+            "win_rate": 9.38,
+            "return_per_trade": -3.75
+          },
+          "market": "CN",
+          "profile": "source_compat"
+        }
+      },
+      "after_legacy": {
+        "economic_sha256": "79777b2b2b2092273f02a58ac09450dcb61e563b91b07e27993640de47d9bf27",
+        "performance": {
+          "combined_score": 0.16,
+          "metrics": {
+            "sharpe_ratio": -11.04,
+            "annualized_return": -67.09,
+            "max_drawdown": 29.6,
+            "trade_per_day": 0.42,
+            "win_rate": 9.38,
+            "return_per_trade": -3.75
+          },
+          "market": "CN",
+          "profile": "source_compat"
+        }
+      },
+      "before_corrected": {
+        "economic_sha256": "4710e91d9188a0e892d9cf51e199e7f1df9fbed60b46223f8bccfc927156f310",
+        "performance": {
+          "combined_score": 0.14,
+          "metrics": {
+            "sharpe_ratio": -11.49,
+            "annualized_return": -68.55,
+            "max_drawdown": 30.55,
+            "trade_per_day": 0.08,
+            "win_rate": 16.67,
+            "return_per_trade": -7.35
+          },
+          "market": "CN",
+          "profile": "corrected_explicit_config"
+        }
+      },
+      "after_corrected": {
+        "economic_sha256": "4710e91d9188a0e892d9cf51e199e7f1df9fbed60b46223f8bccfc927156f310",
+        "performance": {
+          "combined_score": 0.14,
+          "metrics": {
+            "sharpe_ratio": -11.49,
+            "annualized_return": -68.55,
+            "max_drawdown": 30.55,
+            "trade_per_day": 0.08,
+            "win_rate": 16.67,
+            "return_per_trade": -7.35
+          },
+          "market": "CN",
+          "profile": "corrected_explicit_config"
+        }
+      }
+    },
+    "cn_cross": {
+      "source_sha256": "486e13c83d179a1a9ba3e9d79614bdff75b001f34c470ce848b4da59b167a78e",
+      "old_evaluator_sha256": "2bb6031e062dba995861d3e5df863cd88664429e2ed1498cf2dd131bc0f045a6",
+      "before_legacy": {
+        "economic_sha256": "1dc6603c19e5c6f1f912f4cda873e632f022e9b923041bc56fbecc174e898bf8",
+        "performance": {
+          "combined_score": 98.13,
+          "metrics": {
+            "sharpe_ratio": 22.36,
+            "annualized_return": 97.6,
+            "max_drawdown": 0.18,
+            "trade_per_day": 25.59,
+            "win_rate": 72.54,
+            "return_per_trade": 5.12
+          },
+          "market": "CN",
+          "profile": "source_compat"
+        }
+      },
+      "after_legacy": {
+        "economic_sha256": "1dc6603c19e5c6f1f912f4cda873e632f022e9b923041bc56fbecc174e898bf8",
+        "performance": {
+          "combined_score": 98.13,
+          "metrics": {
+            "sharpe_ratio": 22.36,
+            "annualized_return": 97.6,
+            "max_drawdown": 0.18,
+            "trade_per_day": 25.59,
+            "win_rate": 72.54,
+            "return_per_trade": 5.12
+          },
+          "market": "CN",
+          "profile": "source_compat"
+        }
+      },
+      "before_corrected": {
+        "economic_sha256": "6dff843c2bd821cf212a9541f09813ec07de8451659c6cf58ac3666fa6d59b83",
+        "performance": {
+          "combined_score": 69.06,
+          "metrics": {
+            "sharpe_ratio": 50.28,
+            "annualized_return": 279.22,
+            "max_drawdown": 0.12,
+            "trade_per_day": 2.89,
+            "win_rate": 87.78,
+            "return_per_trade": 7.3
+          },
+          "market": "CN",
+          "profile": "corrected_explicit_config"
+        }
+      },
+      "after_corrected": {
+        "economic_sha256": "6dff843c2bd821cf212a9541f09813ec07de8451659c6cf58ac3666fa6d59b83",
+        "performance": {
+          "combined_score": 69.06,
+          "metrics": {
+            "sharpe_ratio": 50.28,
+            "annualized_return": 279.22,
+            "max_drawdown": 0.12,
+            "trade_per_day": 2.89,
+            "win_rate": 87.78,
+            "return_per_trade": 7.3
+          },
+          "market": "CN",
+          "profile": "corrected_explicit_config"
+        }
+      }
+    },
+    "us_time": {
+      "source_sha256": "ecdcc54ffe62c05db0220d6e3e5a48aab10145b7e34b3e0a5aa84e33f4d149e8",
+      "old_evaluator_sha256": "1f3a492bbf4b5557f825013505c3e70fd2bf0630ad4180f0cf069ca1b304a263",
+      "before_legacy": {
+        "economic_sha256": "86647745cafcbd65791f9c3f3d2617b7914407b6c5b920eb68f07f58e488b06c",
+        "performance": {
+          "combined_score": 2.78,
+          "metrics": {
+            "sharpe_ratio": -1.04,
+            "annualized_return": -34.47,
+            "max_drawdown": 18.63,
+            "trade_per_day": 0.25,
+            "win_rate": 52.63,
+            "return_per_trade": -0.05
+          },
+          "market": "US",
+          "profile": "source_compat"
+        }
+      },
+      "after_legacy": {
+        "economic_sha256": "86647745cafcbd65791f9c3f3d2617b7914407b6c5b920eb68f07f58e488b06c",
+        "performance": {
+          "combined_score": 2.78,
+          "metrics": {
+            "sharpe_ratio": -1.04,
+            "annualized_return": -34.47,
+            "max_drawdown": 18.63,
+            "trade_per_day": 0.25,
+            "win_rate": 52.63,
+            "return_per_trade": -0.05
+          },
+          "market": "US",
+          "profile": "source_compat"
+        }
+      },
+      "before_corrected": {
+        "economic_sha256": "404d3a1dde2a6a15478804ffed853a980c20949de10a440c3f66ea8845048484",
+        "performance": {
+          "combined_score": 0.09,
+          "metrics": {
+            "sharpe_ratio": -13.14,
+            "annualized_return": -72.02,
+            "max_drawdown": 32.82,
+            "trade_per_day": 1.03,
+            "win_rate": 35.9,
+            "return_per_trade": -1.87
+          },
+          "market": "US",
+          "profile": "corrected_explicit_config"
+        }
+      },
+      "after_corrected": {
+        "economic_sha256": "71044a0781713c282db733a53672ba1e8b21e147187c745ef5cd9284e0db62c4",
+        "performance": {
+          "combined_score": 2.78,
+          "metrics": {
+            "sharpe_ratio": -1.04,
+            "annualized_return": -34.48,
+            "max_drawdown": 18.63,
+            "trade_per_day": 0.25,
+            "win_rate": 52.63,
+            "return_per_trade": -0.05
+          },
+          "market": "US",
+          "profile": "corrected_explicit_config"
+        }
+      }
+    },
+    "us_cross": {
+      "source_sha256": "3621b9051b95aca0bca650fdc607acfa223c2fee18b47ccb4069367429a91b93",
+      "old_evaluator_sha256": "2bb6031e062dba995861d3e5df863cd88664429e2ed1498cf2dd131bc0f045a6",
+      "before_legacy": {
+        "economic_sha256": "1a2b9f8c5ba9c6da63712d61c36d5717491a9a51f2558cb0c2530bbebf14f0a2",
+        "performance": {
+          "combined_score": 0.0,
+          "metrics": {
+            "sharpe_ratio": -89.61,
+            "annualized_return": -90.31,
+            "max_drawdown": 52.07,
+            "trade_per_day": 35.78,
+            "win_rate": 30.85,
+            "return_per_trade": -2.31
+          },
+          "market": "US",
+          "profile": "source_compat"
+        }
+      },
+      "after_legacy": {
+        "economic_sha256": "1a2b9f8c5ba9c6da63712d61c36d5717491a9a51f2558cb0c2530bbebf14f0a2",
+        "performance": {
+          "combined_score": 0.0,
+          "metrics": {
+            "sharpe_ratio": -89.61,
+            "annualized_return": -90.31,
+            "max_drawdown": 52.07,
+            "trade_per_day": 35.78,
+            "win_rate": 30.85,
+            "return_per_trade": -2.31
+          },
+          "market": "US",
+          "profile": "source_compat"
+        }
+      },
+      "before_corrected": {
+        "economic_sha256": "10c306fd330dd68b448ce1ecfa17fe36bfa4c0a1a0322fc77aa508b631e8ffba",
+        "performance": {
+          "combined_score": 0.0,
+          "metrics": {
+            "sharpe_ratio": -96.17,
+            "annualized_return": -90.39,
+            "max_drawdown": 51.89,
+            "trade_per_day": 35.77,
+            "win_rate": 30.42,
+            "return_per_trade": -2.32
+          },
+          "market": "US",
+          "profile": "corrected_explicit_config"
+        }
+      },
+      "after_corrected": {
+        "economic_sha256": "7978c30708259c2a25e33c7b1fe9408cfda0f0786860613a9dc159febdea23e9",
+        "performance": {
+          "combined_score": 0.0,
+          "metrics": {
+            "sharpe_ratio": -89.61,
+            "annualized_return": -90.32,
+            "max_drawdown": 52.07,
+            "trade_per_day": 36.09,
+            "win_rate": 30.85,
+            "return_per_trade": -2.31
+          },
+          "market": "US",
+          "profile": "corrected_explicit_config"
+        }
+      }
+    }
+  },
+  "schema_version": "tradegrad.native-session-alignment.v1",
+  "scope": "local_actual_pinned_engine_component_evidence_not_docker_postgres_browser_or_market_data",
+  "pythonhashseed": "0",
+  "model_calls": 0,
+  "economic_hash_definition": "sorted_compact_json_of_orders_fills_positions_closed_trades_equity_metrics; random native IDs and pandas row labels excluded; all row values and order retained",
+  "source_files": {
+    "src/data_cache.py": "088f1260dc0a6871bcde15fda0265b32dbd4918c591ba5a174648cc998232a50",
+    "src/evaluate.py": "8d641457e592449fb5ee1445f907484e728591206788dd7f3b754a539bd7d065",
+    "src/evaluate_time.py": "fc30171e5b1db74483a2b954b9dfa986b5d224e35921852d8b68c739a438df14",
+    "packages/tradegrad_adapter/results.py": "823b6b36f9b93d365bd2a9abcf066087999fec308543c2e16dc28045a222975a"
+  },
+  "notes": [
+    "Original seed bytes and frozen baseline CSV hashes verified before execution.",
+    "Old evaluators were loaded from the exact old_source_commit, not a synthetic engine or recreated metric formula.",
+    "Date-only values are market-local midnight session labels, not exchange-close or information-availability claims.",
+    "before_corrected records preserve the previously frozen corrected-profile expectations. Both CN economic hashes remain unchanged.",
+    "All four source_compat economic hashes and complete performance objects match before versus after.",
+    "Production script/validate_baseline.py separately reproduced all after_corrected metrics with evaluator_environment PYTHONHASHSEED=0."
+  ]
+}

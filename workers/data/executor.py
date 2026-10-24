@@ -27,6 +27,7 @@ from backend.app.data_services import (
     fence_import,
     listing_contracts,
     persist_listings,
+    research_fixture_profile,
 )
 from backend.app.models import (
     DataBlock,
@@ -43,6 +44,34 @@ from packages.marketdata.contracts import (
     UploadMapping,
     make_listing,
 )
+
+
+def validate_research_fixture_policy(config, provider_name, kind, *, listings=None):
+    """Reject old/relabelled profile jobs before SDK work or checkpoint reuse.
+
+    Listing-ID requests are owner-resolved before their second admission check.
+    A symbol request can be rejected before constructing a provider at all.
+    """
+    if provider_name != "portable_fixture":
+        return
+    if listings is None and config.get("listing_ids"):
+        return
+    profile = research_fixture_profile(
+        {**config, "provider": provider_name}, listings=listings
+    )
+    if config.get("_execution", {}).get("fixture_profile") != profile:
+        raise ValueError("Pinned synthetic fixture profile disagrees with the request")
+    if profile is not None and listings is not None and kind != "resolve":
+        from packages.marketdata.native_research_fixture import validate_fixture_request
+
+        validate_fixture_request(
+            BarsRequest(
+                listings=listings,
+                start=date.fromisoformat(config["start_date"]),
+                end=date.fromisoformat(config["end_date"]),
+                price_mode=config.get("price_mode", "provider_native"),
+            )
+        )
 
 
 def is_synthetic_result(result: ProviderResult) -> bool:
@@ -747,6 +776,7 @@ def execute(import_id, generation, settings=None, factory=None):
                 error="Pinned import execution policy is incompatible with this worker; no data was fetched or reused",
             )
             return
+        validate_research_fixture_policy(config, provider_name, kind)
         from packages.marketdata.connections import validate_request_connection
 
         binding = validate_request_connection(config, provider_name, owner_id)
@@ -812,6 +842,9 @@ def execute(import_id, generation, settings=None, factory=None):
                     error="One or more requested securities could not be resolved; no dataset was published",
                 )
                 return
+            validate_research_fixture_policy(
+                config, provider_name, kind, listings=listings
+            )
             if kind == "resolve":
                 _set_status(
                     factory, item_id, generation, token, settings, "normalizing"

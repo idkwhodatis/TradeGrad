@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from .contracts import (
     CaptureConfig,
@@ -242,6 +242,10 @@ class ComparisonAssociation(Contract):
 
 
 class ComparisonRecord(Contract):
+    # Any-valued observations must never silently serialize nonfinite evidence
+    # as null. Canonical storage rejects these constants instead.
+    model_config = ConfigDict(**Contract.model_config, ser_json_inf_nan="constants")
+
     row_id: str
     section: str
     event_pair_id: str | None = None

@@ -72,6 +72,35 @@ class OwnedTrace:
     reader: TraceReader | None
 
 
+def timestamp_evidence(result):
+    """Qualify exact saved times without guessing exchange closes or upgrading old evidence."""
+    bundle = getattr(result, "bundle", {})
+    if bundle.get("evaluation_mode") == "portable":
+        return {
+            "timestamp_semantics": "portable_engine_instants",
+            "timestamp_caveat": None,
+        }
+    engine = bundle.get("engine", {})
+    if engine.get("name") == "akquant":
+        semantics = engine.get("series_semantics", {}).get("timestamps", "")
+        if (
+            bundle.get("identity", {}).get("profile") == "corrected_explicit_config"
+            and "market-local midnight session labels" in semantics
+        ):
+            return {
+                "timestamp_semantics": "native_daily_session_labels",
+                "timestamp_caveat": "Native daily decision, feature and information-cutoff timestamps are market-local midnight session labels, not observed exchange-close or data-availability instants. Same-session OHLC observations do not prove availability at midnight, intraday causality or absence of look-ahead. Saved labels are not rewritten to guessed exchange closes.",
+            }
+        return {
+            "timestamp_semantics": "native_recorded_unqualified",
+            "timestamp_caveat": "Historical native timestamps are retained exactly as recorded. Their daily session-label conversion and actual data-availability timing are not independently verified; do not infer an exchange-close instant, intraday causality or absence of look-ahead.",
+        }
+    return {
+        "timestamp_semantics": "unknown",
+        "timestamp_caveat": "Saved timestamp semantics are unavailable; no actual data-availability instant is inferred.",
+    }
+
+
 def load_owned_trace(
     session,
     evaluation_id,
@@ -129,6 +158,7 @@ def load_owned_trace(
         trace_manifest_sha256=None,
         status="not_collected",
         missing_reason="This immutable evaluation has no structured research capture; absent observations are not reconstructed.",
+        **timestamp_evidence(result),
     )
     reference = (evaluation.payload or {}).get("trace_manifest")
     if artifact is None:

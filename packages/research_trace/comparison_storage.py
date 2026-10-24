@@ -20,6 +20,13 @@ from pathlib import Path
 
 import duckdb
 
+from .comparison_codec import (
+    PROJECTED_FIELDS,
+    decode_record,
+    encode_record,
+    expanded_size_sql,
+    unsafe_numeric_sql,
+)
 from .comparison_contracts import (
     DEFAULT_LIMITS,
     SECTIONS,
@@ -45,6 +52,7 @@ _OUTPUT_SCHEMA = {
     "stage_id": "VARCHAR",
     "status": "VARCHAR",
     "payload": "VARCHAR",
+    "expanded_payload_bytes": "BIGINT",
 }
 
 
@@ -394,13 +402,14 @@ class ComparisonWriter:
         self.sequence = dict.fromkeys(SECTIONS, 0)
         self.artifacts, self.refs = [], []
         self.total_bytes = self.total_rows = 0
+        self.total_expanded_bytes = 0
         self.published_bytes = 0
 
     def append(self, record):
         self.control.check()
         record = ComparisonRecord.model_validate(record)
-        raw = canonical_bytes(record)
-        if len(raw) > self.limits.max_record_bytes:
+        raw, expanded_bytes = encode_record(record)
+        if expanded_bytes > self.limits.max_record_bytes:
             raise ComparisonError(
                 "comparison_capacity",
                 "An exact comparison record exceeds the output record budget",
@@ -408,11 +417,16 @@ class ComparisonWriter:
         section = record.section
         if self.buffers[section] and (
             len(self.buffers[section]) >= self.limits.block_rows
-            or self.sizes[section] + len(raw) > self.limits.block_bytes
+            or self.sizes[section] + expanded_bytes > self.limits.block_bytes
         ):
             self.flush(section)
         self.total_rows += 1
+        # As before, this aggregate counts the payload column, not the other
+        # index columns. It now bounds versioned compact JSON payload bytes.
+        # Public record/block/response limits continue to bound expanded bytes;
+        # published artifacts have their own unchanged aggregate cap below.
         self.total_bytes += len(raw)
+        self.total_expanded_bytes += expanded_bytes
         if (
             self.total_rows > self.limits.max_output_rows
             or self.total_bytes > self.limits.max_output_bytes
@@ -438,9 +452,10 @@ class ComparisonWriter:
                 "stage_id": record.stage_id,
                 "status": record.status,
                 "payload": raw.decode(),
+                "expanded_payload_bytes": expanded_bytes,
             }
         )
-        self.sizes[section] += len(raw)
+        self.sizes[section] += expanded_bytes
 
     def _publish(self, name, raw, media_type, rows, section):
         from backend.app.core.atomic_storage import publish_bytes
@@ -639,31 +654,79 @@ class ComparisonReader:
                         stack.enter_context(_verified_file(self.paths[ref.name], ref))
                     )
                 with control.connection() as connection:
+                    # Historical blocks have no decoded-size column. A union
+                    # permits mixed old/new blocks without rewriting either
+                    # artifact or changing its pinned checksum.
+                    schema = {
+                        row[0]: row[1]
+                        for row in connection.execute(
+                            "DESCRIBE SELECT * FROM read_parquet(?, union_by_name=true)",
+                            [paths],
+                        ).fetchall()
+                    }
+                    if (
+                        not (_OUTPUT_SCHEMA.keys() - {"expanded_payload_bytes"})
+                        <= schema.keys()
+                    ):
+                        raise ComparisonError()
+                    has_expanded = "expanded_payload_bytes" in schema
+                    if has_expanded and schema["expanded_payload_bytes"] != "BIGINT":
+                        raise ComparisonError()
+                    declared_size = "expanded_payload_bytes" if has_expanded else "NULL"
+                    expanded_size = expanded_size_sql(section)
+                    # Legacy payloads contain their projections too. Bound the
+                    # separately fetched columns independently, including for
+                    # a corrupt legacy row whose index disagrees with payload.
+                    projected_size = " + ".join(
+                        f"coalesce(octet_length(encode({field})),0)"
+                        for field in PROJECTED_FIELDS
+                        if field != "section"
+                    )
                     total = connection.execute(
-                        f"SELECT count(*) FROM read_parquet(?) WHERE {where}",
+                        f"SELECT count(*) FROM read_parquet(?, union_by_name=true) WHERE {where}",
                         [paths, *args],
                     ).fetchone()[0]
-                    size, largest = connection.execute(
-                        f"SELECT coalesce(sum(octet_length(encode(payload))),0),coalesce(max(octet_length(encode(payload))),0) FROM (SELECT payload FROM read_parquet(?) WHERE {where} ORDER BY row_number LIMIT ? OFFSET ?)",
+                    size, largest, invalid, projected_bytes = connection.execute(
+                        f"SELECT coalesce(sum(actual_size),0),coalesce(max(actual_size),0),count(*) FILTER (WHERE (declared_size IS NOT NULL AND declared_size != actual_size) OR actual_size <= 0 OR regexp_matches(payload, '[^\\x00-\\x7E]') OR {unsafe_numeric_sql()}),coalesce(sum(projected_size),0) FROM (SELECT payload,{expanded_size} AS actual_size,{declared_size} AS declared_size,{projected_size} AS projected_size FROM read_parquet(?, union_by_name=true) WHERE {where} ORDER BY row_number LIMIT ? OFFSET ?)",
                         [paths, *args, limit, offset],
                     ).fetchone()
+                    if invalid or largest > self.manifest.limits.max_record_bytes:
+                        raise ComparisonError()
                     if largest > MAX_RESPONSE_BYTES:
                         raise ComparisonError(
                             "comparison_detail_too_large",
                             "An exact comparison observation exceeds the browser detail budget; its immutable artifact retains all bytes",
                         )
-                    if size > MAX_RESPONSE_BYTES:
+                    if (
+                        size > MAX_RESPONSE_BYTES
+                        or projected_bytes > MAX_RESPONSE_BYTES
+                    ):
                         raise ComparisonError(
                             "comparison_query_too_large",
                             "Narrow the comparison selection or page size",
                         )
                     rows = connection.execute(
-                        f"SELECT payload FROM read_parquet(?) WHERE {where} ORDER BY row_number LIMIT ? OFFSET ?",
+                        f"SELECT payload,{declared_size},event_pair_id,session_date,instrument_id,stage_id,status FROM read_parquet(?, union_by_name=true) WHERE {where} ORDER BY row_number LIMIT ? OFFSET ?",
                         [paths, *args, limit, offset],
                     ).fetchall()
-                    items = [
-                        ComparisonRecord.model_validate_json(row[0]) for row in rows
-                    ]
+                    items, decoded_bytes = [], 0
+                    for row in rows:
+                        control.check()
+                        item, item_size = decode_record(
+                            row[0],
+                            dict(
+                                zip(PROJECTED_FIELDS, (section, *row[2:]), strict=True)
+                            ),
+                            row[1],
+                        )
+                        if item_size > self.manifest.limits.max_record_bytes:
+                            raise ComparisonError()
+                        if item_size > MAX_RESPONSE_BYTES:
+                            raise ComparisonError("comparison_detail_too_large")
+                        decoded_bytes += item_size
+                        if decoded_bytes > MAX_RESPONSE_BYTES:
+                            raise ComparisonError("comparison_query_too_large")
+                        items.append(item)
             page = ComparisonPage(
                 section=section,
                 availability=self.manifest.sections[section],
@@ -686,6 +749,7 @@ class ComparisonReader:
             KeyError,
             TypeError,
             ValueError,
+            RecursionError,
             duckdb.Error,
         ):
             control.check()

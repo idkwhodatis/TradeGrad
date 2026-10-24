@@ -136,6 +136,15 @@ def test_actual_future_ordinary_source_and_independent_replay_restore_same_seam(
     replay, observed = decoded(execute(restore=original["rng"]["state"]))
     assert source["bundle"]["schema_version"] == "tradegrad.result-bundle.v1"
     assert replay["bundle"]["schema_version"] == "tradegrad.result-bundle.v2"
+    for envelope in (source, replay):
+        assert (
+            "market-local midnight session labels"
+            in envelope["bundle"]["engine"]["series_semantics"]["timestamps"]
+        )
+        assert (
+            "not observed exchange-close"
+            in envelope["bundle"]["engine"]["series_semantics"]["timestamps"]
+        )
     assert original["rng"]["restored_from_sha256"] is None
     assert observed["rng"]["restored_from_sha256"] == original["rng"]["state_sha256"]
     assert observed["rng"]["state"] == original["rng"]["state"]

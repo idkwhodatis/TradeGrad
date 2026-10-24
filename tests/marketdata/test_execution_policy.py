@@ -69,3 +69,33 @@ def test_new_probe_and_repair_contract_is_explicitly_admitted():
     assert execution_policy_compatible(
         {**policy("live"), "worker_contract": "data-import.v2"}, "live"
     )
+
+
+def test_native_research_profile_has_a_separate_exact_generation_fence():
+    from packages.marketdata.contracts import (
+        NATIVE_RESEARCH_FIXTURE_PROFILE,
+        NATIVE_RESEARCH_FIXTURE_VERSION,
+        PORTABLE_FIXTURE_VERSION,
+    )
+
+    current = {
+        **policy(),
+        "fixture_profile": NATIVE_RESEARCH_FIXTURE_PROFILE,
+        "fixture_version": NATIVE_RESEARCH_FIXTURE_VERSION,
+    }
+    assert execution_policy_compatible(
+        current, "fixture", provider_name="portable_fixture"
+    )
+    for change in [
+        {"fixture_version": PORTABLE_FIXTURE_VERSION},
+        {"fixture_version": "controlled-cross.synthetic.future"},
+        {"fixture_profile": None},
+        {"fixture_profile": "unknown"},
+    ]:
+        assert not execution_policy_compatible(
+            {**current, **change}, "fixture", provider_name="portable_fixture"
+        )
+    assert not execution_policy_compatible(current, "fixture", provider_name="yfinance")
+    assert not execution_policy_compatible(
+        current, "live", provider_name="portable_fixture"
+    )

@@ -13,6 +13,7 @@ from pathlib import Path
 
 from script.ci_browser_diagnostics import failure_sites
 from script.compose_acceptance import run_browser
+from script.research_browser_acceptance import verify_research_browser_report
 
 
 def main():
@@ -26,7 +27,11 @@ def main():
         node = shutil.which("node")
         if not node:
             raise ValueError("Matched Node runtime unavailable")
+        report = root / "frontend/test-results/junit.xml"
+        if report.exists() or report.is_symlink():
+            raise ValueError("A stale browser report cannot establish fresh acceptance")
         run_browser(node, root, os.environ)
+        verify_research_browser_report(report)
         print("Hosted Chromium suite and owned-descendant cleanup passed")
     except Exception:  # noqa: BLE001 - no private child output or credentials
         try:

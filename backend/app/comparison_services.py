@@ -938,6 +938,8 @@ def _bounded_response(response, maximum):
 
 
 def comparison_result_view(result):
+    from backend.app.trace_services import timestamp_evidence
+
     return _bounded_response(
         ComparisonResult(
             comparison_id=result.comparison.id,
@@ -947,6 +949,8 @@ def comparison_result_view(result):
             manifest=result.manifest,
             left_source=result.sides[0].source,
             right_source=result.sides[1].source,
+            left_timestamp_evidence=timestamp_evidence(result.sides[0].trace.result),
+            right_timestamp_evidence=timestamp_evidence(result.sides[1].trace.result),
         ),
         8 * 1024**2,
     )

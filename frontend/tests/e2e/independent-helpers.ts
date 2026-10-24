@@ -61,7 +61,11 @@ export async function read<T>(
   ).toBe(200);
   return (await response.json()) as T;
 }
-async function rows<T>(request: APIRequestContext, auth: Token, path: string) {
+export async function rows<T>(
+  request: APIRequestContext,
+  auth: Token,
+  path: string,
+) {
   const result: T[] = [];
   for (;;) {
     const page = await read<{ data: T[]; count: number }>(
@@ -180,19 +184,20 @@ async function frozenSnapshot(request: APIRequestContext, auth: Token) {
     universe: (await universeResponse.json()) as UniversePublic,
   };
 }
-async function saveVersion(
+export async function saveVersion(
   request: APIRequestContext,
   auth: Token,
   template: ResearchTemplate,
   code: string,
   parent: StrategyDetail | null,
   manifest = template.manifest,
+  market: "cn" | "us" = "cn",
 ) {
   const response = await request.post(api("/strategy-versions"), {
     headers: { ...authorization(auth), "Idempotency-Key": crypto.randomUUID() },
     data: {
       name: `I5 ${parent ? "derived" : "baseline"} ${crypto.randomUUID()}`,
-      task: `cn_${template.task_suffix}`,
+      task: `${market}_${template.task_suffix}`,
       code,
       manifest,
       parent_id: parent?.id ?? null,
@@ -206,13 +211,18 @@ async function saveVersion(
   expect(strategy.manifest).toEqual(manifest);
   return strategy;
 }
-async function runActual(
+export async function runActual(
   request: APIRequestContext,
   owned: Owned,
   strategy: StrategyDetail,
   snapshot: Awaited<ReturnType<typeof frozenSnapshot>>,
   capabilities: ResearchCapabilities,
   commissionRate?: number,
+  options?: {
+    windows: ResearchRunCreate["windows"];
+    warmupSessions: number;
+    initialCash: number;
+  },
 ) {
   const profile = capabilities.profile_defaults.find(
     (item) =>
@@ -235,10 +245,11 @@ async function runActual(
     },
     seed_strategy: { id: strategy.id, sha256: strategy.content_sha256 },
     strategy_contract: strategy.manifest,
-    windows,
-    warmup: { ...profile!.warmup, sessions: 20 },
+    windows: options?.windows ?? windows,
+    warmup: { ...profile!.warmup, sessions: options?.warmupSessions ?? 20 },
     market_profile: {
       ...structuredClone(profile!.market_profile),
+      ...(options ? { initial_cash: options.initialCash } : {}),
       ...(commissionRate === undefined
         ? {}
         : { commission_rate: commissionRate }),

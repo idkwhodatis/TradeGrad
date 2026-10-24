@@ -16,6 +16,10 @@ import {
   marketTime,
   observationValue,
 } from "@/lib/replay-evidence";
+import {
+  ReplayTimestampCaveat,
+  replayTimestampPresentation,
+} from "./replay-timing";
 
 export type ReplayUpdate = (
   patch: Partial<WorkbenchSelection>,
@@ -429,6 +433,7 @@ export function ConditionsAndFeatures({
         }
       />
       <h3 className="mt-4">Recorded features</h3>
+      <ReplayTimestampCaveat context={detail.context} />
       <EvidenceTable
         testId="replay-features-table"
         headers={[
@@ -436,7 +441,7 @@ export function ConditionsAndFeatures({
           "Actual value / unit",
           "Validity / missing reason",
           "Calculation window",
-          "Information cutoff",
+          replayTimestampPresentation(detail.context).cutoffLabel,
           "Source",
         ]}
       >

@@ -29,6 +29,7 @@ from script.compose_browser_launcher import (
     browser_command,
     browser_environment,
 )
+from script.research_browser_acceptance import require_research_cases
 from script.summarize_ci_junit import summarize
 
 API = "http://127.0.0.1:8000"
@@ -246,7 +247,9 @@ def wait_ready(owner):
     raise TimeoutError("Explicit API and owned Vite did not become ready")
 
 
-def export_junit(source, destination, *, live=False, diagnostic_root=None):
+def export_junit(
+    source, destination, *, live=False, diagnostic_root=None, require_research=False
+):
     """Raw private reports never enter uploaded paths. Missing/empty is failure."""
     if (
         source.is_symlink()
@@ -283,6 +286,8 @@ def export_junit(source, destination, *, live=False, diagnostic_root=None):
         or next(report.iter("failure"), None) is not None
     ):
         raise ValueError("Actual passing test cases are required")
+    if require_research:
+        require_research_cases(cases)
     if live and (
         len(passed) < 3
         or len(passed) != len(cases)
@@ -341,6 +346,8 @@ def exercise(owner, root, source, private, node, mode):
             root / "frontend/test-results/junit.xml",
             live=mode == "live",
             diagnostic_root=root,
+            require_research=mode == "fixture"
+            and acceptance_stage(source) == "completion",
         )
     if mode == "live" or acceptance_stage(source) == "m5":
         return

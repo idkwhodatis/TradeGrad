@@ -123,7 +123,7 @@ def test_selectors_never_launch_other_jobs_for_live_sdk_diagnosis(
         if mode != "live" and not (
             event == "push" and "[live-data]" in message.casefold()
         ):
-            expected.add("compose")
+            expected.update({"compose", "research_capacity"})
     assert selected == expected
 
 
@@ -140,11 +140,13 @@ def test_dispatch_defaults_and_full_acceptance_dependencies_remain_unchanged():
         "baseline",
         "application",
         "compose",
+        "research_capacity",
         "native_final_diagnostic",
         "live_sdk_diagnostic",
     }
     assert _field(JOBS["application"], "needs") == "baseline"
     assert _field(JOBS["compose"], "needs") == "baseline"
+    assert _field(JOBS["research_capacity"], "needs") == "baseline"
     assert "needs:" not in DIAGNOSTIC
     assert "not full acceptance" in _field(DIAGNOSTIC, "name")
     assert _field(DIAGNOSTIC, "timeout-minutes") == "15"
@@ -248,6 +250,12 @@ def test_only_bounded_json_is_preserved_even_after_probe_failure():
     assert not any(
         value in DIAGNOSTIC for value in ("*.xml", "*.json", "junit", "trace.zip")
     )
-    for job in ("baseline", "application", "compose", "native_final_diagnostic"):
+    for job in (
+        "baseline",
+        "application",
+        "compose",
+        "research_capacity",
+        "native_final_diagnostic",
+    ):
         assert REPORT not in JOBS[job]
         assert "live-sdk-DIAGNOSTIC-" not in JOBS[job]

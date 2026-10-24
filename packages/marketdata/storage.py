@@ -20,6 +20,9 @@ def write_bundle(directory: Path, request: BarsRequest, result: ProviderResult) 
     import pyarrow as pa
     import pyarrow.parquet as pq
 
+    from .native_research_fixture import profile_metadata, validate_research_bundle
+
+    native_research = validate_research_bundle(request, result)
     directory = Path(directory)
     if directory.is_symlink():
         raise ValueError("Bundle staging directory cannot be a symlink")
@@ -181,6 +184,10 @@ def write_bundle(directory: Path, request: BarsRequest, result: ProviderResult) 
     if declaration is not None:
         manifest["data_evidence"] = "user_declaration_unverified"
         manifest["is_synthetic"] = False
+    if native_research:
+        manifest["data_evidence"] = "synthetic_fixture_not_live"
+        manifest["is_synthetic"] = True
+        manifest["fixture_profile"] = profile_metadata()
     manifest["content_hash"] = hashlib.sha256(canonical_json(manifest)).hexdigest()
     with (directory / "manifest.json").open("xb") as file:
         file.write(canonical_json(manifest))

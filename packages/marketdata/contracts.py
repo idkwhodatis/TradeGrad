@@ -434,6 +434,8 @@ class UploadMapping(Contract):
 # A retry must not combine checkpointed bars from different fixture algorithms.
 FIXTURE_VERSION = "synthetic-daily.v3"
 PORTABLE_FIXTURE_VERSION = "portable.synthetic.daily.v1"
+NATIVE_RESEARCH_FIXTURE_VERSION = "controlled-cross.synthetic.v1"
+NATIVE_RESEARCH_FIXTURE_PROFILE = "controlled_cross_section"
 
 
 def execution_policy_compatible(
@@ -446,6 +448,15 @@ def execution_policy_compatible(
         if provider_name == "portable_fixture"
         else FIXTURE_VERSION
     )
+    profile = policy.get("fixture_profile")
+    if profile is not None:
+        if (
+            provider_name != "portable_fixture"
+            or provider_mode != "fixture"
+            or profile != NATIVE_RESEARCH_FIXTURE_PROFILE
+        ):
+            return False
+        fixture = NATIVE_RESEARCH_FIXTURE_VERSION
     return (
         policy.get("schema_version") == SCHEMA_VERSION
         and policy.get("transform_version") == TRANSFORM_VERSION

@@ -568,3 +568,235 @@ source restore selections, stale cached frontend outcome display, unsafe export
 markup and eager large-corpus materialization. No concrete blocking finding
 remained in the reviewed boundaries. Exact-head hosted PostgreSQL concurrency,
 cold restore, Docker and actual browser validation are still mandatory in I7.
+
+## I7 integration and release contract
+
+The [seven-step workflow guide](V1_RESEARCH_WORKFLOW.md) describes the user-facing
+journey. `continuous-research.spec.ts` executes it against the actual application,
+not network mocks: code lineage, source-bound rule and read-only graph, the B/C
+decision, parent comparison with both pre-states, independent fixed-condition
+arms, an evidence note, and exact restoration after reload and a new login.
+The B assertion follows positive order intent through explicit child-order IDs
+to a real filled buy and its fill row. C's non-trade and the independent
+liquidity-disabled arm's changed eligibility/selection are checked separately.
+Successful job status alone is not evidence that the planned mechanism ran.
+
+- The new A/B/C/D fixture is explicitly versioned
+  `controlled-cross.synthetic.v1`, fixture-only, unmixed, canonical US/XNYS, and
+  bounded to `[2024-01-02,2024-03-01)`. All 164 bars come from the repeated frozen
+  hand-worked sample. The API pins the profile and generator; retrying workers
+  check symbol policy before provider construction and owner-resolved listings
+  before fetch/checkpoint reuse. Legacy fixture identity and outputs are retained.
+- A real native reproduction exposed wrong source sessions in corrected US
+  execution. The [narrow session correction](NATIVE_SESSION_ALIGNMENT.md) changes
+  actual engine inputs, not trace labels. Both templates, CN/US, DST transitions,
+  source/callback/equity correspondence, membership boundaries, warmup, future
+  mutation and trace parity are covered. All four original `source_compat`
+  economics remain unchanged; only genuinely changed corrected-US baselines are
+  remeasured, with prior values retained.
+- Timestamp meaning is derived at read time from the exact admitted result.
+  New corrected native evidence discloses daily midnight session labels, old
+  native evidence remains timing-unqualified, and portable engine instants keep
+  their contract. Decision and feature cutoffs, charts and both comparison
+  pre-states show the qualification without rewriting immutable old manifests.
+- Readiness now requires the sole applied migration head
+  `010_research_notes`, not the obsolete 006 head. Missing, stale, future and
+  multiple revisions fail closed. A contract test keeps the executable's schema
+  requirement synchronized with the actual Alembic head.
+- The completed-evidence cold-restore case runs real diagnostics, successful,
+  no-trade and failed controlled arms, a comparison and versioned notes. It
+  proves process/container/query closure and exclusive cold-backup guards,
+  restores PostgreSQL and retained bytes into a fresh disposable database/root,
+  then reopens exact hashes and Markdown through a new API process and login.
+  It also checks foreign owners and mismatched pins. It has no SQLite substitute.
+
+The hosted workflow keeps PostgreSQL integration, isolated process recovery,
+application Chromium and independent full-Compose Chromium gates. The completed
+evidence restore is a required isolated acceptance group with the existing
+verified-cleanup boundary before the next group. The browser gate requires
+**17 exact research scenario identities**, including both controlled template
+graphs and the continuous journey. Missing, skipped, failed or duplicate cases
+cannot be disguised by other passing tests or by collection-only JUnit.
+
+Full capacity measurement has a separate runner and must run fresh from the
+exact clean published head. It retains the complete frozen workload, checks all
+physical trace tables, records actual runtime/hardware and source provenance for
+every phase, and independently validates the committed measured budget. Resume
+cannot attach old timings to changed source, dependencies or runtime identity.
+Its first-open measurements do not claim an operating-system cache flush, and
+cached comparison reads are not advertised as HTTP/PostgreSQL cache latency.
+
+### Original measured capacity failure, retained as evidence
+
+The original full workload admitted all 750 × 1,000 candidate, feature and
+predicate rows per side. Its baseline-versus-comment-only comparison terminated
+with `comparison_capacity` after **276.483900 seconds**, peak RSS
+**206,598,144 bytes**, before the unchanged 300-second deadline. The original
+2,147,483,648-byte guard counted expanded canonical comparison payloads.
+The 264 published partial blocks retained 2,026,930 rows and 2,132,921,446 payload
+bytes; there was no complete manifest and therefore no completed/cached result.
+The separate earlier executor interruption is not described as a capacity
+failure. The bounded, source-pinned receipt is retained in
+`docs/evidence/research-trace-capacity-original-failure-20261023.json`.
+
+The lossless versioned storage correction and its full-scale rerun must be
+reported separately from that original accounting baseline. Public comparison
+records, both sides' IDs, null/missing states and every retained observation must
+round-trip exactly. Any compact aggregate-byte accounting must be explicit;
+expanded per-record/block/page protections, published-artifact bounds, query
+memory/thread/no-spill limits and the default deadline remain separate guards.
+
+### Versioned lossless comparison storage and capacity accounting
+
+`tradegrad.comparison-row.v2` is a physical Parquet payload codec, not a new
+comparison algorithm or a change to public `ComparisonRecord` semantics. It
+omits only fixed top-level defaults and fields already stored in the same row's
+indexed columns. Both nested observations, pre-states, associations, order/fill
+IDs and their null-versus-missing distinctions are retained. Decoding restores
+the exact original canonical public record. Old full-JSON rows and mixed old/new
+blocks remain readable without rewriting existing manifests, artifact hashes or
+completed comparison cache identities.
+
+Accounting version `encoded_payload_and_published_artifacts.v2` changes the
+basis explicitly: the aggregate 2 GiB payload guard now
+counts the encoded physical JSON payloads, whereas the retained failed baseline
+counted fully expanded public-record JSON. This is not a claim that the previous
+expanded aggregate bound passed. The separate 2 GiB published-artifact guard,
+40-million-row guard, 32 MiB expanded-record guard and 4 MiB complete browser-page
+guard remain. Writer blocks still use expanded byte counts for the nominal
+8 MiB buffer target (a single record may exceed that target up to the unchanged
+record ceiling). Query memory is 256 MiB, one thread, with no disk spill; the
+comparison operation's default deadline remains 300 seconds.
+
+Before fetching selected payloads into Python, the reader bounds both expanded
+canonical bytes and separately projected columns, checks physical sizes against
+new-row declarations, and rejects noncanonical encodings that could amplify on
+reconstruction. It then strictly decodes and independently rechecks each record
+and the complete response. A compact or corrupt size declaration alone cannot
+admit an oversized page. Exact evidence that exceeds a browser bound remains in
+its immutable artifact and produces an explicit capacity error, not truncation.
+
+The full-scale acceptance report must state encoded payload bytes, expanded
+canonical bytes and actual compressed artifact bytes separately. Its separate
+bounded audit decodes every persisted comparison row and checks both sides
+against the original immutable traces. This verification has its own explicit
+900-second deadline, interruptible owned DuckDB connections, and independent
+source-record, byte and frozen-row bounds. Audit elapsed time is reported
+separately, not silently folded into or excluded from the comparison's reported
+300-second execution deadline. The original failed accounting receipt remains
+alongside the new measured result.
+
+
+### Full-size measured result, 2026-10-23
+
+The [source-pinned baseline report](evidence/research-trace-capacity-baseline-20261023.json)
+and [measured regression budget](evidence/research-trace-capacity-budget.v1.json)
+passed their independent validator. All **1,000 listings × 750 sessions × three
+variants** were retained: 6,750,000 candidate/feature/predicate detail rows, with
+complete physical coverage and no hidden pool reduction or truncation.
+
+- Collection took 63.719, 65.279 and 66.482 seconds. Each variant retained about
+  11.75 million compressed artifact bytes; peak process RSS was at most
+  164,679,680 bytes.
+- The 360 trace-reader samples cover two query shapes, three variants and 30
+  samples for each first-open/hot combination. Candidate-page P95 was
+  32.607–58.027 ms; instrument/stage-detail P95 was 80.790–103.349 ms. The latter
+  includes event resolution, decision header, stage metadata, selected features
+  and predicates. All remain below the frozen 2,000 ms target.
+- Baseline versus the comment-only variant completed comparison in **287.290 s**;
+  baseline versus the mechanism variant completed in **274.488 s**. Both used
+  the unchanged 300-second production comparison deadline. The separately
+  measured exhaustive audits took **298.427 s** and **294.316 s**, within their
+  independent 900-second limit, and confirmed synchronous connection closure.
+- The audits round-tripped every one of **2,252,251** and **2,253,751** comparison
+  rows. Both original sides' candidate, feature, predicate, event and target
+  observations match their independently streamed restored canonical bytes and
+  hashes. This is not a sampled round-trip assertion.
+- Encoded payloads were **1,870,339,406 / 1,870,688,906 bytes**; reconstructed
+  public records were **2,368,825,532 / 2,369,520,032 bytes**; compressed published
+  artifacts were **123,024,055 / 123,143,156 bytes**. Thus the new encoded-byte
+  accounting passes while the old expanded aggregate would not. Peak comparison
+  worker RSS, including its audit, was **184,655,872 / 187,740,160 bytes**.
+- Thirty actual immutable-artifact cached reads per comparison produced P95
+  **48.199 / 43.542 ms**. These include manifest integrity and an indexed candidate
+  page, not a hash-only lookup, HTTP cache or PostgreSQL latency claim.
+
+The measured machine reported Python 3.12.14, pinned DuckDB 1.4.5, AMD EPYC 9V74,
+nine visible logical CPUs and an overlay filesystem. Dedicated CPU allocation
+and SSD media were not established; PostgreSQL was not exercised. This is not
+certification of the stated reference hardware or a production service SLO.
+The comment-only comparison correctly remains globally `insufficient_coverage`
+because this capacity fixture does not invent execution economics; equality is
+established only for the fully retained named trace observations. The changed
+variant reports changed recorded behavior, not a causal or profitability claim.
+
+Two execution-session interruptions left partial comparisons without manifests
+or terminal receipts. They are recorded as interruptions, not capacity failures.
+Completed collection, physical-audit and query receipts were reused only after
+revalidating identical source hashes, parent HEAD and runtime/hardware identity.
+Neither partial comparison output was reused. Both complete comparisons and
+exhaustive audits then finished in uninterrupted worker processes. The report
+records this resumption and distinguishes overall wall time from measured phase
+times. Hosted CI performs a fresh, non-resumed measurement from the exact clean
+published head and independently enforces the committed budget.
+
+The first successful measured baseline freezes 2× elapsed/query-time and 1.5×
+peak-RSS/compressed-byte regression bounds, with the 2,000 ms query-P95 target
+still mandatory. Neither the comparison deadline nor the production evidence
+capacity guards are silently raised by these regression multipliers.
+
+Post-measurement independent review found that the offline report validator
+enforced the regression multiplier but did not separately reject a reported
+comparison time above 300 seconds. The production comparison already enforced
+that deadline, and both measured runs were below it. The validator now rejects
+nonfinite, nonpositive or greater-than-300,000-ms values explicitly; a 301-second
+regression verifies that a larger measured budget cannot override this ceiling.
+This is validator hardening after the measurement, not a remeasurement. The
+historical report and budget remain byte-identical with their original source
+hashes; the final source still requires a fresh clean-head hosted run.
+
+### I7 local integration candidate, hosted release gate still pending
+
+The completed local checks on 2026-10-23 are separate, overlapping groups and
+must not be added into a unique-test count:
+
+| Executed check | Outcome |
+| --- | --- |
+| Backend, runner, operations and trace contracts, with native interpreter required | 2,433 passed, no skips |
+| Actual AKQuant four-seed baselines and native result/protocol tests | 132 passed, no skips |
+| Trusted research/TradeTGD contracts | 357 passed, no skips |
+| Portable contracts in the separate research runtime | 985 passed; one calendar-dependent case deferred to the data-runtime group below |
+| Installed provider SDK parsers and market-data contracts, no live transport | 193 passed; three explicit local-engine bridges deferred to the next group; one optional live case deselected |
+| Data-runtime native bridges, installed-calendar semantics and portable upload admission | 185 passed, no skips; covers the deferred bridge/calendar cases above |
+| Actual configured-window and native result-view bridges | 27 passed, no skips |
+| Final workflow selectors, acceptance boundaries and capacity-validator regressions | 148 passed, including all 45 capacity-contract cases |
+| Frontend unit tests | 1,011 passed across 64 files; typecheck, build and formatting passed |
+
+The new isolated data runtime verified all 106 pinned package versions; API and
+research runtimes verified 50 and 56 respectively. Original environments and
+the original feature branch were not upgraded or rewritten. OpenAPI and the
+complete generated client were regenerated byte-identically. Offline PostgreSQL
+migration SQL through `010_research_notes` rendered successfully (80,568 bytes),
+but this is not evidence of applying migrations to a running database. Changed
+Python files passed lint, retaining only the two documented legacy evaluator
+rule exclusions; formatting passed for all 42 nonlegacy changed Python files.
+
+The first final aggregate caught 19 stale workflow-selector expectations that
+omitted the newly required capacity job. The corrected selector matrix confirms
+it runs only in the full fixture gate and never in either diagnostic or live
+profile. A supplementary installed-SDK test exposed an existing one-shot
+grandchild-termination observation race. Owned-process probes reproduced pending
+SIGKILL with unchanged process identity and subsequent termination, not a leaked
+or reused process. The test now waits at most two seconds for observed absence
+or zombie state and still fails on a live descendant. The production timeout,
+process-group kill and isolation contract were not weakened. Both original
+failed receipts were retained; neither is retroactively called a pass.
+
+**Collected, not executed locally:** 64 Playwright scenarios across 18 files,
+the eight new PostgreSQL fixture cases, and the real completed-evidence cold
+restore case. Collection is not permission, ownership, browser, backup or
+recovery acceptance. Full PostgreSQL integration, Docker containment/recovery,
+application Chromium, independent Compose Chromium, completed-evidence cold
+restore, and a fresh full capacity measurement must still pass at the exact
+published head. No I7 release-complete or V2-ready claim is made by this local
+candidate. Original public-provider limitations remain unchanged.

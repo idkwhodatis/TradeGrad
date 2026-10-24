@@ -23,7 +23,17 @@ class TraceView(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class TraceContext(TraceView):
+class TimestampEvidence(TraceView):
+    timestamp_semantics: Literal[
+        "native_daily_session_labels",
+        "native_recorded_unqualified",
+        "portable_engine_instants",
+        "unknown",
+    ] = "unknown"
+    timestamp_caveat: str | None = None
+
+
+class TraceContext(TimestampEvidence):
     evaluation_id: UUID
     execution_attempt_id: UUID
     result_manifest_sha256: Sha256

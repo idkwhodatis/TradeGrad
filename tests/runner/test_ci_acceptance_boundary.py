@@ -145,6 +145,7 @@ def test_research_notes_require_actual_postgres_without_filtered_acceptance():
         if "run: .venv-data/bin/python -m pytest tests/integration " in block
     )
     assert 'TRADEGRAD_NOTES_POSTGRES_REQUIRED: "1"' in postgres
+    assert 'TRADEGRAD_RESEARCH_FIXTURE_POSTGRES_REQUIRED: "1"' in postgres
     assert "--ignore" not in postgres and " -k " not in postgres
     assert "continue-on-error" not in postgres and "|| true" not in postgres
     assert "--junitxml=m1-m2-postgres-junit.xml" in postgres
@@ -318,3 +319,55 @@ def test_independent_runtime_acceptance_is_mandatory_and_keeps_safe_evidence():
         assert name in boundary
     exports = [block for block in blocks if "script/summarize_ci_junit.py" in block]
     assert any(report in block for block in exports)
+
+
+def test_completed_evidence_restore_is_required_and_preserves_safe_evidence():
+    import re
+    from pathlib import Path
+
+    workflow = (
+        Path(__file__).resolve().parents[2] / ".github/workflows/v1-validation.yml"
+    ).read_text()
+    blocks = re.split(r"(?=^      - name: )", workflow, flags=re.MULTILINE)
+    group = next(block for block in blocks if "id: acceptance_05r\n" in block)
+    assert 'TRADEGRAD_REQUIRE_EVIDENCE_RESTORE: "1"' in group
+    assert "tests/system/test_research_evidence_restore.py -q" in group
+    assert "timeout-minutes: 20" in group
+    report = "v1-evidence-restore-junit.xml"
+    assert f"--junitxml={report}" in group
+    assert "continue-on-error" not in group and "|| true" not in group
+    boundary = next(
+        block for block in blocks if "id: acceptance_05r_boundary\n" in block
+    )
+    assert (
+        "test_real_completed_research_evidence_cold_restore_reopens_exact_http"
+        in boundary
+    )
+    assert any(
+        report in block for block in blocks if "script/summarize_ci_junit.py" in block
+    )
+
+
+def test_full_scale_capacity_has_independent_exact_head_gate_not_small_smoke():
+    from pathlib import Path
+
+    workflow = (
+        Path(__file__).resolve().parents[2] / ".github/workflows/v1-validation.yml"
+    ).read_text()
+    assert '"docs/evidence/research-trace-capacity*.json"' in workflow
+    job = workflow.split("  research_capacity:\n", 1)[1].split(
+        "\n  live_sdk_diagnostic:", 1
+    )[0]
+    assert "needs: baseline" in job and "timeout-minutes: 35" in job
+    assert "persist-credentials: false" in job
+    assert "--require-hashes -r backend/requirements.lock" in job
+    assert job.count("--require-clean") == 2
+    assert '--work-dir "$RUNNER_TEMP/research-trace-capacity"' in job
+    assert '--validate-report "$RUNNER_TEMP/research-trace-capacity.json"' in job
+    assert (
+        "--baseline docs/evidence/research-trace-capacity-baseline-20261023.json" in job
+    )
+    assert "--budget docs/evidence/research-trace-capacity-budget.v1.json" in job
+    assert "--sessions" not in job and "--resume" not in job and "--task" not in job
+    assert "continue-on-error" not in job and "|| true" not in job
+    assert "path: ${{ runner.temp }}/research-trace-capacity.json" in job

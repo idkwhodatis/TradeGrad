@@ -36,6 +36,44 @@ def digest(value):
     return hashlib.sha256(canonical(value)).hexdigest()
 
 
+def research_fixture_profile(request, *, listings=None):
+    """SDK-free profile admission shared by the API and retrying data worker.
+
+    Legacy fixture requests retain their original execution-policy bytes. The
+    four-symbol research profile has a distinct immutable generator identity.
+    Listing-ID submissions are checked after owner-scoped registry resolution.
+    """
+    if request.get("provider") != "portable_fixture":
+        return None
+    from packages.marketdata.native_research_fixture import (
+        END,
+        START,
+        fixture_profile_for_listings,
+        fixture_profile_for_symbols,
+    )
+
+    try:
+        profile = (
+            fixture_profile_for_listings(listings)
+            if listings is not None
+            else fixture_profile_for_symbols(request.get("symbols", []))
+        )
+        if profile is not None:
+            if request.get("market") != "US":
+                raise ValueError("Research fixture supports its declared US venue only")
+            if "start_date" in request and not (
+                str(START) <= request["start_date"] < request["end_date"] <= str(END)
+            ):
+                raise ValueError("Research fixture window is unavailable")
+        return profile
+    except (ValueError, TypeError, KeyError) as error:
+        raise DomainError(
+            "research_fixture_unavailable",
+            "Synthetic research fixture requires unmixed canonical A/B/C/D US listings and a window within [2024-01-02,2024-03-01)",
+            422,
+        ) from error
+
+
 def owned_import(session, import_id, owner_id, lock=False):
     query = select(DataImport).where(
         DataImport.id == import_id, DataImport.owner_id == owner_id
@@ -300,6 +338,7 @@ def submit_import(
             "repair_mode_required", "Repair reference requires repair mode", 422
         )
     ids = request.get("listing_ids", [])
+    listings = None
     if ids:
         listings = listing_contracts(session, owner_id, ids)
         for listing in listings:
@@ -309,6 +348,7 @@ def submit_import(
                     "Listing does not match selected market",
                     422,
                 )
+    fixture_profile = research_fixture_profile(request, listings=listings)
     universe_id = request.get("universe_version_id")
     if universe_id:
         universe = session.scalar(
@@ -345,6 +385,7 @@ def submit_import(
         raise DomainError("import_quota", "Active import limit reached", 429)
     from packages.marketdata.contracts import (
         FIXTURE_VERSION,
+        NATIVE_RESEARCH_FIXTURE_VERSION,
         PORTABLE_FIXTURE_VERSION,
         SCHEMA_VERSION,
         TRANSFORM_VERSION,
@@ -370,6 +411,11 @@ def submit_import(
         if settings.data_provider_mode == "fixture"
         else None,
     }
+    if fixture_profile is not None:
+        request["_execution"].update(
+            fixture_profile=fixture_profile,
+            fixture_version=NATIVE_RESEARCH_FIXTURE_VERSION,
+        )
     item = DataImport(
         id=uuid4(),
         owner_id=owner_id,

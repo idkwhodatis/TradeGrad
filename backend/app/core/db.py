@@ -4,6 +4,10 @@ from sqlalchemy.orm import sessionmaker
 from backend.app.core import maintenance  # noqa: F401 -- installs transaction admission guard
 from backend.app.core.config import Settings
 
+# This executable requires the complete increment schema, not merely a prior
+# supported backup revision. An offline contract test pins this to Alembic head.
+REQUIRED_SCHEMA_REVISION = "010_research_notes"
+
 
 def create_db_engine(settings: Settings):
     return create_engine(
