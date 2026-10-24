@@ -190,7 +190,7 @@ jobs:
       - name: Validate portable calendar semantics with installed pinned calendar library
         run: .venv-data/bin/python -m pytest tests/portable/test_engine.py -q --junitxml=m5-portable-calendar-junit.xml
       - name: Validate supervisor contracts
-        run: python -m pytest backend/tests tests/runner tests/operations --ignore=tests/runner/test_research_result_protocol.py -q --junitxml=m1-supervisor-junit.xml
+        run: python -m pytest backend/tests tests/runner tests/operations tests/system/test_final_workbench_contract.py --ignore=tests/runner/test_research_result_protocol.py -q --junitxml=m1-supervisor-junit.xml
       - name: Validate real PostgreSQL transactions and Procrastinate schema
         env:
           TRADEGRAD_TRACE_POSTGRES_REQUIRED: "1"

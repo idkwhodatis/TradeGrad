@@ -231,9 +231,28 @@ def test_real_portable_freeze_final_reference_export_and_retry(
     )
     content = h.request(client, "GET", result_path + "/download").content
     bundle = validate_portable_result(content)
+    require(
+        view["section"] == "decision_trace"
+        and view["offset"] == 0
+        and view["limit"] == 1
+        and view["rows"] == bundle["decision_trace"][:1]
+        and view["count"] == len(bundle["decision_trace"]),
+        "Bounded portable final query differs from immutable decision evidence",
+    )
+    h.request(client, "GET", result_path, params={"limit": 501}, status=422)
+    h.request(client, "GET", result_path, params={"offset": -1}, status=422)
     from workbench_assertions import assert_final_workbench
 
-    assert_final_workbench(h, client, other, item, selected)
+    assert_final_workbench(
+        h,
+        client,
+        other,
+        item,
+        selected,
+        mode="portable_final",
+        content=content,
+        result_view=view,
+    )
     assert_mode_exploration(
         h,
         client,

@@ -1,17 +1,26 @@
 """Shared assertions executed only inside real native/portable final pipelines."""
 
+import hashlib
+
 from test_worker_recovery import require
 
 
-def assert_final_workbench(h, client, other, item, selected):
+def assert_final_workbench(
+    h, client, other, item, selected, *, mode, content, result_view
+):
     identifier = item["id"]
     candidate_id = selected["source_candidate_id"]
     strategy_id = selected["strategy_version_id"]
     exact = h.request(client, "GET", f"/evaluations/{identifier}/workbench").json()
     require(
-        exact["run_kind"] in {"native_final", "portable_final"}
-        and exact["final_test_id"] == exact["run_id"],
+        exact["run_kind"] == mode and exact["final_test_id"] == exact["run_id"],
         "Workbench final routed to a research run",
+    )
+    require(
+        exact["evaluation_id"] == identifier
+        and exact["run_id"] == item["run_id"]
+        and exact["execution_attempt_id"] == item["attempt_id"],
+        "Workbench final retargeted its immutable leaf",
     )
     require(
         exact["source_association"]["candidate_id"] == candidate_id
@@ -35,8 +44,30 @@ def assert_final_workbench(h, client, other, item, selected):
         exact["status"] == "succeeded" and exact["split"] == "holdout",
         "Workbench final fabricated its leaf status",
     )
+    # Native and portable finals intentionally retain distinct result contracts.
+    # Never fall back to another receipt or accept absent/unverified evidence.
+    reference_key = {
+        "native_final": "result_bundle",
+        "portable_final": "portable_result",
+    }[mode]
+    reference = item["payload"].get(reference_key)
+    require(isinstance(reference, dict), "Final mode-specific result receipt missing")
+    result_sha256 = hashlib.sha256(content).hexdigest()
     require(
-        exact["result_manifest_sha256"] == item["payload"]["result_bundle"]["sha256"],
+        reference.get("sha256") == result_sha256
+        and reference.get("size_bytes") == len(content),
+        "Final download differs from its immutable result receipt",
+    )
+    require(
+        result_view["evaluation_id"] == identifier
+        and result_view["run_id"] == item["run_id"]
+        and result_view["selection_id"] == selected["id"]
+        and result_view["artifact_sha256"] == result_sha256,
+        "Final result projection differs from its immutable bytes",
+    )
+    require(
+        exact["evidence_status"] == "registered"
+        and exact["result_manifest_sha256"] == result_sha256,
         "Workbench final result pin differs",
     )
     for kind, resource_id in (

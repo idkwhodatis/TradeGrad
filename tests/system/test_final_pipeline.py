@@ -302,7 +302,16 @@ def test_real_frozen_final_result_export_and_cancelled_retry(
     validate_result_bundle(bundle)
     from workbench_assertions import assert_final_workbench
 
-    assert_final_workbench(h, client, other, item, selected)
+    assert_final_workbench(
+        h,
+        client,
+        other,
+        item,
+        selected,
+        mode="native_final",
+        content=content,
+        result_view=query,
+    )
     assert_mode_exploration(
         h,
         client,
