@@ -1,5 +1,6 @@
 """Offline hygiene checks; these do not claim hosted or browser execution."""
 
+import ast
 import re
 import secrets
 from pathlib import Path
@@ -94,3 +95,33 @@ def test_junit_export_drops_non_numeric_or_excessive_numeric_fields(tmp_path):
     suite = ET.fromstring(result).find("testsuite")
     assert suite.attrib == {"name": "suite-1"}
     assert suite.find("testcase").attrib == {"name": "case-1"}
+
+
+def test_multimegabyte_codec_cases_have_bounded_explicit_report_ids():
+    # Pytest otherwise embeds each hostile payload in the case name, expanding
+    # passing JUnit to 49 MiB. Keep every input byte; bound only its report ID.
+    source = (
+        Path(__file__).resolve().parents[2]
+        / "tests/research_trace/test_comparison_codec.py"
+    ).read_text()
+    function = next(
+        node
+        for node in ast.parse(source).body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "test_projected_escape_expansion_is_rejected_before_fetch"
+    )
+    parameters = next(
+        node
+        for node in function.decorator_list
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "parametrize"
+        and isinstance(node.args[0], ast.Constant)
+        and node.args[0].value == "text"
+    )
+    ids = ast.literal_eval(
+        next(keyword.value for keyword in parameters.keywords if keyword.arg == "ids")
+    )
+    assert len(ids) == len(parameters.args[1].elts) == 4
+    assert len(set(ids)) == 4
+    assert all(isinstance(value, str) and 0 < len(value) <= 32 for value in ids)

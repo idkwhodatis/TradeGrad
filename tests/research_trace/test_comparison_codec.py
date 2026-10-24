@@ -398,7 +398,9 @@ def test_expanded_page_guard_runs_before_payload_decoder(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "text", ["\x00" * 800_000, "股票" * 400_000, '"' * 2_200_000, "😀" * 400_000]
+    "text",
+    ["\x00" * 800_000, "股票" * 400_000, '"' * 2_200_000, "😀" * 400_000],
+    ids=["nul-800k", "cjk-400k", "quotes-2200k", "astral-400k"],
 )
 @pytest.mark.parametrize("forged", [False, True])
 def test_projected_escape_expansion_is_rejected_before_fetch(

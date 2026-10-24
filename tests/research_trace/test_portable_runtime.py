@@ -432,21 +432,19 @@ def test_source_event_pairing_ignores_strategy_state_and_future_market_rows():
 
 
 ENGINE_SCRIPT = r"""
-import importlib.util, json, sys
-from pathlib import Path
+import json, sys
 from packages.research_trace.contracts import CaptureConfig
 from packages.research_trace.recorder import Recorder
 from runtimes.portable_engine.runtime import execute
-root=Path.cwd()
-spec=importlib.util.spec_from_file_location('portable_fixture', root/'tests/portable/test_engine.py')
-f=importlib.util.module_from_spec(spec); spec.loader.exec_module(f)
+from packages.strategy_sdk import Target
+from tests.portable import engine_fixtures as f
 mode, scope=sys.argv[1:]
 r=Recorder(code_sha256='a'*64, config=CaptureConfig(mode=mode, instrument_ids=[f.L2] if scope=='narrow' else []))
 inputs=f.inputs(listing_count=2)
 observations=[]
 def exchange(obs):
     observations.append(len(obs.listings))
-    reply=f.portfolio_reply(obs, 'rebalance' if obs.session_date == inputs.sessions[0].session_date else 'hold', (f.Target(listing_id=f.L1,value=10),))
+    reply=f.portfolio_reply(obs, 'rebalance' if obs.session_date == inputs.sessions[0].session_date else 'hold', (Target(listing_id=f.L1,value=10),))
     reply['decision']['scores']=[{'listing_id':f.L1,'value':7.5}]
     return reply
 bundle=execute(inputs, exchange, research_recorder=r)

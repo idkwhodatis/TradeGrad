@@ -800,3 +800,35 @@ application Chromium, independent Compose Chromium, completed-evidence cold
 restore, and a fresh full capacity measurement must still pass at the exact
 published head. No I7 release-complete or V2-ready claim is made by this local
 candidate. Original public-provider limitations remain unchanged.
+
+### First hosted integration follow-up
+
+The first published candidate is
+`49ce44c606c94e9abae88ee5bff885e85f9f44e1`, tree
+`1058a0a60aa9bc0401204e65caa68a6c04244746`. Its actual hosted baseline passed
+40 baseline and 92 native-result tests. In
+[run 40052479939](https://github.com/idkwhodatis/TradeGrad/actions/runs/40052479939),
+the application gate then exposed a test-fixture dependency mistake: 435 trace
+tests passed, while one failed and 20 errored because native subprocess fixtures
+imported a collected test module requiring pytest. The production evaluator
+correctly does not install pytest; the earlier local baseline interpreter did.
+
+The shared deterministic fixtures now live in a pytest-free test helper. All
+seven extracted function ASTs and all 16 market/kind/listing/warmup input
+combinations were checked unchanged. A new subprocess regression actively blocks
+pytest imports, including on developer machines that happen to install it.
+Validation with a fresh hash-locked evaluator lacking pytest passed all 456
+trace tests and 986 portable tests; the one optional calendar skip was separately
+covered by 117 data-runtime engine tests. No production dependency, runtime,
+fixture input, assertion or isolation contract was relaxed.
+
+The same run correctly refused to export a 49 MiB raw JUnit report: adversarial
+multi-megabyte codec inputs had become pytest's default case IDs even on passing
+runs. Explicit short case IDs now preserve every adversarial input byte without
+embedding those inputs in report names. A regression guards those IDs. The
+unchanged outcome-only exporter accepted the resulting 495,824-byte full
+aggregate report and produced 101,287 sanitized bytes; its 20,000,000-byte input
+limit and removal of arbitrary text remain intact. The fresh minimal-evaluator
+aggregate passed **2,434 tests** in 117.03 seconds. The original hosted failure
+remains a failure at its own head; these local repairs still require a new full
+exact-head hosted gate.

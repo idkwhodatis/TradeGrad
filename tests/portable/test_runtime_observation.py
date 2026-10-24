@@ -364,7 +364,8 @@ ACTUAL_ENGINE_SCRIPT = r"""
 import json, sys
 from packages.tradegrad_adapter.runtime_observation import NativeAuditObserver
 from runtimes.portable_engine.runtime import execute
-from tests.portable import test_engine as f
+from packages.strategy_sdk import CancelIntent, Target
+from tests.portable import engine_fixtures as f
 scenario=sys.argv[2]
 request,data=f.fixture(kind='event' if scenario in ('cancel','failure') else 'portfolio',listing_count=2)
 if scenario=='partial':
@@ -380,8 +381,8 @@ def exchange(obs):
     if scenario=='cancel':
         if obs.session_date==inputs.sessions[0].session_date:
             return f.event_reply(obs,(f.order(obs,order_type='limit',limit_price=1.0),))
-        return f.event_reply(obs,tuple(f.CancelIntent(signal_id='cancel:'+str(obs.session_date),order_id=o.order_id,listing_id=o.listing_id,effective_at=obs.next_open_time,expires_at=None) for o in obs.open_orders))
-    return f.portfolio_reply(obs, 'rebalance' if scenario!='zero' and obs.session_date==inputs.sessions[0].session_date else 'hold', (f.Target(listing_id=f.L1,value=10),))
+        return f.event_reply(obs,tuple(CancelIntent(signal_id='cancel:'+str(obs.session_date),order_id=o.order_id,listing_id=o.listing_id,effective_at=obs.next_open_time,expires_at=None) for o in obs.open_orders))
+    return f.portfolio_reply(obs, 'rebalance' if scenario!='zero' and obs.session_date==inputs.sessions[0].session_date else 'hold', (Target(listing_id=f.L1,value=10),))
 error=None
 try: bundle=execute(inputs,exchange,runtime_observer=observer)
 except ValueError as exc: bundle=None; error=type(exc).__name__
