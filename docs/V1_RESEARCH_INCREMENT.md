@@ -1289,3 +1289,62 @@ review found no further deterministic contract mismatch in later restore stages.
 Production source, workflows, migrations, runtime locks and all resource budgets
 are unchanged; fresh hosted restoration and all four exact-head gates remain
 mandatory for this test-only correction.
+
+### Subsequent master run: restore reaches strict snapshot comparison
+
+Run [40124112881](https://github.com/idkwhodatis/TradeGrad/actions/runs/40124112881)
+executed exact master `2cc83e250249748ab3a5673906323e5e02ed4546`, tree
+`bf73e54e24ab96f4116bb88bef9202ded79e74cd`. Baseline, Compose and the fresh full
+capacity gate passed. The corrected artifact inventory progressed through the
+actual archive/restore, new login and strict HTTP reads; the remaining failure
+is now the complete before/after HTTP snapshot equality. Every other emitted
+application group passed, including all four diagnostics, four portable-final
+cases, 22 separate backup/schema-upgrade cases and both operator profiles.
+Application and Compose each passed 63 Chromium scenarios with the same two
+expected profile opt-outs. No successful group substitutes for the failed gate.
+
+The [second master capacity report](evidence/research-trace-capacity-master-second-20261024.json)
+has SHA-256 `48eea7b587773bc33f672db2c4174372a577f25038ab938bae30645e94589214`.
+It retained **1,000 listings × 750 sessions × three variants**, all original
+budgets and exhaustive equivalence. Comparisons took **178.736148 / 176.230858
+seconds** and audits **249.806968 / 246.375801 seconds**, with the same
+**2,252,251 / 2,253,751** round-tripped rows. Stored/reconstructed payload sizes
+were unchanged; compressed sizes were **123,026,338 / 123,141,091 bytes**, and
+peak RSS **185,683,968 / 185,544,704 bytes**. The full protocol took **1,025.958
+seconds**. This runner used **Intel Xeon 6973P-C**, not the prior EPYC 7763; faster
+measurements are not attributed to a code optimization, and do not remove the
+previously measured narrow deadline margin or establish a production SLA.
+
+The snapshot mismatch exposed an acceptance-ordering error. A controlled
+experiment's current exposure classification was read before the first note
+exports. Failed-arm note metadata correctly records a separate conservative
+full-dataset disclosure for `result_download`; earlier note creation/read used
+`result_preview`, and generic diagnostic downloads use another source key.
+Consequently the first export added a persisted exposure after the snapshot had
+already frozen its IDs/counts. The backup correctly retained that disclosure,
+and the restored live view correctly included it. Neither dropping the exposure
+nor broadly removing dynamic fields would be a valid repair. The test must
+finish its disclosure-producing reads before capturing that live classification,
+while retaining all immutable results and complete exposure semantics.
+
+The test-only correction now reads the live controlled classification last and
+compares all **23** endpoint snapshots, retaining every exposure ID/count/purpose
+and all immutable monetary values, hashes, pins and bytes. Only the controlled
+view's already-designated observation timestamp is excluded. A deterministic
+regression uses the actual note-export route, metadata admission, exposure writer
+and classifier with explicit HTTP/persistence doubles: the old ordering produces
+one extra metadata-download exposure; the corrected ordering is stable across
+separately copied exposure rows. The sanitized hosted log does not reveal its
+actual differing field, so this reproduced defect is not presented as a recovered
+payload diff or as local PostgreSQL restore proof.
+
+Failure diagnostics now retain strict full equality and report at most four fixed
+endpoint categories with allowlisted field/type paths of depth at most eight.
+They never include response values, arbitrary keys, source content, identifiers
+or connection details. The repair passed **188 adjacent tests**, including
+**21 new snapshot regressions**; the combined artifact/snapshot suite passed 48.
+The complete required-native aggregate passed **2,900 with zero skips** in
+173.74 seconds. The real restore test was collected only. Independent review
+found no blocker; production code, workflow, runtime locks, migrations, limits
+and prior reports remain unchanged. A fresh complete master CI run, including
+actual completed-evidence restoration, remains required before acceptance/V2.
