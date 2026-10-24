@@ -153,6 +153,50 @@ def test_dispatch_defaults_and_full_acceptance_dependencies_remain_unchanged():
     assert _field(DIAGNOSTIC, "runs-on") == "ubuntu-22.04"
 
 
+@pytest.mark.parametrize(
+    "branch,expected",
+    [
+        ("master", True),
+        ("feat/webui-v1", True),
+        ("feat/strategy-research-v1", True),
+        ("master-copy", False),
+        ("feat/strategy-research-v1-handoff", False),
+        ("unrelated", False),
+    ],
+)
+def test_push_branch_allowlist_includes_master_without_broadening_other_refs(
+    branch, expected
+):
+    push = WORKFLOW.split("  push:\n", 1)[1].split("  pull_request:\n", 1)[0]
+    branches = ast.literal_eval(_field(push, "branches"))
+    assert branches == ["master", "feat/webui-v1", "feat/strategy-research-v1"]
+    assert (branch in branches) is expected
+    assert push.strip() == f"branches: {_field(push, 'branches')}"
+
+
+@pytest.mark.parametrize(
+    "branch", ["master", "feat/webui-v1", "feat/strategy-research-v1"]
+)
+def test_ordinary_push_selects_every_full_fixture_acceptance_job(branch):
+    context = {
+        "github.event_name": "push",
+        "github.ref": f"refs/heads/{branch}",
+        "github.ref_name": branch,
+        "inputs.validation_scope": "",
+        "inputs.provider_mode": "",
+        "github.event.head_commit.message": "ci: validate direct master changes",
+    }
+    assert {job for job in JOBS if _condition(job, context)} == {
+        "baseline",
+        "application",
+        "compose",
+        "research_capacity",
+    }
+    mode = WORKFLOW.split("      provider_mode:\n", 1)[1].split("  push:\n", 1)[0]
+    assert _field(mode, "default", 8) == "fixture"
+    assert _field(mode, "options", 8) == "[fixture, live]"
+
+
 def test_diagnostic_inherits_only_existing_read_permission_without_credentials():
     permissions = re.search(
         r"^permissions:\n(.*?)(?=^\S)", WORKFLOW, flags=re.MULTILINE | re.DOTALL

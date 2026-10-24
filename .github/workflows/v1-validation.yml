@@ -16,7 +16,7 @@ on:
         type: choice
         options: [fixture, live]
   push:
-    branches: ["feat/webui-v1", "feat/strategy-research-v1"]
+    branches: ["master", "feat/webui-v1", "feat/strategy-research-v1"]
   pull_request:
     paths:
       - "src/**"
@@ -100,7 +100,7 @@ jobs:
       WORKER_CONCURRENCY: "1"
       DATA_WORKER_CONCURRENCY: "1"
       # Ordinary pushes freeze SDK responses. Live requires explicit dispatch or
-      # a [live-data] feature-branch commit marker; no default-branch change needed.
+      # a [live-data] commit marker on a listed push branch.
       DATA_PROVIDER_MODE: ${{ (inputs.provider_mode == 'live' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]'))) && 'live' || 'fixture' }}
       E2E_LIVE_PROVIDERS: ${{ (inputs.provider_mode == 'live' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live-data]'))) && '1' || '0' }}
       HEARTBEAT_SECONDS: "1"
@@ -757,8 +757,7 @@ jobs:
       E2E_OTHER_EMAIL: second@example.com
       WORKER_CONCURRENCY: "1"
       DATA_WORKER_CONCURRENCY: "1"
-      # Ordinary pushes freeze SDK responses. Live requires explicit dispatch or
-      # a [live-data] feature-branch commit marker; no default-branch change needed.
+      # This bounded browser diagnostic always freezes SDK responses.
       DATA_PROVIDER_MODE: fixture
       E2E_LIVE_PROVIDERS: "0"
       TRADEGRAD_BROWSER_DIAGNOSTIC: native-final
