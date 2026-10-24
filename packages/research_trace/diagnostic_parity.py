@@ -8,6 +8,7 @@ source event. A successful metric comparison cannot certify absent audit/RNG.
 from __future__ import annotations
 
 import hashlib
+import math
 import re
 from collections import defaultdict
 from datetime import UTC, datetime
@@ -166,16 +167,75 @@ def _timestamp_ns(value):
     return (elapsed.days * 86400 + elapsed.seconds) * 1_000_000_000 + ns
 
 
-def _account_audit_complete(value, audit):
+def _audit_equity(audit):
+    """Project only schema-declared amounts onto the existing numeric policy.
+
+    AKQuant emits decimal cash/equity as strings. Decimal aggregation can vary
+    below the published tolerances across processes even when exported ledger
+    values agree. Comparing the strings would silently bypass that policy.
+    Keep every observed event in order, including repeated timestamps. Margin,
+    timestamps and all other payload fields remain exact; raw evidence is never
+    rewritten. Malformed amounts cannot become equal missing observations.
+    """
     if audit is None:
-        return False
-    last = {}
+        return None
+    rows = []
     try:
         for event in audit["events"]:
             if event["event_type"] == "equity":
-                if int(event["payload"]["timestamp"]) != event["ts"]:
-                    return False
-                last[event["ts"]] = event["payload"]
+                payload = dict(event["payload"])
+                for field in ("cash", "equity"):
+                    amount = payload[field]
+                    if type(amount) not in (str, int, float):
+                        return None
+                    if (
+                        isinstance(amount, str)
+                        and re.fullmatch(
+                            r"-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?",
+                            amount,
+                        )
+                        is None
+                    ):
+                        return None
+                    if isinstance(amount, str):
+                        amount = float(amount)
+                    if not math.isfinite(amount):
+                        return None
+                    payload[field] = amount
+                rows.append(
+                    {
+                        "ts": event["ts"],
+                        "symbol": event.get("symbol"),
+                        "payload": payload,
+                    }
+                )
+    except (ValueError, TypeError, KeyError, OverflowError):
+        return None
+    return rows
+
+
+def _account_trajectory(value, audit):
+    return {
+        "series": value.bundle.get("account_series")
+        if value.bundle.get("evaluation_mode") == "portable"
+        else {
+            key: _table(value.bundle, key)
+            for key in ("cash", "equity", "margin", "drawdown")
+        },
+        "audit_equity": _audit_equity(audit),
+    }
+
+
+def _account_audit_complete(value, audit):
+    rows = _audit_equity(audit)
+    if not rows:
+        return False
+    last = {}
+    try:
+        for event in rows:
+            if int(event["payload"]["timestamp"]) != event["ts"]:
+                return False
+            last[event["ts"]] = event["payload"]
         portable = value.bundle.get("evaluation_mode") == "portable"
         series = (
             value.bundle.get("account_series")
@@ -881,26 +941,10 @@ def compare_diagnostic(source: ParityInput, replay: ParityInput, *, control=None
             control=control,
         )
     )
-    accounts = []
-    for value, audit in zip((source, replay), audits, strict=True):
-        portable = value.bundle.get("evaluation_mode") == "portable"
-        accounts.append(
-            {
-                "series": value.bundle.get("account_series")
-                if portable
-                else {
-                    key: _table(value.bundle, key)
-                    for key in ("cash", "equity", "margin", "drawdown")
-                },
-                "audit_equity": [
-                    {"ts": e["ts"], "symbol": e.get("symbol"), "payload": e["payload"]}
-                    for e in audit["events"]
-                    if e["event_type"] == "equity"
-                ]
-                if audit
-                else None,
-            }
-        )
+    accounts = [
+        _account_trajectory(value, audit)
+        for value, audit in zip((source, replay), audits, strict=True)
+    ]
     checks.append(
         _check(
             "account_trajectory",

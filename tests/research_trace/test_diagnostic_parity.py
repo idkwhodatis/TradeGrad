@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import replace
+from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -212,6 +213,42 @@ def test_actual_wrong_rng_restore_not_silently_same_results(actual_pair):
         report.outcome == "mismatch"
         and checks(report)["rng_reconstruction"] == "mismatch"
     )
+
+
+@pytest.mark.parametrize("field", ["cash", "equity"])
+def test_actual_report_uses_published_tolerance_for_audit_decimal_amounts(
+    actual_pair, field
+):
+    a, b = actual_pair
+    observation = copy.deepcopy(b.runtime_observation)
+    event = next(
+        e for e in observation["audit"]["events"] if e["event_type"] == "equity"
+    )
+    event["payload"][field] = str(
+        Decimal(event["payload"][field]) + Decimal("0.00000001")
+    )
+    report = compare_diagnostic(a, repin(b, observation=observation))
+    assert report.outcome == "matched"
+    assert checks(report)["account_trajectory"] == "matched"
+    assert checks(report)["audit_coverage"] == "matched"
+
+
+@pytest.mark.parametrize("field", ["cash", "equity"])
+@pytest.mark.parametrize("amount", [None, "NaN", "Infinity", "1_0"])
+def test_actual_report_never_certifies_malformed_intermediate_account_amounts(
+    actual_pair, field, amount
+):
+    a, b = actual_pair
+    observation = copy.deepcopy(b.runtime_observation)
+    event = next(
+        e for e in observation["audit"]["events"] if e["event_type"] == "equity"
+    )
+    event["payload"][field] = amount
+    report = compare_diagnostic(a, repin(b, observation=observation))
+    assert report.outcome == "not_verifiable"
+    assert checks(report)["account_trajectory"] == "not_verifiable"
+    assert checks(report)["audit_coverage"] == "not_verifiable"
+    assert not any(p.mapping == "verified_original_event" for p in report.events)
 
 
 def test_actual_changed_order_status_is_mismatch_not_return_only(actual_pair):

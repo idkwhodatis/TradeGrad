@@ -374,6 +374,11 @@ if scenario=='reject':
     for bar in data['bars']:
         if bar['session_date']>data['sessions'][0]['session_date']:
             bar['open'],bar['high']=2000.0,2001.0
+if scenario=='multi_asset':
+    for bar in data['bars']:
+        step=next(i for i,s in enumerate(data['sessions']) if s['session_date']==bar['session_date'])
+        base=17.433 if bar['listing_id']==f.L1 else 211.719
+        bar.update(open=base+step*.397,close=base+step*.559,high=base+step*.559+1,low=base+step*.397-1)
 inputs=f.changed_input(request,data)
 observer=NativeAuditObserver() if sys.argv[1]=='audit' else None
 def exchange(obs):
@@ -382,7 +387,8 @@ def exchange(obs):
         if obs.session_date==inputs.sessions[0].session_date:
             return f.event_reply(obs,(f.order(obs,order_type='limit',limit_price=1.0),))
         return f.event_reply(obs,tuple(CancelIntent(signal_id='cancel:'+str(obs.session_date),order_id=o.order_id,listing_id=o.listing_id,effective_at=obs.next_open_time,expires_at=None) for o in obs.open_orders))
-    return f.portfolio_reply(obs, 'rebalance' if scenario!='zero' and obs.session_date==inputs.sessions[0].session_date else 'hold', (Target(listing_id=f.L1,value=10),))
+    targets=(Target(listing_id=f.L1,value=113),Target(listing_id=f.L2,value=17)) if scenario=='multi_asset' else (Target(listing_id=f.L1,value=10),)
+    return f.portfolio_reply(obs, 'rebalance' if scenario!='zero' and obs.session_date==inputs.sessions[0].session_date else 'hold', targets)
 error=None
 try: bundle=execute(inputs,exchange,runtime_observer=observer)
 except ValueError as exc: bundle=None; error=type(exc).__name__

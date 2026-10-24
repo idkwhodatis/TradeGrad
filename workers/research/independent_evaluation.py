@@ -384,8 +384,20 @@ def _execute_guarded(
                 records = []
             _confirm_query_closure(control)
             with factory.begin() as session:
-                fenced_attempt(session, attempt_id, generation, token)
+                run, _ = fenced_attempt(session, attempt_id, generation, token)
                 guard.assert_owned(UUID(run_id), attempt_id)
+                if run.status == "cancel_requested":
+                    # Cancellation wins before the immutable leaf is committed,
+                    # including a request not yet observed by the lease/control.
+                    # Use the locked run, not an exception or disposal signal:
+                    # publication failures without a user cancel remain failed.
+                    outcome = {
+                        "status": "cancelled",
+                        "exit_code": None,
+                        "evaluation_id": str(evaluation_id),
+                        "image_digest": config.research_image_digest,
+                    }
+                    records = []
                 for record in records:
                     name = record["name"]
                     artifact = Artifact(
@@ -426,15 +438,21 @@ def _execute_guarded(
             stopped = _stop(runner, portable, evaluation_id, attempt_id)
             if not lease.lost.is_set():
                 with factory.begin() as session:
+                    run, _ = fenced_attempt(session, attempt_id, generation, token)
+                    guard.assert_owned(UUID(run_id), attempt_id)
                     if stopped and evaluation_id is not None:
                         item = session.get(Evaluation, evaluation_id)
                         if item is not None and item.finished_at is None:
+                            cancelled = run.status == "cancel_requested"
                             outcome = {
-                                "status": "failed",
+                                "status": "cancelled" if cancelled else "failed",
                                 "exit_code": None,
                                 "evaluation_id": str(evaluation_id),
-                                "error": "Independent publication was incomplete",
                             }
+                            if not cancelled:
+                                outcome["error"] = (
+                                    "Independent publication was incomplete"
+                                )
                             complete_independent_evaluation(
                                 session,
                                 attempt_id,

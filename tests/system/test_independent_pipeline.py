@@ -777,7 +777,7 @@ def _assert_queue_no_models_or_new_data(h, run_ids, import_count):
                 "Actual queue omitted or duplicated an independent generation",
             )
             exposures = connection.execute(
-                "SELECT x.provenance, x.created_at, a.created_at FROM data_usage_exposures x "
+                "SELECT x.provenance, x.created_at, a.started_at FROM data_usage_exposures x "
                 "JOIN execution_attempts a ON a.run_id=x.run_id "
                 "AND a.generation=(x.provenance->>'generation')::integer "
                 "WHERE x.run_id=%s AND x.purpose='independent_evaluation_admission'",
@@ -803,6 +803,17 @@ def _assert_queue_no_models_or_new_data(h, run_ids, import_count):
 def _import_count(h):
     with h.connection(private=True) as connection:
         return connection.execute("SELECT count(*) FROM data_imports").fetchone()[0]
+
+
+def _cancelled_evidence(h, evaluation_id):
+    with h.connection(private=True) as connection:
+        return connection.execute(
+            "SELECT e.status, e.sandbox_stopped, e.payload, e.payload_sha256, "
+            "e.finished_at, e.attempt_id, a.status, a.sandbox_stopped, "
+            "a.finished_at, a.generation FROM research_evaluations e "
+            "JOIN execution_attempts a ON a.id=e.attempt_id WHERE e.id=%s",
+            (evaluation_id,),
+        ).fetchone()
 
 
 @pytest.mark.parametrize("independent_harness", ["native", "portable"], indirect=True)
@@ -877,6 +888,22 @@ def test_real_original_rng_and_audit_survive_independent_replay(independent_harn
             and cancelled["result_pin"] is None,
             "Cancelled sandbox survived or became zero-profit evidence",
         )
+        cancelled_evidence = _cancelled_evidence(h, old["evaluation_id"])
+        require(
+            cancelled_evidence is not None
+            and cancelled_evidence[:2] == ("cancelled", True)
+            and cancelled_evidence[2].get("status") == "cancelled"
+            and not any(
+                cancelled_evidence[2].get(key)
+                for key in ("result_bundle", "portable_result", "diagnostic_parity")
+            )
+            and cancelled_evidence[3]
+            and cancelled_evidence[4] is not None
+            and cancelled_evidence[6:8] == ("cancelled", True)
+            and cancelled_evidence[8] is not None
+            and cancelled_evidence[9] == old["generation"],
+            "Cancellation did not preserve terminal cancelled leaf and attempt evidence",
+        )
         key = uuid4().hex
         h.request(
             h.clients[1],
@@ -915,14 +942,8 @@ def test_real_original_rng_and_audit_survive_independent_replay(independent_harn
             "Retry reused an old leaf/attempt",
         )
         _assert_frozen_replay(h, source, retried, mode)
-        with h.connection(private=True) as connection:
-            failed_leaf = connection.execute(
-                "SELECT status, sandbox_stopped, payload FROM research_evaluations WHERE id=%s",
-                (old["evaluation_id"],),
-            ).fetchone()
         require(
-            failed_leaf[:2] == ("cancelled", True)
-            and not failed_leaf[2].get("result_bundle"),
+            _cancelled_evidence(h, old["evaluation_id"]) == cancelled_evidence,
             "Retry overwrote cancelled evidence",
         )
     _assert_queue_no_models_or_new_data(h, run_ids, before_imports)
