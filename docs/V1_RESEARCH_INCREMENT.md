@@ -1224,3 +1224,68 @@ The portable suite passed **986 with one optional calendar skip**, covered by
 limits, protocol, old reports, tolerance constants and migrations are unchanged.
 The next final-head CI must rerun the complete capacity and real application gates;
 the previous head's successes are not reused as acceptance for these repairs.
+
+### Master integration: exact-head capacity and repaired application groups
+
+At the owner's request, the complete increment and repairs were fast-forwarded
+into master at `3869f3b35cd7fa9cb71a89e114a2ddf211ffe5b6`, exact tree
+`ea0da16b5b84bc4b8a344230dadaaad340785f49`. The ordinary master push now runs
+the same full fixture gates; previous feature triggers and explicit diagnostic
+selectors remain intact. This integration did **not** claim acceptance in advance.
+Run [40117611493](https://github.com/idkwhodatis/TradeGrad/actions/runs/40117611493)
+is terminal: baseline, Compose and complete research capacity passed, while
+application has one remaining completed-evidence cold-restore failure.
+
+The [unchanged exact-master capacity report](evidence/research-trace-capacity-master-20261024.json)
+has SHA-256 `02dc99d9361d90617def5b2ee09b3ebb4934b3e503dbacd4e17d16a96381acc8`.
+The fresh **1,000 × 750 × three-variant** protocol took **1,693.421 seconds**.
+Comparison computation took **289.651470 / 294.037709 seconds**, and exhaustive
+audits **424.076130 / 421.105500 seconds**. All **2,252,251 / 2,253,751** rows
+round-tripped with complete source-observation equivalence and closure. Stored
+payloads were **1,870,339,406 / 1,870,688,906 bytes**, reconstructed payloads
+**2,368,825,532 / 2,369,520,032 bytes**, compressed artifacts **123,025,611 /
+123,134,870 bytes**, and peak RSS **184,168,448 / 183,611,392 bytes**.
+The unchanged 300-second budget passed, but the slowest comparison has only
+**5.962 seconds of margin**. Dedicated CPU/SSD reference equivalence and a
+production latency SLA remain unestablished. Both prior hosted timeouts remain
+preserved, and no smaller workload substitutes for this measurement.
+
+All four original-start diagnostics/controlled-experiment cases and all four
+portable-final cases now passed. Actual PostgreSQL passed **665 cases**; the
+separate private backup/schema-upgrade group passed **22**. Native/portable
+operator groups passed **18 / nine**, and both application and Compose Chromium
+suites passed **63 with two expected opt-in profile skips** each. The separately
+frozen daily engineering budget also passed. The complete local aggregate at the
+equivalent source tree passed **2,852 with zero skips** in 184.31 seconds.
+
+The remaining restore test received **HTTP 409** while expecting a generic
+registered-artifact download to succeed, before its completed-evidence archive
+round trip. This does not invalidate the separate 22-case backup gate, but neither
+that gate nor the other successful groups substitutes for completed-evidence
+restoration. Strict artifact admission, immutable failed evidence and exact
+retention pins must remain intact in the repair. Final acceptance and V2 remain
+gated on a fresh complete exact-head hosted run. Live-provider limitations are
+unchanged; fixture evidence is not live-data acceptance.
+
+A deterministic publisher/loader regression now establishes the fixture mismatch:
+successful independent native publication retains a legacy metrics sidecar, but
+generic downloads deliberately return `typed_final_result_required` rather than
+release untyped economics. The sanitized hosted failure does not identify its
+artifact's name, so this is a reproduced contract defect, not a recovered mapping
+of that particular UUID. The test-only repair requires that exact denial solely
+for successful independent metrics pinned to the expected run, attempt,
+evaluation, strategy version, code and execution schema. Every physical artifact
+(including blocked sidecars) is still verified through bounded production reads
+under the storage guard; all other downloads remain HTTP 200, every foreign-owner
+request remains HTTP 404, and pre/post-restore registration, retention and
+HTTP-admission inventories must be identical. Failed-arm logs/provenance and
+successful typed bundles remain mandatory. No production loader is relaxed.
+
+The repair passed **161 focused/adjacent tests**, including 27 new artifact
+contract regressions, and the complete required-native aggregate passed
+**2,879 tests with zero skips** in 188.12 seconds. The real restore case was
+collected locally but not executed without PostgreSQL/Docker. Independent static
+review found no further deterministic contract mismatch in later restore stages.
+Production source, workflows, migrations, runtime locks and all resource budgets
+are unchanged; fresh hosted restoration and all four exact-head gates remain
+mandatory for this test-only correction.
