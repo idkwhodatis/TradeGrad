@@ -61,12 +61,18 @@ NonTradeReason = Literal[
 ]
 
 
+_CANONICAL_ENCODER = json.JSONEncoder(
+    sort_keys=True, separators=(",", ":"), allow_nan=False
+)
+
+
 def canonical_bytes(value: Any) -> bytes:
     if isinstance(value, BaseModel):
         value = value.model_dump(mode="json")
-    return json.dumps(
-        value, sort_keys=True, separators=(",", ":"), allow_nan=False
-    ).encode()
+    # JSONEncoder allocates circular-reference markers per encode call. Reusing
+    # its immutable configuration therefore shares no traversal state, including
+    # across concurrent calls or after an invalid value raises.
+    return _CANONICAL_ENCODER.encode(value).encode()
 
 
 def digest(value: Any) -> str:

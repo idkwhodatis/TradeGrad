@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import math
 from collections import Counter
+from dataclasses import dataclass
+from functools import lru_cache
 
 from .comparison_contracts import DEFAULT_LIMITS, FIELD_TOLERANCES
 from .contracts import canonical_bytes
@@ -17,6 +19,58 @@ def observed_value(record):
         for key, value in record.items()
         if key not in {"source", "source_ref"}
     }
+
+
+@lru_cache(maxsize=128)
+def _short_provenance_size(value):
+    return len(canonical_bytes(value))
+
+
+def observation_payload_size(record, semantic_size):
+    """Reconstruct exact payload size from its provenance-free canonical bytes."""
+    removed = size = 0
+    for key in ("source", "source_ref"):
+        if key not in record:
+            continue
+        value = record[key]
+        removed += 1
+        value_size = (
+            _short_provenance_size(value)
+            if value is None or (type(value) is str and len(value) <= 200)
+            else len(canonical_bytes(value))
+        )
+        size += len(key) + 3 + value_size  # quoted ASCII key plus colon
+    remaining = len(record) - removed
+    return semantic_size + size + max(len(record) - 1, 0) - max(remaining - 1, 0)
+
+
+@dataclass(frozen=True, slots=True)
+class CanonicalObservation:
+    """One semantic representation, replacing the copied observation dictionary.
+
+    These are exact canonical bytes of JSON-decoded source values with only
+    source/source_ref omitted. Retain bytes instead of another dictionary, not
+    an extra raw payload or cache. The source reference points to the record
+    already retained for output, preserving its original traversal order when
+    non-exact tolerance matching needs the shallow semantic dictionary again.
+    """
+
+    raw: bytes
+    record: dict
+
+
+def _canonical_observation(value):
+    return (
+        value.raw if isinstance(value, CanonicalObservation) else canonical_bytes(value)
+    )
+
+
+def _decoded_observation(value):
+    return (
+        observed_value(value.record)
+        if isinstance(value, CanonicalObservation)
+        else value
+    )
 
 
 # Only these schema-defined collections are unordered. In particular arbitrary
@@ -110,23 +164,40 @@ def multiset_equal(
         return None
     if len(left) != len(right):
         return False
+    if len(left) == 1:
+        # Preserve the exact same canonical byte and work charges as the general
+        # path, without allocating two Counters for the common singleton group.
+        raw_left = _canonical_observation(left[0])
+        if not work.spend(size=len(raw_left)):
+            return None
+        raw_right = _canonical_observation(right[0])
+        if not work.spend(size=len(raw_right)):
+            return None
+        if raw_left == raw_right:
+            return True
+        return equal_value(
+            _decoded_observation(left[0]),
+            _decoded_observation(right[0]),
+            path=path,
+            _work=work,
+        )
     counters = []
     for rows in (left, right):
         counter = Counter()
         for row in rows:
-            raw = canonical_bytes(row)
+            raw = _canonical_observation(row)
             if not work.spend(size=len(raw)):
                 return None
             counter[raw] += 1
         counters.append(counter)
     if counters[0] == counters[1]:
         return True
-    if len(left) == len(right) == 1:
-        return equal_value(left[0], right[0], path=path, _work=work)
     # Tolerances are nontransitive: consuming exact pairs greedily can destroy
     # another valid perfect matching. Match the full bounded bipartite graph.
     if len(left) > DEFAULT_LIMITS.tolerant_multiset_max_size:
         return None
+    left = [_decoded_observation(value) for value in left]
+    right = [_decoded_observation(value) for value in right]
     matrix = [
         [equal_value(row, other, path=path, _work=work) for other in right]
         for row in left

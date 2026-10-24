@@ -34,7 +34,7 @@ from .comparison_contracts import (
     ConfigurationDifference,
     MechanismChange,
 )
-from .comparison_semantics import equal_value, group_record, observed_value
+from .comparison_semantics import equal_value, group_record
 from .comparison_storage import (
     ComparisonControl,
     ComparisonReader,
@@ -665,6 +665,7 @@ def _observe_section(connection, scan, event, stages, table):
             table,
             decision_id=event["decision_id"],
             day=event["session_date"],
+            semantic_projection=True,
         )
     )
     expected = sum(row[f"{table}_saved"] for row in stages.values())
@@ -696,7 +697,7 @@ def _observe_section(connection, scan, event, stages, table):
             {
                 "ordinal": row["ordinal"],
                 "record": payload,
-                "semantic": observed_value(payload),
+                "semantic": row["_semantic"],
             }
         )
     return grouped

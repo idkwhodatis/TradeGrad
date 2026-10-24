@@ -12,6 +12,7 @@ import hashlib
 import json
 import math
 import resource
+import sys
 import tempfile
 import threading
 import time
@@ -38,6 +39,11 @@ from .comparison_contracts import (
     ComparisonPage,
     ComparisonRecord,
     WrittenComparisonArtifact,
+)
+from .comparison_semantics import (
+    CanonicalObservation,
+    observation_payload_size,
+    observed_value,
 )
 from .contracts import canonical_bytes, digest
 from .storage import SCHEMAS, TraceReader, TraceStorageError, _table_ref, _verified_file
@@ -222,6 +228,17 @@ def check_file_budget(count, limits):
         )
 
 
+_ROW_SIZE_ENCODER = json.JSONEncoder(separators=(",", ":"), allow_nan=False)
+
+
+def _json_row_size(row):
+    # The SQL scalar columns and decoded JSON payload have only string keys.
+    # Sorting those keys cannot change the encoded length. ensure_ascii=True
+    # also makes character and UTF-8 byte counts identical, avoiding a second
+    # byte allocation. This is size accounting only, never persisted/hash bytes.
+    return len(_ROW_SIZE_ENCODER.encode(row))
+
+
 class TrustedTraceScan:
     """One operation's hash/inode-pinned immutable trace files.
 
@@ -270,7 +287,15 @@ class TrustedTraceScan:
         refs = self.refs(table, day)
         return [self.files[ref.name] for ref in refs]
 
-    def rows(self, connection, table, *, decision_id=None, day=None):
+    def rows(
+        self,
+        connection,
+        table,
+        *,
+        decision_id=None,
+        day=None,
+        semantic_projection=False,
+    ):
         self.control.check()
         paths = self.source(table, day)
         if not paths:
@@ -371,12 +396,44 @@ class TrustedTraceScan:
                         row["stage_ids"] = json.loads(row["stage_ids"])
                     if "session_date" in row:
                         row["session_date"] = str(row["session_date"])
-                    size += len(canonical_bytes(row)) + 1
+                    if semantic_projection:
+                        # Serialize the semantic projection only once and retain
+                        # it instead of a copied semantic dictionary. Its exact
+                        # bytes are reused by bounded matching. Reconstruct the
+                        # full source-row size additively, without omitting any
+                        # provenance or fixed-column bytes from admission.
+                        payload = row["payload"]
+                        semantic = observed_value(payload)
+                        encoded_semantic = CanonicalObservation(
+                            canonical_bytes(semantic), payload
+                        )
+                        payload_size = observation_payload_size(
+                            payload, len(encoded_semantic.raw)
+                        )
+                        row["payload"] = None
+                        row_size = _json_row_size(row) - 4 + payload_size
+                        row["payload"] = payload
+                        # The previous representation is a shallow dictionary
+                        # sharing nested objects with the retained source record.
+                        # Only replace it when the complete byte object consumes
+                        # no more memory than that dictionary alone. Large/nested
+                        # observations keep the original shared representation;
+                        # no extra uncharged source payload is retained.
+                        if sys.getsizeof(encoded_semantic) + sys.getsizeof(
+                            encoded_semantic.raw
+                        ) <= sys.getsizeof(semantic):
+                            semantic = encoded_semantic
+                        del encoded_semantic
+                    else:
+                        row_size = _json_row_size(row)
+                    size += row_size + 1
                     if count > maximum or size + 2 > budget:
                         raise ComparisonError(
                             "comparison_capacity",
                             "An exact comparison section exceeds its fixed row/byte budget",
                         )
+                    if semantic_projection:
+                        row["_semantic"] = semantic
                     yield row
         except duckdb.Error:
             self.control.check()
@@ -407,6 +464,8 @@ class ComparisonWriter:
         self.total_bytes = self.total_rows = 0
         self.total_expanded_bytes = 0
         self.published_bytes = 0
+        self._last_pair_id = None
+        self._last_pair_ids_json = "[]"
 
     def append(self, record):
         self.control.check()
@@ -440,16 +499,27 @@ class ComparisonWriter:
             )
         index = self.counts[section]
         self.counts[section] += 1
+        if record.associations:
+            pair_ids_json = canonical_bytes(
+                sorted(
+                    {item.event_pair_id for item in record.associations}
+                    | ({record.event_pair_id} if record.event_pair_id else set())
+                )
+            ).decode()
+        else:
+            # Only the immediately preceding scalar is retained, never evidence
+            # or an unbounded cache. Most rows in an event share this exact index.
+            if record.event_pair_id != self._last_pair_id:
+                self._last_pair_id = record.event_pair_id
+                self._last_pair_ids_json = canonical_bytes(
+                    [record.event_pair_id] if record.event_pair_id else []
+                ).decode()
+            pair_ids_json = self._last_pair_ids_json
         self.buffers[section].append(
             {
                 "row_number": index,
                 "event_pair_id": record.event_pair_id,
-                "event_pair_ids": canonical_bytes(
-                    sorted(
-                        {item.event_pair_id for item in record.associations}
-                        | ({record.event_pair_id} if record.event_pair_id else set())
-                    )
-                ).decode(),
+                "event_pair_ids": pair_ids_json,
                 "session_date": record.session_date,
                 "instrument_id": record.instrument_id,
                 "stage_id": record.stage_id,
@@ -489,8 +559,15 @@ class ComparisonWriter:
         rows = self.buffers[section]
         if not rows:
             return
+        # Deduplicate the exact physical index strings before JSON decoding.
+        # Equal strings necessarily denote the same index, including duplicates
+        # and explicit associations; no observation payload is deduplicated.
         pair_ids = sorted(
-            {pair_id for row in rows for pair_id in json.loads(row["event_pair_ids"])}
+            {
+                pair_id
+                for encoded in {row["event_pair_ids"] for row in rows}
+                for pair_id in json.loads(encoded)
+            }
         )
         if len(pair_ids) > 16384:
             raise ComparisonError(
@@ -506,7 +583,10 @@ class ComparisonWriter:
             with source.open("wb") as stream:
                 for row in rows:
                     self.control.check()
-                    encoded = canonical_bytes(row)
+                    # This is only the transient JSON-to-Parquet envelope.
+                    # Fixed scalar columns need no sorted object keys; payload
+                    # remains the original exact canonical JSON string.
+                    encoded = _ROW_SIZE_ENCODER.encode(row).encode()
                     largest = max(largest, len(encoded))
                     stream.write(encoded + b"\n")
             object_size = max(4 * 1024**2, largest + 1024)
