@@ -7,6 +7,7 @@ SQLite or mocked-session fallback, model/provider calls or browser claims.
 
 import os
 from concurrent.futures import ThreadPoolExecutor
+from stat import S_IMODE
 from uuid import uuid4
 
 import pytest
@@ -341,7 +342,12 @@ def test_missing_tampered_originals_stay_visible_and_never_retarget(
         elif fault == "missing_file":
             path.unlink()
         else:
-            path.write_bytes(b"corrupt fixture bytes")
+            original_mode = S_IMODE(path.stat().st_mode)
+            try:
+                path.chmod(original_mode | 0o200)
+                path.write_bytes(b"corrupt fixture bytes")
+            finally:
+                path.chmod(original_mode)
     response = api.get(exact_url(saved), headers=owner_headers)
     assert response.status_code == 200, response.text
     value = response.json()

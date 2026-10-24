@@ -585,15 +585,17 @@ def _completed_engine_output(
         run = session.get(ResearchRun, attempt.run_id)
         item = session.get(Comparison, UUID(queued_comparison["id"]))
         sides = validate_comparison_inputs(session, item, run, settings)
+        # Freeze publication identity before commit expires these ORM instances.
+        publication = ComparisonPublication(
+            comparison_id=item.id, run_id=run.id, execution_attempt_id=attempt.id
+        )
         session.commit()
     control = ComparisonControl()
     result = compare_evaluations(
         sides[0].input,
         sides[1].input,
         guard.path / "artifacts",
-        publication=ComparisonPublication(
-            comparison_id=item.id, run_id=run.id, execution_attempt_id=attempt.id
-        ),
+        publication=publication,
         control=control,
         durable_root=settings.storage_root,
     )

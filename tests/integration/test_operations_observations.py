@@ -7,6 +7,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from backend.app.models import (
@@ -194,12 +195,16 @@ def test_receipts_are_admin_only_version_bound_historical_observations(
     api, owner, owner_headers, migrated_engine, settings
 ):
     now = utcnow()
+    with migrated_engine.connect() as connection:
+        current_revision = connection.execute(
+            text("SELECT version_num FROM alembic_version")
+        ).scalar_one()
     settings.operations_application_ref = "a" * 40
     settings.operations_backup_receipts = (
         BackupReceipt(
             operation="create",
             application_ref="a" * 40,
-            schema_revision="006_provider_connections",
+            schema_revision=current_revision,
             manifest_sha256="b" * 64,
             backup_created_at=now,
             observed_at=now,
@@ -218,6 +223,20 @@ def test_receipts_are_admin_only_version_bound_historical_observations(
     assert data["backup_evidence"][0]["receipt"]["operation"] == "create"
     assert data["backup_evidence"][0]["state"] == "observed"
     assert "does not prove restoration" in data["backup_note"]
+    current_receipt = settings.operations_backup_receipts[0]
+    assert current_revision != "006_provider_connections"
+    settings.operations_backup_receipts = (
+        current_receipt.model_copy(
+            update={"schema_revision": "006_provider_connections"}
+        ),
+    )
+    assert (
+        api.get("/api/v1/settings/status", headers=owner_headers).json()[
+            "backup_evidence"
+        ][0]["state"]
+        == "version_mismatch"
+    )
+    settings.operations_backup_receipts = (current_receipt,)
     settings.operations_application_ref = "c" * 40
     assert (
         api.get("/api/v1/settings/status", headers=owner_headers).json()[

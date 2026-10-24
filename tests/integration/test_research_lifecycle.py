@@ -159,7 +159,10 @@ def publish_initial(
     state = {
         "schema_version": 1,
         "inputs": {
-            "config": research_payload,
+            # Admission canonicalizes defaults before persisting the run. A fixture
+            # override may provide only research_capture.mode, so checkpoint the
+            # same canonical config rather than the raw partial HTTP request.
+            "config": config.model_dump(mode="json"),
             "initial_code_sha256": sha(owner.strategy.code.encode()),
             "windows": windows,
         },

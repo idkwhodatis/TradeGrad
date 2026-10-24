@@ -582,6 +582,9 @@ def test_migration_refuses_to_drop_generation_context_without_descriptions(
     config = Config(str(root / "backend/alembic.ini"))
     config.set_main_option("script_location", str(root / "backend/alembic"))
     with migrated_engine.connect() as connection:
+        original_revision = connection.execute(
+            text("SELECT version_num FROM alembic_version")
+        ).scalar_one()
         assert (
             connection.execute(
                 text("SELECT count(*) FROM strategy_spec_revisions")
@@ -602,7 +605,7 @@ def test_migration_refuses_to_drop_generation_context_without_descriptions(
             connection.execute(
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
-            == "007_research_specs"
+            == original_revision
         )
         assert (
             connection.execute(

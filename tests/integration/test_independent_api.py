@@ -18,6 +18,7 @@ from backend.app.models import (
     Artifact,
     ControlledArm,
     ControlledExperiment,
+    DatasetVersion,
     DataUsageExposure,
     Evaluation,
     IndependentEvaluation,
@@ -626,9 +627,15 @@ def test_exact_baseline_is_required_even_with_recorded_rng(
 def test_new_admission_preflights_frozen_input_bytes_before_queue(
     api, owner_headers, published_pair, migrated_engine, settings
 ):
-    dataset = published_pair[0].result.dataset
-    name = next(name for name in dataset.manifest["files"] if name.startswith("data/"))
-    path = settings.storage_root / dataset.storage_key / name
+    # The synthetic result carries identity/manifest fields, not the persisted
+    # storage registration. Corrupt the actual frozen input admitted by the API.
+    with Session(migrated_engine) as session:
+        dataset = session.get(DatasetVersion, published_pair[0].result.dataset.id)
+        assert dataset is not None and dataset.storage_key is not None
+        name = next(
+            name for name in dataset.manifest["files"] if name.startswith("data/")
+        )
+        path = settings.storage_root / dataset.storage_key / name
     path.write_bytes(path.read_bytes() + b"\n")
     body = diagnostic_body(published_pair)
     response = api.post(

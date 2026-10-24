@@ -12,7 +12,12 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from backend.app.models import DataUsageExposure, ExecutionAttempt, ResearchRun
+from backend.app.models import (
+    DatasetVersion,
+    DataUsageExposure,
+    ExecutionAttempt,
+    ResearchRun,
+)
 from backend.tests.test_replay_services import duplicate_observations
 from packages.research_trace.contracts import CaptureConfig
 from packages.research_trace.recorder import Recorder
@@ -226,10 +231,14 @@ def test_replay_corrupt_result_never_exposes_related_data(
 
 @pytest.mark.parametrize("fault", ["prices", "universe", "trace"])
 def test_replay_changed_frozen_files_are_not_reconstructed(
-    api, owner_headers, published_replay, settings, fault
+    api, owner_headers, published_replay, migrated_engine, settings, fault
 ):
     value = published_replay
-    dataset = value.result.dataset
+    # Resolve the persisted registration, not the synthetic bundle's in-memory
+    # dataset identity (which deliberately has no storage key).
+    with Session(migrated_engine, expire_on_commit=False) as session:
+        dataset = session.get(DatasetVersion, value.result.dataset.id)
+        assert dataset is not None and dataset.storage_key is not None
     if fault == "trace":
         path = next(
             item.path for item in value.artifacts if "-trace-events-" in item.name
@@ -246,7 +255,14 @@ def test_replay_changed_frozen_files_are_not_reconstructed(
             / dataset.storage_key
             / dataset.manifest["preview_files"][listing][0]["path"]
         )
-    path.write_bytes(path.read_bytes() + b"tampered")
+    original_mode = path.stat().st_mode & 0o777
+    # Published traces are read-only. This test deliberately simulates external
+    # corruption; restore the original mode before exercising admission.
+    path.chmod(original_mode | 0o200)
+    try:
+        path.write_bytes(path.read_bytes() + b"tampered")
+    finally:
+        path.chmod(original_mode)
     response = api.get(paths(value)[1], headers=owner_headers, params=params(value))
     assert response.status_code == 409
     assert str(settings.storage_root) not in response.text
