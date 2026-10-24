@@ -1064,3 +1064,94 @@ The final published head must still pass fresh actual PostgreSQL (including
 the two repaired cases), 011 cold database backup/restore, operator profiles,
 Docker/browser acceptance, and the unchanged full-size capacity gate before
 the increment can be accepted or V2 started.
+
+### Fourth exact-head run: PostgreSQL repairs passed, capacity still failed
+
+Run [40070734843](https://github.com/idkwhodatis/TradeGrad/actions/runs/40070734843)
+executed clean head `ab58bcc3e0d8feed749b110e752ad5d77e5a1c82`, tree
+`6df281697828d97cc8a9f62a83a85395c75de718`. Baseline and exact Compose acceptance
+passed again, including **63 browser passes, two opt-in profile skips**, cold
+restart and owned cleanup. Actual PostgreSQL passed **665 tests with 21 skips**
+in 439.68 seconds: both the symlink-admission and rollback-fixture repairs passed,
+as did the original-010/011 pin regression. This is actual runtime proof of those
+repairs, not final increment acceptance.
+
+The newly reached cold database backup/restore suite had **18 passes and four
+failures**. All four failed before backup began: the synthetic cancelled
+comparison fixture used a noncontract schema and omitted the algorithm,
+tolerance and limits pins required by the stricter binding. The fixture now
+uses the canonical envelope with explicitly historical **observed-comparison.v1**
+pins, while retaining its synthetic/cancelled/no-result markers and absent
+publication pointers. The actual restore case additionally reopens the archived
+config through the normal integrity guard and requires the same legacy version.
+Ten local regressions include recomputed outer hashes with mismatched or missing
+pins. Focused suites passed 262 + 152 tests; the four 008–011 restore identities
+were collected, not executed locally. Production admission was not relaxed.
+Completed-evidence restoration, operator profiles and later application gates
+remain unexecuted on this failed hosted run.
+
+Both fresh full-size comparisons still **failed the unchanged 300-second
+deadline**, at 300.078805 / 300.087361 seconds. They reached 1,989,356 / 2,019,100
+logical rows, with encoded totals of 1,652,179,299 / 1,675,960,322 bytes and RSS
+186,654,720 / 190,636,032 bytes. No exhaustive comparison audit completed.
+The [second unchanged timeout report](evidence/research-trace-capacity-timeout-optimized-20261024.json)
+has SHA-256 `c9311c5244e0f185bc67c77d5ef80403ea82f439859cc7f21144774b3ade1138`.
+It used the same EPYC 7763 model and four logical CPUs as the prior failed run;
+collection remained about 81–82 seconds. The roughly 11% improvement in rows
+processed within the deadline is insufficient and does not certify capacity.
+The earlier local pass remains local-only evidence. Further repair must preserve
+the full data, lossless outputs, strict resource accounting and frozen protocol.
+
+### Singleton source reuse: safety review and complete local proof
+
+The next optimization releases redundant SQL metadata after charging the exact
+full row, and shares already-verified canonical source JSON only for identical
+singleton observations. Retained strings, holders, integer sizes and reuse-index
+allocations must fit savings from the replaced representation. A 4 KiB eligibility
+ceiling is optimization-only: larger, noncanonical or unaffordable sources use
+the original path. Source IDs, provenance, null/missing distinctions, validation,
+semantic byte/node charges, cancellation checks and immutable codec bytes remain
+unchanged. No algorithm version, comparison budget or SQL preflight was changed.
+
+Independent review found and fixed two concrete pre-publication defects. A
+1,016-byte deeply nested source could bypass Pydantic's existing depth error;
+direct-source output reuse now requires at most eight opening delimiters, with
+conservative overcounts and deeper JSON falling back to original normalization.
+A duplicate-group case increased matching-only traced memory from 12,864 to
+296,982 bytes despite only 17,920 bytes of admitted savings. Duplicate groups
+now restore the original representation in both grouped and ordinal-cache
+references and recalculate cache admission; the same regression again peaks at
+12,864 bytes with identical work counters. These constraints preserve strict
+behavior, not only normal-case throughput. The memory proof bounds retained
+allocations and small verification temporaries; it does not claim identical RSS.
+
+The final frozen candidate passed 104 focused tests, 24 additional exact budget
+differentials, legacy/mixed compatibility, and five end-to-end baseline comparisons
+with byte-identical manifests and every artifact hash (singleton equal/changed,
+duplicate equal/changed, and multiplicity mismatch). Three alternating controlled
+timing pairs measured a 13.65% median total improvement, or 17.97% excluding
+fixed event pairing. That prefix evidence was not used as capacity acceptance.
+
+A fresh, non-reused **1,000 × 750 × three-variant** full protocol subsequently
+passed in **1,069.332 seconds**. The [complete lossless report](evidence/research-trace-capacity-lossless-20261024.json)
+has SHA-256 `8b4af78ed7e053511306adfcd26777f530e89cfa0bc6fd443a0a7a5b3e003c50`.
+Comparison computation took **193.670585 / 188.628720 seconds**; independent
+exhaustive audits took **242.427518 / 255.064622 seconds**. Every
+**2,252,251 / 2,253,751** row round-tripped with all source-observation equivalence
+and closure checks passing. Encoded sizes remained **1,870,339,406 /
+1,870,688,906 bytes**, reconstructed sizes **2,368,825,532 / 2,369,520,032 bytes**,
+and compressed sizes **123,027,088 / 123,124,176 bytes**. Peak RSS was
+**175,407,104 / 178,216,960 bytes**. All three collection/source-audit/query phases
+passed; worst trace-query P95 was 117.45 ms, and cached-comparison P95 was
+46.22 / 37.44 ms. Original baseline/budget validation and source hashes remained
+unchanged throughout.
+
+The complete local aggregate passed **2,715 tests with zero skips**, requiring
+the actual native interpreter, in 162.97 seconds. Post-measurement checks passed
+**1,036 frontend tests**, typecheck/build/format and 69 Compose source checks;
+17 generated contract files remained byte-identical. The 686 PostgreSQL and
+65 browser cases were collected only. This measurement still uses local EPYC
+9V74 hardware with unestablished reference equivalence, and records exact dirty
+source hashes rather than a clean published commit. Both hosted failures remain
+preserved. A fresh full exact-head hosted run, including real cold restore and
+operator-profile gates, remains mandatory before acceptance or V2.
