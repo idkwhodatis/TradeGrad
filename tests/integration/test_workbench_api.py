@@ -585,6 +585,12 @@ def test_migration_refuses_to_drop_generation_context_without_descriptions(
         original_revision = connection.execute(
             text("SELECT version_num FROM alembic_version")
         ).scalar_one()
+        candidate_snapshot_query = select(Candidate.__table__).order_by(Candidate.id)
+        original_candidates = (
+            connection.execute(candidate_snapshot_query).mappings().all()
+        )
+        assert original_candidates
+        assert any(row["lineage_context"] is not None for row in original_candidates)
         assert (
             connection.execute(
                 text("SELECT count(*) FROM strategy_spec_revisions")
@@ -597,7 +603,13 @@ def test_migration_refuses_to_drop_generation_context_without_descriptions(
             ).scalar_one()
             == 0
         )
-    with pytest.raises(DBAPIError), migrated_engine.begin() as connection:
+    with (
+        pytest.raises(
+            DBAPIError,
+            match="Research descriptions, bookmarks and generation context must be archived before downgrade",
+        ),
+        migrated_engine.begin() as connection,
+    ):
         config.attributes["connection"] = connection
         command.downgrade(config, "006_provider_connections")
     with migrated_engine.connect() as connection:
@@ -608,12 +620,8 @@ def test_migration_refuses_to_drop_generation_context_without_descriptions(
             == original_revision
         )
         assert (
-            connection.execute(
-                text(
-                    "SELECT count(*) FROM research_candidates WHERE lineage_context IS NOT NULL"
-                )
-            ).scalar_one()
-            == 1
+            connection.execute(candidate_snapshot_query).mappings().all()
+            == original_candidates
         )
 
 

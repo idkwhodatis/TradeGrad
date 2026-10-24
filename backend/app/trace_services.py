@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import errno
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import wraps
@@ -64,6 +66,22 @@ def _invalid():
     )
 
 
+@contextmanager
+def trace_storage_admission():
+    """Reject unsafe immutable trace paths as conflicts, without relaxing storage checks."""
+    try:
+        yield
+    except DomainError as error:
+        if error.code == "unsafe_storage_path":
+            raise _invalid() from None
+        raise
+    except OSError as error:
+        # A leaf changed after safe_path still fails O_NOFOLLOW at the open.
+        if error.errno in {errno.ELOOP, errno.ENOTDIR}:
+            raise _invalid() from None
+        raise
+
+
 @dataclass(frozen=True)
 class OwnedTrace:
     result: object
@@ -101,6 +119,7 @@ def timestamp_evidence(result):
     }
 
 
+@trace_storage_admission()
 def load_owned_trace(
     session,
     evaluation_id,

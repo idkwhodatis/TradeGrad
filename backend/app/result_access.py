@@ -259,7 +259,7 @@ def load_result_aware_artifact(session, artifact, owner_id, settings):
         )
         return result.content
     if evaluation is not None and suffix.startswith("trace-"):
-        from backend.app.trace_services import load_owned_trace
+        from backend.app.trace_services import load_owned_trace, trace_storage_admission
 
         trace = load_owned_trace(session, evaluation.id, owner_id, settings)
         if trace.manifest is None:
@@ -282,12 +282,15 @@ def load_result_aware_artifact(session, artifact, owner_id, settings):
             )
         if not valid:
             raise DomainError("trace_integrity", "Trace artifact binding differs", 409)
-        content = read_verified(
-            settings.storage_root,
-            artifact.storage_key,
-            artifact.sha256,
-            settings.max_artifact_bytes,
-        )
+        # Recheck the bytes at download time: the path may have changed after
+        # manifest admission. Keep the same fail-closed trace error boundary.
+        with trace_storage_admission():
+            content = read_verified(
+                settings.storage_root,
+                artifact.storage_key,
+                artifact.sha256,
+                settings.max_artifact_bytes,
+            )
         if len(content) != artifact.size_bytes:
             raise DomainError("trace_integrity", "Trace artifact size differs", 409)
         record_verified_result_access(

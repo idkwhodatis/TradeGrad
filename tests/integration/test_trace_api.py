@@ -312,6 +312,8 @@ def test_tampered_selected_parquet_is_not_served(
         headers=owner_headers,
     )
     assert response.status_code == 409, response.text
+    if fault == "symlink":
+        assert response.json()["code"] == "trace_integrity"
     assert str(tmp_path) not in response.text
     registration = next(
         row for row in value.registrations if row.name == candidate.name
@@ -320,6 +322,8 @@ def test_tampered_selected_parquet_is_not_served(
         f"/api/v1/artifacts/{registration.id}/download", headers=owner_headers
     )
     assert generic.status_code == 409, generic.text
+    if fault == "symlink":
+        assert generic.json()["code"] == "trace_integrity"
     assert str(tmp_path) not in generic.text
 
 
