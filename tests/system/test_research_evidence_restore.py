@@ -672,6 +672,166 @@ def _notes(h, source, spec, replay, control, arms, comparison, comparison_events
     return (first, second), parity, decision
 
 
+def _snapshot_difference(left, right):
+    """Bounded field/type diagnostic only; never return response values or keys."""
+    fields = {
+        "id",
+        "note_id",
+        "revision",
+        "revision_sha256",
+        "created_at",
+        "updated_at",
+        "content",
+        "evidence",
+        "restore_href",
+        "retained_pin_count",
+        "status",
+        "generation",
+        "attempts",
+        "execution_attempt_id",
+        "evaluation_id",
+        "run_id",
+        "result_pin",
+        "source",
+        "source_id",
+        "code_sha256",
+        "spec_revision",
+        "spec_sha256",
+        "spec",
+        "config",
+        "config_sha256",
+        "request_sha256",
+        "result_manifest_sha256",
+        "trace_manifest_sha256",
+        "manifest_sha256",
+        "artifact_sha256",
+        "report_sha256",
+        "protocol_sha256",
+        "manifest",
+        "binding",
+        "metrics",
+        "metric_details",
+        "value",
+        "rows",
+        "items",
+        "total",
+        "count",
+        "offset",
+        "limit",
+        "checks",
+        "outcome",
+        "arms",
+        "state",
+        "snapshot",
+        "exposure_snapshot",
+        "as_of",
+        "classification",
+        "matching_exposure_ids",
+        "matching_purposes",
+        "matching_count",
+        "evidence_truncated",
+        "identities",
+        "tracking_coverage",
+        "independent_unseen_holdout_established",
+        "warnings",
+        "finished_at",
+        "started_at",
+        "heartbeat_at",
+        "sandbox_stopped",
+        "error",
+        "next_event_seq",
+        "result_ready",
+        "evaluation_mode",
+        "result_trust",
+    }
+    kinds = {
+        dict: "object",
+        list: "array",
+        str: "string",
+        bytes: "bytes",
+        int: "integer",
+        float: "number",
+        bool: "boolean",
+        type(None): "null",
+    }
+    path = "$"
+    for _ in range(8):
+        if type(left) is not type(right):
+            return f"{path} type {kinds.get(type(left), 'other')}/{kinds.get(type(right), 'other')}"
+        if isinstance(left, dict):
+            if left.keys() != right.keys():
+                changed = left.keys() ^ right.keys()
+                known = next(
+                    (key for key in sorted(fields) if key in changed), "<field>"
+                )
+                return f"{path}.{known} field-presence"
+            key = next(key for key in left if left[key] != right[key])
+            path += "." + (key if key in fields else "<field>")
+            left, right = left[key], right[key]
+        elif isinstance(left, list):
+            if len(left) != len(right):
+                return f"{path} array-length"
+            index = next(
+                i
+                for i, pair in enumerate(zip(left, right, strict=True))
+                if pair[0] != pair[1]
+            )
+            path += f"[{index}]"
+            left, right = left[index], right[index]
+        else:
+            return f"{path} {kinds.get(type(left), 'other')}-value"
+    return f"{path} nested-value"
+
+
+def _assert_snapshot_equal(before, after):
+    """Preserve full equality; use only fixed endpoint labels in failure output."""
+    if before == after:
+        return
+    categories = {
+        "source-spec",
+        "diagnostic-run",
+        "diagnostic-parity",
+        "diagnostic-events",
+        "comparison-result",
+        "comparison-events",
+        "source-decision",
+        "source-trace",
+        "diagnostic-trace",
+        "baseline-trace",
+        "zero-trade-trace",
+        "baseline-run",
+        "baseline-result",
+        "baseline-download",
+        "zero-trade-run",
+        "zero-trade-result",
+        "zero-trade-download",
+        "failed-control-run",
+        "first-note",
+        "first-note-export",
+        "second-note",
+        "second-note-export",
+        "controlled-experiment",
+    }
+    differences = []
+    if len(before) != len(after):
+        differences.append("snapshot endpoint-count")
+    for old, new in zip(before, after):
+        if old == new:
+            continue
+        if (
+            len(old) != 2
+            or len(new) != 2
+            or old[0] != new[0]
+            or old[0] not in categories
+        ):
+            differences.append("snapshot endpoint-identity")
+        else:
+            differences.append(old[0] + " " + _snapshot_difference(old[1], new[1]))
+        if len(differences) >= 4:
+            break
+    require(False, "Cold-restored HTTP evidence differs: " + "; ".join(differences))
+
+
 def _snapshot_http(h, source, notes, replay, control, arms, comparison, decision):
     """Read all results through original strict HTTP loaders, never raw-row stand-ins."""
     client, other = h.clients
@@ -682,6 +842,7 @@ def _snapshot_http(h, source, notes, replay, control, arms, comparison, decision
     )
     requests = [
         (
+            "source-spec",
             f"/strategy-versions/{source['pin']['source_id']}/spec",
             {
                 "revision": source["pin"]["spec_revision"],
@@ -689,66 +850,91 @@ def _snapshot_http(h, source, notes, replay, control, arms, comparison, decision
             },
             False,
         ),
-        (f"/independent-evaluations/{replay['id']}", {}, False),
+        ("diagnostic-run", f"/independent-evaluations/{replay['id']}", {}, False),
         (
+            "diagnostic-parity",
             f"/independent-evaluations/{replay['id']}/parity",
             {"report_sha256": report_sha256},
             False,
         ),
         (
+            "diagnostic-events",
             f"/independent-evaluations/{replay['id']}/parity/events",
             {"report_sha256": report_sha256},
             False,
         ),
-        (f"/controlled-experiments/{control['id']}", {}, False),
         (
+            "comparison-result",
             f"/comparisons/{comparison['id']}/result",
             {"manifest_sha256": comparison["manifest_sha256"]},
             False,
         ),
         (
+            "comparison-events",
             f"/comparisons/{comparison['id']}/sections/events",
             {"manifest_sha256": comparison["manifest_sha256"]},
             False,
         ),
         (
+            "source-decision",
             f"/evaluations/{source['pin']['evaluation_id']}/decisions/{decision['decision_id']}",
             _trace_params(source["pin"]),
             False,
         ),
     ]
-    for pin in (
-        source["pin"],
-        replay["result_pin"],
-        *(arm["result"] for arm in arms[:2]),
+    for category, pin in zip(
+        ("source-trace", "diagnostic-trace", "baseline-trace", "zero-trade-trace"),
+        (source["pin"], replay["result_pin"], *(arm["result"] for arm in arms[:2])),
+        strict=True,
     ):
         requests.append(
             (
+                category,
                 f"/evaluations/{pin['evaluation_id']}/trace-manifest",
                 _trace_params(pin),
                 False,
             )
         )
-    for arm in arms:
-        requests.append((f"/independent-evaluations/{arm['run_id']}", {}, False))
+    for category, arm in zip(
+        ("baseline", "zero-trade", "failed-control"), arms, strict=True
+    ):
+        requests.append(
+            (category + "-run", f"/independent-evaluations/{arm['run_id']}", {}, False)
+        )
         if arm["result"]:
             pin = arm["result"]
             root = f"/independent-evaluations/evaluations/{pin['evaluation_id']}/result"
             params = {key: pin[key] for key in TRACE_FIELDS[:2]}
-            requests.extend([(root, params, False), (root + "/download", {}, True)])
-    for note in notes:
+            requests.extend(
+                [
+                    (category + "-result", root, params, False),
+                    (category + "-download", root + "/download", {}, True),
+                ]
+            )
+    for category, note in zip(("first-note", "second-note"), notes, strict=True):
         requests.extend(
-            [(_exact_note(note), {}, False), (_exact_note(note, export=True), {}, True)]
+            [
+                (category, _exact_note(note), {}, False),
+                (category + "-export", _exact_note(note, export=True), {}, True),
+            ]
         )
+    # Note exports record a separate result_download exposure for the failed
+    # arm's conservative research-note-metadata read. Generic log downloads use
+    # a different source key and cannot prime it. Freeze the live owner-wide
+    # classification only AFTER all these real disclosure-producing HTTP reads.
+    # Keep its IDs/count/purposes intact, not normalized away for restore equality.
+    requests.append(
+        ("controlled-experiment", f"/controlled-experiments/{control['id']}", {}, False)
+    )
     values = []
-    for path, params, binary in requests:
+    for category, path, params, binary in requests:
         response = h.request(client, "GET", path, params=params or None)
         value = response.content if binary else response.json()
-        if not binary and "exposure_snapshot" in value:
+        if category == "controlled-experiment":
             # This is a newly evaluated owner-wide exposure classification, not
             # immutable metadata. Only its observation timestamp can change.
             value["exposure_snapshot"].pop("as_of")
-        values.append(value)
+        values.append((category, value))
         h.request(other, "GET", path, params=params or None, status=404)
     for note in notes:
         reopened = h.request(client, "GET", _exact_note(note)).json()
@@ -1150,12 +1336,11 @@ def _run_completed_evidence_restore(evidence_restore_harnesses):
     )
     # The original remains stopped and untouched; only the fresh API restarts.
     restored.restart_api(list(h.credentials))
-    require(
+    _assert_snapshot_equal(
+        before,
         _snapshot_http(
             restored, source, notes, replay, control, arms, comparison, decision
-        )
-        == before,
-        "Cold-restored HTTP evidence silently changed physical pins, provenance, or result semantics",
+        ),
     )
     require(
         _artifacts(restored, replay, control, arms) == inventory,
