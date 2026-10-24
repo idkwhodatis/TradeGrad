@@ -563,14 +563,17 @@ def test_root_replacement_between_scans_is_rejected(source, monkeypatch):
         preview(source)
 
 
-def test_historical_note_pin_is_protected_without_current_artifact_row(source):
+@pytest.mark.parametrize("revision", ["010_research_notes", "011_note_pin_trigger"])
+def test_historical_note_pin_is_protected_without_current_artifact_row(
+    source, revision
+):
     """Data-only snapshot seam: a retained old revision remains an authority.
 
     The synthetic temporary-shaped key tests the deletion exclusion itself;
     normal published note evidence was already unconditionally retained.
     """
     _root, files, snapshot = source
-    snapshot["schema_revision"] = "010_research_notes"
+    snapshot["schema_revision"] = revision
     snapshot["references"].append(
         {"path": TEMP, "sha256": sha(files[TEMP]), "size_bytes": len(files[TEMP])}
     )
@@ -580,9 +583,12 @@ def test_historical_note_pin_is_protected_without_current_artifact_row(source):
     assert_unchanged(source)
 
 
-def test_corrupt_historical_note_reference_stops_retention_not_retargeted(source):
+@pytest.mark.parametrize("revision", ["010_research_notes", "011_note_pin_trigger"])
+def test_corrupt_historical_note_reference_stops_retention_not_retargeted(
+    source, revision
+):
     _root, files, snapshot = source
-    snapshot["schema_revision"] = "010_research_notes"
+    snapshot["schema_revision"] = revision
     snapshot["references"].append(
         {
             "path": TEMP,

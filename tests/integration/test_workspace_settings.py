@@ -14,6 +14,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from backend.app.core.db import REQUIRED_SCHEMA_REVISION
 from backend.app.models import ResearchRun, User
 from backend.app.services import DomainError
 from backend.app.workspace_policy import enforce_model_policy
@@ -401,7 +402,7 @@ def test_workspace_schema_round_trip_never_rewrites_immutable_runs(
 def test_status_never_invents_backup_receipt(api, owner_headers):
     result = api.get("/api/v1/settings/status", headers=owner_headers)
     assert result.status_code == 200
-    assert result.json()["schema_revision"] == "007_research_specs"
+    assert result.json()["schema_revision"] == REQUIRED_SCHEMA_REVISION
     assert result.json()["backup_status"] == "restricted"
     assert result.json()["backup_evidence"] == []
     assert "administrators" in result.json()["backup_note"]

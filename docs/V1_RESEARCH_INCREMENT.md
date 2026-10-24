@@ -832,3 +832,95 @@ limit and removal of arbitrary text remain intact. The fresh minimal-evaluator
 aggregate passed **2,434 tests** in 117.03 seconds. The original hosted failure
 remains a failure at its own head; these local repairs still require a new full
 exact-head hosted gate.
+
+The same first hosted run completed the fresh, non-resumed full capacity gate
+successfully on the exact clean published source. Its two 1,000-listing ×
+750-session comparisons took **218.273 s / 223.852 s**, below the unchanged
+300-second deadline. Separate exhaustive reconstruction/source-equivalence
+audits took **270.374 s / 268.038 s** and verified all **2,252,251 / 2,253,751**
+output rows. Encoded payload sizes were **1,870,339,406 / 1,870,688,906 bytes**;
+reconstructed sizes were **2,368,825,532 / 2,369,520,032 bytes**. Peak RSS was
+**191,442,944 / 191,995,904 bytes**. Across the three complete variants, candidate
+query P95 was **23.129–26.271 ms** and instrument-stage detail P95 was
+**55.774–76.800 ms**; cached comparison P95 was **26.300 / 26.678 ms**.
+The frozen measured budget passed without changed limits, shortened inputs,
+reused phases or omitted rows. These are storage/query measurements on the
+reported GitHub runner, not HTTP/PostgreSQL latency or dedicated-machine claims.
+
+The downloaded capacity artifact `12544142856` was verified against GitHub's
+archive SHA-256
+`efd68aa0d1cf2d03684c2cd8b19701fc30a436cb64f9a3fac13f87f2cbf91c24`.
+The independent Compose browser gate failed 15 scenarios, despite its healthy
+actual stack and verified owned cleanup. Thus this successful capacity result
+does **not** establish complete increment acceptance or V2 readiness. All
+required jobs must pass together again at the final repaired source head.
+
+### Repairs following the first real Compose browser run
+
+The workbench's populated selects and textareas were nested inside their labels,
+so their options/values contaminated exact accessible label text. Standalone
+associated labels now retain the same controls and values, with render-level
+regressions. Browser cases also now select their declared original inputs,
+traverse the real paginated strategy catalog, and assert the implemented tabs
+rather than obsolete I2 placeholders. Navigation still must cause no writes.
+An optimizer trace is sealed before candidate checkpoint registration: its
+nullable candidate foreign key is not retroactively invented. The candidate's
+verified physical Evaluation links, code, attempt and result/trace hashes remain
+mandatory, with a regression preserving the pre-checkpoint manifest bytes.
+
+The actual native daily-timing browser fixture exposed a producer defect:
+completion capture re-entered the strategy-origin registry and falsely marked
+valid logical-to-child order links as conflicting. A collector-owned scoped
+guard now distinguishes its completion snapshot from a new strategy emission.
+Genuine conflicting origins and spoofed completion phases still fail closed;
+exceptions restore the prior guard state. The exact original fixture now passes
+all 14 semantic parity checks, while capture-on/off preserves its economic
+tables, metrics and fees. A separate paging fixture has 26 actual events; the
+original fixture's 25 events could not exercise a second 25-row page. Only that
+scenario shifts the train/validation boundary to March 18, with real successful
+source/replay and validation executions, unchanged warmup and holdout.
+
+The comparison variant's former 15% allocation produced a buy but no closed
+trade in the exact train window. The optimizer correctly rejected it. The
+declared variant is now 25% allocation with the same 0.001 commission, complete
+76-row pinned CSV, original windows and 20-session warmup. The shared browser/
+native fixture proves both variants pass the unchanged positive-trade reward
+gate and produce different recorded targets/pre-states. A regression retains
+the old 15% rejection; no independent-observation eligibility bypass is used.
+
+Source review also identified a deterministic PostgreSQL trigger namespace
+defect: the table alias `old` collides with PL/pgSQL's implicit `OLD` record when
+the pin-admission expression is planned. PostgreSQL documents the
+[implicit trigger records](https://www.postgresql.org/docs/18/plpgsql-trigger.html)
+and [ambiguous-reference error](https://www.postgresql.org/docs/18/plpgsql-implementation.html);
+this explains the observed note-save failures but still
+requires their hosted reproduction. Additive migration `011_note_pin_trigger`
+renames only those aliases. `010_research_notes` is byte-identical; all owner,
+artifact metadata/hash and historical-retention predicates are unchanged.
+Readiness now requires the sole 011 head, while backup inventories and receipts
+continue supporting both 010 and 011. A mandatory real-PG regression exercises
+the original `42702` error, upgrade without rewriting history, valid pins,
+foreign-owner/hash/metadata denial, and same-note-only retained copies. It has
+been collected locally, not executed against a local database.
+
+Note-save failure diagnostics now expose only a versioned, fixed-vocabulary
+category, HTTP status, known domain code and bounded schema field names. Neither
+request/response values, exception messages nor raw browser reports are
+published. Independent exporter validation, malformed-input limits and actual
+Playwright assertion-message formatting are tested. The original 20 MB report
+and 512-case protections remain unchanged. Actual browser, PostgreSQL, Docker,
+cold restore and fresh capacity acceptance remain required at the repaired head.
+
+The repaired local aggregate passed **2,479 backend/runner/operations/trace tests**
+in 128.11 seconds with the hash-locked, pytest-free native interpreter required
+(no skips; one upstream TestClient deprecation warning). Its 506,486-byte raw
+JUnit was accepted by the unchanged outcome-only export size limit and reduced
+to 103,177 bytes. The frontend passed **1,028 tests across 66 files**, typecheck,
+production build and formatting; **64 Playwright scenarios were collected, not
+locally executed**. All 69 Compose source-boundary checks passed in the existing
+test runtime with its locked test-only YAML dependency, without launching
+services. The new PostgreSQL migration cases and 010/011 cold-restore paths were
+collected only. Offline SQL rendered through 011, generated OpenAPI/client
+changes contain only the additional backup-revision enum, and the original
+baseline branch remains untouched. These checks justify the next hosted run,
+not a completed runtime acceptance claim.

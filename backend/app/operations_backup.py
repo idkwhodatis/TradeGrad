@@ -44,6 +44,7 @@ REVISIONS = {
     "008_comparisons",
     "009_independent_evaluations",
     "010_research_notes",
+    "011_note_pin_trigger",
 }
 NAMESPACES = {"datasets", "runs", "data-checkpoints", "uploads", "strategy-packages"}
 HEX = re.compile(r"[a-f0-9]{64}\Z")
@@ -537,11 +538,12 @@ class PostgresDatabase:
                 "008_comparisons",
                 "009_independent_evaluations",
                 "010_research_notes",
+                "011_note_pin_trigger",
             }:
                 references += rows(
                     "SELECT storage_key AS path, archive_sha256 AS sha256, size_bytes FROM strategy_packages ORDER BY storage_key"
                 )
-            if revisions[0] == "010_research_notes":
+            if revisions[0] in {"010_research_notes", "011_note_pin_trigger"}:
                 # Historical note revisions retain exact artifacts independently
                 # of a mutable/current resource pointer. Never JOIN these pins to
                 # artifacts: deliberate metadata cleanup must not silently drop

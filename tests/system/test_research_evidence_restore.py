@@ -45,6 +45,8 @@ from test_independent_pipeline import (
 from test_research_optimization import ResearchProcessHarness, runtime_paths
 from test_worker_recovery import ROOT, require
 
+from backend.app.core.db import REQUIRED_SCHEMA_REVISION
+
 DATABASE_NAME = re.compile(r"tradegrad_backup_test_[0-9a-f]{32}\Z")
 GATE_SECONDS = 900
 PIN_FIELDS = (
@@ -1022,7 +1024,7 @@ def _run_completed_evidence_restore(evidence_restore_harnesses):
             limits=limits,
         )
     require(
-        manifest["schema_revision"] == "010_research_notes"
+        manifest["schema_revision"] == REQUIRED_SCHEMA_REVISION
         and verify_backup(archive, application_ref=application_ref, limits=limits)
         == manifest,
         "Real cold archive failed complete manifest verification",

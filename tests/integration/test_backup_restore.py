@@ -194,6 +194,20 @@ def _upgrade(engine: Engine, revision: str) -> None:
         command.upgrade(config, revision)
 
 
+def _downgrade(engine: Engine, revision: str) -> None:
+    from alembic import command
+    from alembic.config import Config
+
+    config = Config(str(ROOT / "backend" / "alembic.ini"))
+    config.set_main_option("script_location", str(ROOT / "backend" / "alembic"))
+    with engine.begin() as connection:
+        assert (
+            connection.execute(text("SELECT current_schema()")).scalar_one() == "public"
+        )
+        config.attributes["connection"] = connection
+        command.downgrade(config, revision)
+
+
 def _seed_m3(engine: Engine, storage: Path) -> dict[str, bytes]:
     """Insert genuine historical rows, without importing current ORM models."""
     from backend.app.core.atomic_storage import provision_directory, sync_tree
@@ -1558,6 +1572,7 @@ def _reopen_restored_notes(engine, storage, retained):
         "008_comparisons",
         "009_independent_evaluations",
         "010_research_notes",
+        "011_note_pin_trigger",
     ],
 )
 def test_real_settings_backup_restores_management_and_immutable_history(
@@ -1591,7 +1606,13 @@ def test_real_settings_backup_restores_management_and_immutable_history(
         _upgrade(source, "003_m3")
         files = _seed_m3(source, storage)
         identity = _config_identity(source)
-        _upgrade(source, revision)
+        # The original 010 trigger cannot insert evidence pins because its SQL
+        # alias conflicts with PL/pgSQL's OLD record. Prepare history under the
+        # additive repair, then restore genuine 010 semantics before archiving.
+        _upgrade(
+            source,
+            "011_note_pin_trigger" if revision == "010_research_notes" else revision,
+        )
         with source.begin() as connection:
             connection.execute(_settings_seed_statement())
         if revision in {
@@ -1600,6 +1621,7 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             "008_comparisons",
             "009_independent_evaluations",
             "010_research_notes",
+            "011_note_pin_trigger",
         }:
             from sqlalchemy.orm import Session
 
@@ -1638,21 +1660,35 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             "008_comparisons",
             "009_independent_evaluations",
             "010_research_notes",
+            "011_note_pin_trigger",
         }:
             _seed_workbench_evidence(source)
         if revision in {
             "008_comparisons",
             "009_independent_evaluations",
             "010_research_notes",
+            "011_note_pin_trigger",
         }:
             files.update(_seed_comparison_boundary(source, storage))
-        if revision in {"009_independent_evaluations", "010_research_notes"}:
+        if revision in {
+            "009_independent_evaluations",
+            "010_research_notes",
+            "011_note_pin_trigger",
+        }:
             _seed_independent_boundary(source)
         retained_notes = (
             _seed_note_boundary(source, storage)
-            if revision == "010_research_notes"
+            if revision in {"010_research_notes", "011_note_pin_trigger"}
             else None
         )
+        if revision == "010_research_notes":
+            before_downgrade = _historical_snapshot(source)
+            _downgrade(source, revision)
+            assert _historical_snapshot(source) == before_downgrade
+        with source.connect() as connection:
+            assert connection.execute(
+                text("SELECT version_num FROM alembic_version")
+            ).scalars().all() == [revision]
         expected = _historical_snapshot(source)
         if retained_notes:
             assert len(expected["research_notes"][1]) == 2
@@ -1662,15 +1698,25 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             "008_comparisons",
             "009_independent_evaluations",
             "010_research_notes",
+            "011_note_pin_trigger",
         }:
             assert len(expected["comparisons"][1]) == 1
             assert len(expected["comparison_submissions"][1]) == 2
             assert len(expected["research_evaluations"][1]) == (
                 6
-                if revision in {"009_independent_evaluations", "010_research_notes"}
+                if revision
+                in {
+                    "009_independent_evaluations",
+                    "010_research_notes",
+                    "011_note_pin_trigger",
+                }
                 else 2
             )
-        if revision in {"009_independent_evaluations", "010_research_notes"}:
+        if revision in {
+            "009_independent_evaluations",
+            "010_research_notes",
+            "011_note_pin_trigger",
+        }:
             assert len(expected["independent_evaluations"][1]) == 3
             assert len(expected["controlled_experiments"][1]) == 1
             assert len(expected["controlled_arms"][1]) == 2
@@ -1713,6 +1759,7 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             "008_comparisons",
             "009_independent_evaluations",
             "010_research_notes",
+            "011_note_pin_trigger",
         }:
             with restored.connect() as connection:
                 assert connection.execute(
@@ -1740,7 +1787,11 @@ def test_real_settings_backup_restores_management_and_immutable_history(
                 ):
                     connection.execute(text(statement))
             _assert_historical_snapshot(restored, expected)
-        if revision in {"009_independent_evaluations", "010_research_notes"}:
+        if revision in {
+            "009_independent_evaluations",
+            "010_research_notes",
+            "011_note_pin_trigger",
+        }:
             for statement, error in (
                 (
                     "UPDATE independent_evaluations SET source_snapshot = '{}'::jsonb",

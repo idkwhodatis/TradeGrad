@@ -1221,6 +1221,7 @@ def test_relative_home_profile_fails_before_inspection_or_client_invocation(
         "008_comparisons",
         "009_independent_evaluations",
         "010_research_notes",
+        "011_note_pin_trigger",
     ],
 )
 def test_supported_revisions_backup_roundtrip_without_relabeling(
@@ -1243,6 +1244,7 @@ def test_supported_revisions_backup_roundtrip_without_relabeling(
         "008_comparisons",
         "009_independent_evaluations",
         "010_research_notes",
+        "011_note_pin_trigger",
     ],
 )
 def test_source_inventory_retains_strategy_packages_after_settings_revision(
@@ -1259,7 +1261,10 @@ def test_source_inventory_retains_strategy_packages_after_settings_revision(
     assert any("FROM strategy_packages" in query for query in connection.queries)
 
 
-def test_note_revision_pins_survive_missing_live_artifact_registration(monkeypatch):
+@pytest.mark.parametrize("revision", ["010_research_notes", "011_note_pin_trigger"])
+def test_note_revision_pins_survive_missing_live_artifact_registration(
+    monkeypatch, revision
+):
     class NotesConnection(InspectionConnection):
         def execute(self, statement, parameters=None):
             result = super().execute(statement, parameters)
@@ -1280,7 +1285,7 @@ def test_note_revision_pins_survive_missing_live_artifact_registration(monkeypat
                 )
             return result
 
-    connection = NotesConnection(revisions=["010_research_notes"])
+    connection = NotesConnection(revisions=[revision])
     database = backup.PostgresDatabase(
         "postgresql://operator@localhost/unit_inspection"
     )
@@ -1296,7 +1301,8 @@ def test_note_revision_pins_survive_missing_live_artifact_registration(monkeypat
     assert "WHERE resource_kind='artifact'" in query
 
 
-def test_conflicting_historical_pin_does_not_get_deduplicated(monkeypatch):
+@pytest.mark.parametrize("revision", ["010_research_notes", "011_note_pin_trigger"])
+def test_conflicting_historical_pin_does_not_get_deduplicated(monkeypatch, revision):
     class NotesConnection(InspectionConnection):
         def execute(self, statement, parameters=None):
             result = super().execute(statement, parameters)
@@ -1313,7 +1319,7 @@ def test_conflicting_historical_pin_does_not_get_deduplicated(monkeypatch):
                 )
             return result
 
-    connection = NotesConnection(revisions=["010_research_notes"])
+    connection = NotesConnection(revisions=[revision])
     database = backup.PostgresDatabase(
         "postgresql://operator@localhost/unit_inspection"
     )

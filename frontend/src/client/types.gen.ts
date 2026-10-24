@@ -165,7 +165,7 @@ export type BackupReceipt = {
     /**
      * Schema Revision
      */
-    schema_revision: '003_m3' | '004_m5' | '005_settings' | '006_provider_connections' | '007_research_specs' | '008_comparisons' | '009_independent_evaluations' | '010_research_notes';
+    schema_revision: '003_m3' | '004_m5' | '005_settings' | '006_provider_connections' | '007_research_specs' | '008_comparisons' | '009_independent_evaluations' | '010_research_notes' | '011_note_pin_trigger';
 };
 
 /**
