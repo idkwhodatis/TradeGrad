@@ -622,8 +622,28 @@ def _candidate(session, run, attempt, row):
             raise DomainError(
                 "candidate_lineage", "Candidate parent must already exist in this run"
             )
+    from packages.tradegrad_adapter.checkpoint import validate_candidate_context
+
+    context = row.get("lineage_context")
+    if context is not None:
+        previous_keys = session.scalars(
+            select(Candidate.candidate_key).where(
+                Candidate.run_id == run.id, Candidate.candidate_key != key
+            )
+        ).all()
+        try:
+            validate_candidate_context(
+                context, previous_keys, candidate_kind=row["kind"]
+            )
+        except (ValueError, TypeError, KeyError) as error:
+            raise DomainError(
+                "candidate_lineage",
+                "Invalid immutable candidate generation context",
+                422,
+            ) from error
     values = {
         "candidate_key": key,
+        "lineage_context": context,
         "parent_id": parent.id if parent else None,
         "kind": row["kind"],
         "iteration": row["iteration"],

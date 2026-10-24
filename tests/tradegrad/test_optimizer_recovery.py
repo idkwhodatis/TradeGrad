@@ -101,6 +101,7 @@ def chain(result):
             c["code_sha256"],
             c["evaluation"],
             c["valid"],
+            c.get("lineage_context"),
         )
         for c in result.candidates
     ]

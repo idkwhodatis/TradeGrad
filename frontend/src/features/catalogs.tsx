@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { ControlledTemplates } from "./research-workbench/templates";
 import { Braces, Code2, Plus, X } from "lucide-react";
 import type {
   StrategyCreate,
@@ -141,6 +143,7 @@ function StrategyWorkspace({ owner }: { owner: string }) {
   }
   return (
     <>
+      <ControlledTemplates onUse={begin} />
       <div className="flex gap-3 mb-5">
         <Button
           onClick={() => (draft ? setEditing(true) : begin(emptyStrategy()))}
@@ -381,6 +384,15 @@ function StrategySource({
             </pre>
           </details>
           <div className="flex gap-3 mb-4">
+            <Button asChild variant="outline">
+              <Link
+                to="/strategies/$strategyId/research"
+                params={{ strategyId: detail.data.id }}
+                search={{ code_sha256: detail.data.content_sha256 }}
+              >
+                Open research workbench
+              </Link>
+            </Button>
             <Button onClick={() => onEdit(detail.data!)}>
               Edit as new version
             </Button>

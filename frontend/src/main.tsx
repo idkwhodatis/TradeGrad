@@ -23,6 +23,7 @@ import {
 } from "@/lib/session";
 import "./styles.css";
 import { comparisonSearch } from "@/lib/navigation";
+import { workbenchSearch } from "@/lib/workbench-selection";
 
 function Root() {
   useEffect(() => {
@@ -171,6 +172,15 @@ const strategiesRoute = createRoute({
     "StrategiesPage",
   ),
 });
+const researchWorkbenchRoute = createRoute({
+  getParentRoute: () => privateRoute,
+  path: "/strategies/$strategyId/research",
+  validateSearch: workbenchSearch,
+  component: lazyRouteComponent(
+    () => import("@/features/research-workbench/page"),
+    "ResearchWorkbenchPage",
+  ),
+});
 const runsRoute = createRoute({
   getParentRoute: () => privateRoute,
   path: "/runs",
@@ -317,6 +327,7 @@ const routeTree = rootRoute.addChildren([
     uploadRoute,
     universesRoute,
     strategiesRoute,
+    researchWorkbenchRoute,
     runsRoute,
     newRunRoute,
     runRoute,

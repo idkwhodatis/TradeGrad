@@ -46,6 +46,109 @@ def json_digest(value: Any) -> str:
     return digest(canonical_json(value))
 
 
+def validate_candidate_context(
+    context: Any,
+    earlier_candidate_keys: Any,
+    *,
+    candidate_kind: str | None = None,
+) -> None:
+    """Validate optional, observed generation provenance without engine imports.
+
+    Historical candidates omit this field. Do not infer algorithm references from
+    a code parent or from the optimizer's later, mutable sample selection.
+    """
+
+    def require(condition: bool, message: str) -> None:
+        if not condition:
+            raise CheckpointError(message)
+
+    require(isinstance(context, dict), "invalid candidate context")
+    require(
+        set(context)
+        == {
+            "schema_version",
+            "reference_candidate_keys",
+            "feedback",
+            "feedback_sha256",
+            "feedback_truncated",
+            "revision_mode",
+            "generation_status",
+            "model_call_ids",
+        },
+        "invalid candidate context fields",
+    )
+    require(
+        context["schema_version"] == "tradegrad.candidate-context.v1",
+        "invalid candidate context schema",
+    )
+    status = context["generation_status"]
+    require(
+        status in {"seed", "generated", "repair", "unchanged_fallback"},
+        "invalid candidate generation status",
+    )
+    if candidate_kind is not None:
+        require(
+            status == candidate_kind
+            or (candidate_kind == "generated" and status == "unchanged_fallback"),
+            "candidate context kind mismatch",
+        )
+    mode = context["revision_mode"]
+    require(
+        mode is None or mode in {"small", "large"}, "invalid candidate revision mode"
+    )
+    references = context["reference_candidate_keys"]
+    require(
+        isinstance(references, list)
+        and len(references) <= 1000
+        and all(
+            isinstance(key, str)
+            and len(key) <= 160
+            and _SAFE_NAME.fullmatch(key)
+            and key in earlier_candidate_keys
+            for key in references
+        ),
+        "invalid candidate algorithm references",
+    )
+    require(len(references) == len(set(references)), "duplicate candidate references")
+    calls = context["model_call_ids"]
+    require(
+        isinstance(calls, list)
+        and len(calls) <= 10000
+        and all(
+            isinstance(key, str)
+            and 0 < len(key) <= 160
+            and re.fullmatch(r"[a-zA-Z0-9_.:-]+", key)
+            for key in calls
+        ),
+        "invalid candidate context model calls",
+    )
+    require(len(calls) == len(set(calls)), "duplicate candidate context model calls")
+    feedback, sha, truncated = (
+        context[key] for key in ("feedback", "feedback_sha256", "feedback_truncated")
+    )
+    require(isinstance(truncated, bool), "invalid feedback truncation state")
+    require(
+        feedback is None
+        or (isinstance(feedback, str) and len(feedback.encode()) <= 64 * 1024),
+        "invalid candidate feedback size",
+    )
+    if feedback is None:
+        require(sha is None and not truncated, "missing feedback has fabricated hash")
+    else:
+        require(
+            isinstance(sha, str) and bool(re.fullmatch(r"[0-9a-f]{64}", sha)),
+            "invalid candidate feedback hash",
+        )
+        require(
+            truncated or digest(feedback.encode()) == sha,
+            "candidate feedback hash mismatch",
+        )
+    if status in {"seed", "repair"}:
+        require(not references and mode is None, "non-generation has false references")
+    if status == "seed":
+        require(not calls and feedback is None, "seed has false model provenance")
+
+
 def atomic_json(path: Path, value: Any) -> None:
     """Durably replace a JSON record on its current filesystem."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -277,14 +380,21 @@ def state_artifacts(state: Mapping[str, Any]) -> dict[str, bytes]:
         "lineage.json": canonical_json(
             [
                 {
-                    key: candidate.get(key)
-                    for key in (
-                        "candidate_id",
-                        "parent_id",
-                        "kind",
-                        "iteration",
-                        "repair_index",
-                    )
+                    **{
+                        key: candidate.get(key)
+                        for key in (
+                            "candidate_id",
+                            "parent_id",
+                            "kind",
+                            "iteration",
+                            "repair_index",
+                        )
+                    },
+                    **(
+                        {"lineage_context": candidate["lineage_context"]}
+                        if "lineage_context" in candidate
+                        else {}
+                    ),
                 }
                 for candidate in state["candidates"]
             ]
@@ -403,6 +513,12 @@ def validate_state(state: Mapping[str, Any], *, expected_input_digest: str) -> N
                 and digest(candidate["code"].encode()) == candidate["code_sha256"],
                 "invalid candidate code hash or size",
             )
+            if "lineage_context" in candidate:
+                validate_candidate_context(
+                    candidate["lineage_context"],
+                    by_id,
+                    candidate_kind=candidate["kind"],
+                )
             check(isinstance(candidate["valid"], bool), "invalid candidate validity")
             outcomes = candidate["window_results"]
             check(
@@ -513,7 +629,7 @@ def validate_state(state: Mapping[str, Any], *, expected_input_digest: str) -> N
         )
         calls = state["model_calls"]
         check(
-            isinstance(calls, list) and len(calls) <= 10000,
+            isinstance(calls, list) and len(calls) <= 1000000,
             "invalid checkpoint model call count",
         )
         names = set()
@@ -549,6 +665,13 @@ def validate_state(state: Mapping[str, Any], *, expected_input_digest: str) -> N
                 ),
                 "invalid model token usage",
             )
+        for candidate in candidates:
+            context = candidate.get("lineage_context")
+            if context is not None:
+                check(
+                    all(call_id in names for call_id in context["model_call_ids"]),
+                    "candidate context refers to an unrecorded model call",
+                )
         # Explicitly reject non-finite JSON numbers anywhere, including outcomes
         # and provider metadata, even though Python json.loads accepts NaN.
         canonical_json(state)

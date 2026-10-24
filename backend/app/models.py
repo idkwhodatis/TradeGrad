@@ -475,6 +475,7 @@ class Candidate(Base):
     kind: Mapped[str] = mapped_column(String(20))
     iteration: Mapped[int] = mapped_column(Integer)
     repair_index: Mapped[int] = mapped_column(Integer)
+    lineage_context: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     code: Mapped[str] = mapped_column(Text)
     code_sha256: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(
@@ -714,4 +715,53 @@ class StrategyPackage(Base):
     __table_args__ = (
         UniqueConstraint("owner_id", "request_sha256", name="uq_package_owner_request"),
         CheckConstraint("size_bytes > 0"),
+    )
+
+
+class StrategySpecRevision(Base):
+    """Append-only descriptive prose, bound to one exact source resource/hash."""
+
+    __tablename__ = "strategy_spec_revisions"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    strategy_version_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("strategy_versions.id")
+    )
+    candidate_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("research_candidates.id")
+    )
+    code_sha256: Mapped[str] = mapped_column(String(64))
+    revision: Mapped[int] = mapped_column(Integer)
+    spec_sha256: Mapped[str] = mapped_column(String(64))
+    spec: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    origin: Mapped[str] = mapped_column(String(20))
+    change_note: Mapped[str | None] = mapped_column(Text)
+    request_sha256: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    __table_args__ = (
+        UniqueConstraint(
+            "strategy_version_id", "revision", name="uq_strategy_spec_revision"
+        ),
+        UniqueConstraint("candidate_id", "revision", name="uq_candidate_spec_revision"),
+        CheckConstraint("(strategy_version_id IS NULL) <> (candidate_id IS NULL)"),
+        CheckConstraint("revision > 0"),
+        CheckConstraint("origin IN ('static', 'human')"),
+    )
+
+
+class CandidateBookmark(Base):
+    """Private durable bookmark; never changes candidate code, score or lineage."""
+
+    __tablename__ = "candidate_bookmarks"
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    candidate_id: Mapped[UUID] = mapped_column(
+        ForeignKey("research_candidates.id"), primary_key=True
+    )
+    code_sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
     )

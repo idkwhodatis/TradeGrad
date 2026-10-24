@@ -401,7 +401,7 @@ def test_workspace_schema_round_trip_never_rewrites_immutable_runs(
 def test_status_never_invents_backup_receipt(api, owner_headers):
     result = api.get("/api/v1/settings/status", headers=owner_headers)
     assert result.status_code == 200
-    assert result.json()["schema_revision"] == "006_provider_connections"
+    assert result.json()["schema_revision"] == "007_research_specs"
     assert result.json()["backup_status"] == "restricted"
     assert result.json()["backup_evidence"] == []
     assert "administrators" in result.json()["backup_note"]

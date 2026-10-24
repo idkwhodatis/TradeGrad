@@ -306,6 +306,34 @@ export type BudgetConfig = {
 };
 
 /**
+ * CandidateBookmark
+ */
+export type CandidateBookmark = {
+    /**
+     * Bookmarked
+     */
+    bookmarked: boolean;
+    /**
+     * Candidate Id
+     */
+    candidate_id: string;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+};
+
+/**
+ * CandidateBookmarkSet
+ */
+export type CandidateBookmarkSet = {
+    /**
+     * Bookmarked
+     */
+    bookmarked: boolean;
+};
+
+/**
  * CandidateDetail
  */
 export type CandidateDetail = {
@@ -2669,6 +2697,180 @@ export type IndicatorSeries = {
 export type JsonValue = unknown;
 
 /**
+ * LineageContext
+ */
+export type LineageContext = {
+    /**
+     * Checkpoint Id
+     */
+    checkpoint_id?: string | null;
+    /**
+     * Checkpoint Sha256
+     */
+    checkpoint_sha256?: string | null;
+    /**
+     * Feedback
+     */
+    feedback?: string | null;
+    /**
+     * Feedback Sha256
+     */
+    feedback_sha256?: string | null;
+    /**
+     * Feedback Truncated
+     */
+    feedback_truncated?: boolean;
+    /**
+     * Generation Status
+     */
+    generation_status?: string | null;
+    /**
+     * Missing Reasons
+     */
+    missing_reasons?: Array<string>;
+    /**
+     * Model Call Ids
+     */
+    model_call_ids?: Array<string>;
+    /**
+     * Revision Mode
+     */
+    revision_mode?: string | null;
+    /**
+     * Status
+     */
+    status: 'available' | 'not_collected' | 'unavailable';
+};
+
+/**
+ * LineageNode
+ */
+export type LineageNode = {
+    /**
+     * Aggregate Missing Reason
+     */
+    aggregate_missing_reason: string;
+    /**
+     * Aggregate Status
+     */
+    aggregate_status: 'not_loaded';
+    /**
+     * Bookmarked
+     */
+    bookmarked: boolean;
+    /**
+     * Candidate Key
+     */
+    candidate_key: string | null;
+    /**
+     * Child Count
+     */
+    child_count: number;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Evaluation Count
+     */
+    evaluation_count: number;
+    /**
+     * Evaluations
+     */
+    evaluations: Array<WorkbenchEvaluation>;
+    /**
+     * Evaluations Truncated
+     */
+    evaluations_truncated: boolean;
+    /**
+     * Final Selection Count
+     */
+    final_selection_count: number;
+    /**
+     * Final Selection Ids
+     */
+    final_selection_ids: Array<string>;
+    /**
+     * Final Selections Truncated
+     */
+    final_selections_truncated: boolean;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Is Recorded Best
+     */
+    is_recorded_best: boolean | null;
+    /**
+     * Kind
+     */
+    kind: 'strategy' | 'derived' | 'seed' | 'generated' | 'repair';
+    /**
+     * Mode
+     */
+    mode: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Parent Id
+     */
+    parent_id: string | null;
+    /**
+     * Resource Kind
+     */
+    resource_kind: 'strategy_version' | 'candidate';
+    /**
+     * Run Id
+     */
+    run_id: string | null;
+    /**
+     * Selection Missing Reason
+     */
+    selection_missing_reason: string | null;
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+};
+
+/**
+ * LineageReference
+ */
+export type LineageReference = {
+    /**
+     * Candidate Id
+     */
+    candidate_id: string;
+    /**
+     * Candidate Key
+     */
+    candidate_key: string;
+    /**
+     * Checkpoint Id
+     */
+    checkpoint_id?: string | null;
+    /**
+     * Checkpoint Sha256
+     */
+    checkpoint_sha256?: string | null;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Relationship
+     */
+    relationship?: 'algorithm_reference';
+};
+
+/**
  * ListingPublic
  */
 export type ListingPublic = {
@@ -3681,6 +3883,20 @@ export type PageResearchRunPublic = {
 };
 
 /**
+ * Page[ResearchTemplate]
+ */
+export type PageResearchTemplate = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<ResearchTemplate>;
+};
+
+/**
  * Page[RunPublic]
  */
 export type PageRunPublic = {
@@ -3748,6 +3964,34 @@ export type PageUserPublic = {
      * Data
      */
     data: Array<UserPublic>;
+};
+
+/**
+ * Page[WorkbenchEvaluation]
+ */
+export type PageWorkbenchEvaluation = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<WorkbenchEvaluation>;
+};
+
+/**
+ * Page[WorkbenchSpec]
+ */
+export type PageWorkbenchSpec = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<WorkbenchSpec>;
 };
 
 /**
@@ -6401,6 +6645,34 @@ export type ResearchRunPublic = {
 };
 
 /**
+ * ResearchTemplate
+ */
+export type ResearchTemplate = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    manifest: NativeStrategyContract;
+    /**
+     * Name
+     */
+    name: string;
+    spec: StrategySpec;
+    /**
+     * Task Suffix
+     */
+    task_suffix: 'time' | 'cross';
+    /**
+     * Template Id
+     */
+    template_id: 'daily_timing' | 'cross_sectional';
+};
+
+/**
  * ResearchUsagePublic
  */
 export type ResearchUsagePublic = {
@@ -7135,6 +7407,79 @@ export type RiskConfig = {
 };
 
 /**
+ * Rule
+ */
+export type Rule = {
+    /**
+     * Category
+     */
+    category: 'universe' | 'input' | 'feature' | 'filter' | 'ranking' | 'allocation' | 'exit' | 'execution';
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Inputs
+     */
+    inputs: Array<string>;
+    /**
+     * Mapping
+     */
+    mapping: 'controlled' | 'human_confirmed' | 'inferred' | 'unmapped';
+    /**
+     * Outputs
+     */
+    outputs: Array<string>;
+    /**
+     * Parameters
+     */
+    parameters: {
+        [key: string]: unknown;
+    };
+    /**
+     * Rule Id
+     */
+    rule_id: string;
+    /**
+     * Source
+     */
+    source: 'llm_explanation' | 'static_inference' | 'strategy_emitted' | 'adapter_observed' | 'engine_observed' | 'experiment_result' | 'human_explanation';
+    source_ref: SourceRef;
+    /**
+     * Stage Id
+     */
+    stage_id: string | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Units
+     */
+    units: {
+        [key: string]: string;
+    };
+};
+
+/**
+ * RuleProseEdit
+ */
+export type RuleProseEdit = {
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Rule Id
+     */
+    rule_id: string;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
  * RunConfig
  */
 export type RunConfig = {
@@ -7478,6 +7823,32 @@ export type SourceRef = {
      * Symbol
      */
     symbol: string;
+};
+
+/**
+ * SpecRevisionCreate
+ */
+export type SpecRevisionCreate = {
+    /**
+     * Base Revision
+     */
+    base_revision: number;
+    /**
+     * Base Spec Sha256
+     */
+    base_spec_sha256: string;
+    /**
+     * Change Note
+     */
+    change_note?: string | null;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Rules
+     */
+    rules: Array<RuleProseEdit>;
 };
 
 /**
@@ -7847,6 +8218,55 @@ export type StrategyPublic = {
      * Task
      */
     task: 'cn_time' | 'us_time' | 'cn_cross' | 'us_cross';
+};
+
+/**
+ * StrategySpec
+ */
+export type StrategySpec = {
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Coverage
+     */
+    coverage: 'complete' | 'partial' | 'not_collected' | 'not_sampled' | 'unsupported';
+    /**
+     * Edges
+     */
+    edges: Array<[
+        string,
+        string
+    ]>;
+    /**
+     * Explanation Model
+     */
+    explanation_model?: string | null;
+    /**
+     * Missing Reasons
+     */
+    missing_reasons: Array<string>;
+    /**
+     * Prompt Version
+     */
+    prompt_version?: string | null;
+    /**
+     * Revision
+     */
+    revision: number;
+    /**
+     * Rules
+     */
+    rules: Array<Rule>;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.strategy-spec.v1';
+    /**
+     * Template Id
+     */
+    template_id: 'daily_timing' | 'cross_sectional' | null;
 };
 
 /**
@@ -8394,6 +8814,202 @@ export type WindowSet = {
 };
 
 /**
+ * WorkbenchEvaluation
+ */
+export type WorkbenchEvaluation = {
+    /**
+     * Candidate Id
+     */
+    candidate_id: string | null;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    /**
+     * Evidence Status
+     */
+    evidence_status: 'registered' | 'unavailable';
+    /**
+     * Execution Attempt Id
+     */
+    execution_attempt_id: string;
+    /**
+     * Final Test Id
+     */
+    final_test_id: string | null;
+    /**
+     * Missing Reasons
+     */
+    missing_reasons: Array<string>;
+    /**
+     * Result Manifest Sha256
+     */
+    result_manifest_sha256: string | null;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Run Kind
+     */
+    run_kind: 'native_research' | 'native_final' | 'portable_research' | 'portable_final' | 'legacy';
+    /**
+     * Run Schema Version
+     */
+    run_schema_version: string | null;
+    source_association: WorkbenchSourceAssociation;
+    /**
+     * Split
+     */
+    split: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+    /**
+     * Trace Manifest Sha256
+     */
+    trace_manifest_sha256: string | null;
+    /**
+     * Universe Version Id
+     */
+    universe_version_id: string | null;
+    /**
+     * Window
+     */
+    window: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * WorkbenchLineage
+ */
+export type WorkbenchLineage = {
+    /**
+     * Child Count
+     */
+    child_count: number;
+    /**
+     * Children
+     */
+    children: Array<LineageNode>;
+    context: LineageContext;
+    focus: LineageNode;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Missing Reasons
+     */
+    missing_reasons: Array<string>;
+    /**
+     * Offset
+     */
+    offset: number;
+    parent: LineageNode | null;
+    /**
+     * Reference Candidates
+     */
+    reference_candidates: Array<LineageReference>;
+    seed_strategy: LineageNode | null;
+};
+
+/**
+ * WorkbenchSourceAssociation
+ */
+export type WorkbenchSourceAssociation = {
+    /**
+     * Candidate Basis
+     */
+    candidate_basis: 'registered_fk' | 'same_run_key_hash' | 'unavailable';
+    /**
+     * Candidate Id
+     */
+    candidate_id: string | null;
+    /**
+     * Missing Reasons
+     */
+    missing_reasons: Array<string>;
+    /**
+     * Strategy Basis
+     */
+    strategy_basis: 'saved_seed' | 'selected_final' | 'unavailable';
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string | null;
+};
+
+/**
+ * WorkbenchSpec
+ */
+export type WorkbenchSpec = {
+    /**
+     * Candidate Id
+     */
+    candidate_id: string | null;
+    /**
+     * Change Note
+     */
+    change_note: string | null;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Origin
+     */
+    origin: 'static' | 'human';
+    /**
+     * Resource Id
+     */
+    resource_id: string;
+    /**
+     * Resource Kind
+     */
+    resource_kind: 'strategy_version' | 'candidate';
+    /**
+     * Revision
+     */
+    revision: number;
+    spec: StrategySpec;
+    /**
+     * Spec Sha256
+     */
+    spec_sha256: string;
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+};
+
+/**
  * WorkspaceDefaults
  */
 export type WorkspaceDefaults = {
@@ -8506,6 +9122,304 @@ export type ReadResearchCandidateResponses = {
 };
 
 export type ReadResearchCandidateResponse = ReadResearchCandidateResponses[keyof ReadResearchCandidateResponses];
+
+export type SetCandidateBookmarkData = {
+    body: CandidateBookmarkSet;
+    path: {
+        /**
+         * Candidate Id
+         */
+        candidate_id: string;
+    };
+    query?: never;
+    url: '/api/v1/candidates/{candidate_id}/bookmark';
+};
+
+export type SetCandidateBookmarkErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type SetCandidateBookmarkError = SetCandidateBookmarkErrors[keyof SetCandidateBookmarkErrors];
+
+export type SetCandidateBookmarkResponses = {
+    /**
+     * Successful Response
+     */
+    200: CandidateBookmark;
+};
+
+export type SetCandidateBookmarkResponse = SetCandidateBookmarkResponses[keyof SetCandidateBookmarkResponses];
+
+export type ListCandidateEvaluationsData = {
+    body?: never;
+    path: {
+        /**
+         * Candidate Id
+         */
+        candidate_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/candidates/{candidate_id}/evaluations';
+};
+
+export type ListCandidateEvaluationsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListCandidateEvaluationsError = ListCandidateEvaluationsErrors[keyof ListCandidateEvaluationsErrors];
+
+export type ListCandidateEvaluationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageWorkbenchEvaluation;
+};
+
+export type ListCandidateEvaluationsResponse = ListCandidateEvaluationsResponses[keyof ListCandidateEvaluationsResponses];
+
+export type ReadCandidateLineageData = {
+    body?: never;
+    path: {
+        /**
+         * Candidate Id
+         */
+        candidate_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/candidates/{candidate_id}/lineage';
+};
+
+export type ReadCandidateLineageErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadCandidateLineageError = ReadCandidateLineageErrors[keyof ReadCandidateLineageErrors];
+
+export type ReadCandidateLineageResponses = {
+    /**
+     * Successful Response
+     */
+    200: WorkbenchLineage;
+};
+
+export type ReadCandidateLineageResponse = ReadCandidateLineageResponses[keyof ReadCandidateLineageResponses];
+
+export type ReadCandidateSpecData = {
+    body?: never;
+    path: {
+        /**
+         * Candidate Id
+         */
+        candidate_id: string;
+    };
+    query?: {
+        /**
+         * Revision
+         */
+        revision?: number | null;
+        /**
+         * Spec Sha256
+         */
+        spec_sha256?: string | null;
+    };
+    url: '/api/v1/candidates/{candidate_id}/spec';
+};
+
+export type ReadCandidateSpecErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadCandidateSpecError = ReadCandidateSpecErrors[keyof ReadCandidateSpecErrors];
+
+export type ReadCandidateSpecResponses = {
+    /**
+     * Successful Response
+     */
+    200: WorkbenchSpec;
+};
+
+export type ReadCandidateSpecResponse = ReadCandidateSpecResponses[keyof ReadCandidateSpecResponses];
+
+export type ListCandidateSpecRevisionsData = {
+    body?: never;
+    path: {
+        /**
+         * Candidate Id
+         */
+        candidate_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/candidates/{candidate_id}/spec/revisions';
+};
+
+export type ListCandidateSpecRevisionsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListCandidateSpecRevisionsError = ListCandidateSpecRevisionsErrors[keyof ListCandidateSpecRevisionsErrors];
+
+export type ListCandidateSpecRevisionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageWorkbenchSpec;
+};
+
+export type ListCandidateSpecRevisionsResponse = ListCandidateSpecRevisionsResponses[keyof ListCandidateSpecRevisionsResponses];
+
+export type CreateCandidateSpecRevisionData = {
+    body: SpecRevisionCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Candidate Id
+         */
+        candidate_id: string;
+    };
+    query?: never;
+    url: '/api/v1/candidates/{candidate_id}/spec/revisions';
+};
+
+export type CreateCandidateSpecRevisionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateCandidateSpecRevisionError = CreateCandidateSpecRevisionErrors[keyof CreateCandidateSpecRevisionErrors];
+
+export type CreateCandidateSpecRevisionResponses = {
+    /**
+     * Exact idempotent replay
+     */
+    200: WorkbenchSpec;
+    /**
+     * Successful Response
+     */
+    201: WorkbenchSpec;
+};
+
+export type CreateCandidateSpecRevisionResponse = CreateCandidateSpecRevisionResponses[keyof CreateCandidateSpecRevisionResponses];
 
 export type ListDataUsageExposuresData = {
     body?: never;
@@ -9908,6 +10822,48 @@ export type ReadTraceManifestResponses = {
 };
 
 export type ReadTraceManifestResponse = ReadTraceManifestResponses[keyof ReadTraceManifestResponses];
+
+export type ReadWorkbenchEvaluationData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/evaluations/{evaluation_id}/workbench';
+};
+
+export type ReadWorkbenchEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadWorkbenchEvaluationError = ReadWorkbenchEvaluationErrors[keyof ReadWorkbenchEvaluationErrors];
+
+export type ReadWorkbenchEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    200: WorkbenchEvaluation;
+};
+
+export type ReadWorkbenchEvaluationResponse = ReadWorkbenchEvaluationResponses[keyof ReadWorkbenchEvaluationResponses];
 
 export type ListExperimentsData = {
     body?: never;
@@ -13792,6 +14748,43 @@ export type ReadResearchUsageResponses = {
 
 export type ReadResearchUsageResponse = ReadResearchUsageResponses[keyof ReadResearchUsageResponses];
 
+export type ListResearchTemplatesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/research-templates';
+};
+
+export type ListResearchTemplatesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListResearchTemplatesError = ListResearchTemplatesErrors[keyof ListResearchTemplatesErrors];
+
+export type ListResearchTemplatesResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageResearchTemplate;
+};
+
+export type ListResearchTemplatesResponse = ListResearchTemplatesResponses[keyof ListResearchTemplatesResponses];
+
 export type ListRunsData = {
     body?: never;
     path?: never;
@@ -15067,6 +16060,262 @@ export type ReadStrategyResponses = {
 };
 
 export type ReadStrategyResponse = ReadStrategyResponses[keyof ReadStrategyResponses];
+
+export type ListStrategyEvaluationsData = {
+    body?: never;
+    path: {
+        /**
+         * Strategy Id
+         */
+        strategy_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/strategy-versions/{strategy_id}/evaluations';
+};
+
+export type ListStrategyEvaluationsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListStrategyEvaluationsError = ListStrategyEvaluationsErrors[keyof ListStrategyEvaluationsErrors];
+
+export type ListStrategyEvaluationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageWorkbenchEvaluation;
+};
+
+export type ListStrategyEvaluationsResponse = ListStrategyEvaluationsResponses[keyof ListStrategyEvaluationsResponses];
+
+export type ReadStrategyLineageData = {
+    body?: never;
+    path: {
+        /**
+         * Strategy Id
+         */
+        strategy_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/strategy-versions/{strategy_id}/lineage';
+};
+
+export type ReadStrategyLineageErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadStrategyLineageError = ReadStrategyLineageErrors[keyof ReadStrategyLineageErrors];
+
+export type ReadStrategyLineageResponses = {
+    /**
+     * Successful Response
+     */
+    200: WorkbenchLineage;
+};
+
+export type ReadStrategyLineageResponse = ReadStrategyLineageResponses[keyof ReadStrategyLineageResponses];
+
+export type ReadStrategySpecData = {
+    body?: never;
+    path: {
+        /**
+         * Strategy Id
+         */
+        strategy_id: string;
+    };
+    query?: {
+        /**
+         * Revision
+         */
+        revision?: number | null;
+        /**
+         * Spec Sha256
+         */
+        spec_sha256?: string | null;
+    };
+    url: '/api/v1/strategy-versions/{strategy_id}/spec';
+};
+
+export type ReadStrategySpecErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadStrategySpecError = ReadStrategySpecErrors[keyof ReadStrategySpecErrors];
+
+export type ReadStrategySpecResponses = {
+    /**
+     * Successful Response
+     */
+    200: WorkbenchSpec;
+};
+
+export type ReadStrategySpecResponse = ReadStrategySpecResponses[keyof ReadStrategySpecResponses];
+
+export type ListStrategySpecRevisionsData = {
+    body?: never;
+    path: {
+        /**
+         * Strategy Id
+         */
+        strategy_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/strategy-versions/{strategy_id}/spec/revisions';
+};
+
+export type ListStrategySpecRevisionsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListStrategySpecRevisionsError = ListStrategySpecRevisionsErrors[keyof ListStrategySpecRevisionsErrors];
+
+export type ListStrategySpecRevisionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageWorkbenchSpec;
+};
+
+export type ListStrategySpecRevisionsResponse = ListStrategySpecRevisionsResponses[keyof ListStrategySpecRevisionsResponses];
+
+export type CreateStrategySpecRevisionData = {
+    body: SpecRevisionCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Strategy Id
+         */
+        strategy_id: string;
+    };
+    query?: never;
+    url: '/api/v1/strategy-versions/{strategy_id}/spec/revisions';
+};
+
+export type CreateStrategySpecRevisionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateStrategySpecRevisionError = CreateStrategySpecRevisionErrors[keyof CreateStrategySpecRevisionErrors];
+
+export type CreateStrategySpecRevisionResponses = {
+    /**
+     * Exact idempotent replay
+     */
+    200: WorkbenchSpec;
+    /**
+     * Successful Response
+     */
+    201: WorkbenchSpec;
+};
+
+export type CreateStrategySpecRevisionResponse = CreateStrategySpecRevisionResponses[keyof CreateStrategySpecRevisionResponses];
 
 export type ReadMeData = {
     body?: never;

@@ -103,12 +103,28 @@ def test_exact_source_sampling_memory_revision_and_reward(
 
     current = strategy(0, CODE)
     chain = [(current.id, None, current.code)]
+    observed_contexts = []
     for step in range(settings["max_iterations"]):
         grad = source.backward(current, step)
         code = source.step(grad)
+        observed_contexts.append(
+            (
+                [item.id for item in source.sampled_strategies],
+                source.current_revision_mode,
+                grad,
+            )
+        )
         current = strategy(step + 1, code)
         chain.append((current.id, source.pending_parent_id, current.code))
     source.update_database(current)
+    assert [
+        (
+            item["lineage_context"]["reference_candidate_keys"],
+            item["lineage_context"]["revision_mode"],
+            item["lineage_context"]["feedback"],
+        )
+        for item in actual.candidates[1:]
+    ] == observed_contexts
     assert [
         (c["candidate_id"], c["parent_id"], c["code"]) for c in actual.candidates
     ] == chain

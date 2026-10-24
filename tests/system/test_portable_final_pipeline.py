@@ -231,6 +231,9 @@ def test_real_portable_freeze_final_reference_export_and_retry(
     )
     content = h.request(client, "GET", result_path + "/download").content
     bundle = validate_portable_result(content)
+    from workbench_assertions import assert_final_workbench
+
+    assert_final_workbench(h, client, other, item, selected)
     assert_mode_exploration(
         h,
         client,

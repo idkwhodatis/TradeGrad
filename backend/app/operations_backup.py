@@ -35,7 +35,13 @@ from sqlalchemy.pool import NullPool
 from backend.app.core.atomic_storage import fsync_directory, provision_directory
 
 FORMAT = "tradegrad.cold-backup.v1"
-REVISIONS = {"003_m3", "004_m5", "005_settings", "006_provider_connections"}
+REVISIONS = {
+    "003_m3",
+    "004_m5",
+    "005_settings",
+    "006_provider_connections",
+    "007_research_specs",
+}
 NAMESPACES = {"datasets", "runs", "data-checkpoints", "uploads", "strategy-packages"}
 HEX = re.compile(r"[a-f0-9]{64}\Z")
 APP_REF = re.compile(r"(?:[a-f0-9]{40}|[a-f0-9]{64})\Z")
@@ -520,7 +526,12 @@ class PostgresDatabase:
                 "SELECT manifest_storage_key AS path, manifest_sha256 AS sha256 FROM research_checkpoints ORDER BY manifest_storage_key"
             )
             references += checkpoints
-            if revisions[0] in {"004_m5", "005_settings", "006_provider_connections"}:
+            if revisions[0] in {
+                "004_m5",
+                "005_settings",
+                "006_provider_connections",
+                "007_research_specs",
+            }:
                 references += rows(
                     "SELECT storage_key AS path, archive_sha256 AS sha256, size_bytes FROM strategy_packages ORDER BY storage_key"
                 )

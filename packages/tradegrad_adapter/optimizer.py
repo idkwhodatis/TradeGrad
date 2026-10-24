@@ -39,6 +39,7 @@ from .checkpoint import (
     digest,
     fsync_dir,
     json_digest,
+    validate_candidate_context,
 )
 from .model_calls import (
     ModelCallAbort,
@@ -249,6 +250,31 @@ def _candidate(
     }
 
 
+def _lineage_context(
+    *,
+    generation_status: str,
+    references: Sequence[str] = (),
+    feedback: str | None = None,
+    revision_mode: str | None = None,
+    model_call_ids: Sequence[str] = (),
+) -> dict[str, Any]:
+    raw = feedback.encode() if feedback is not None else None
+    context = {
+        "schema_version": "tradegrad.candidate-context.v1",
+        "generation_status": generation_status,
+        "reference_candidate_keys": list(dict.fromkeys(references)),
+        "feedback": raw[: 64 * 1024].decode("utf-8", errors="ignore")
+        if raw is not None
+        else None,
+        "feedback_sha256": digest(raw) if raw is not None else None,
+        "feedback_truncated": raw is not None and len(raw) > 64 * 1024,
+        "revision_mode": revision_mode,
+        "model_call_ids": list(dict.fromkeys(model_call_ids)),
+    }
+    validate_candidate_context(context, set(references))
+    return context
+
+
 def _publish_code(
     root: Path, candidate: Mapping[str, Any], fault: Callable[[str], None]
 ) -> None:
@@ -452,6 +478,9 @@ def run_optimization(
             "elapsed_seconds": 0.0,
             "stop_reason": None,
         }
+        state["candidates"][0]["lineage_context"] = _lineage_context(
+            generation_status="seed"
+        )
         checkpoint = None
     elapsed_base = float(state.get("elapsed_seconds", 0))
     session_start = time.monotonic()
@@ -694,6 +723,20 @@ def run_optimization(
                     state["iteration"],
                     repair,
                 )
+                child["lineage_context"] = _lineage_context(
+                    generation_status="repair",
+                    # This is the error actually supplied in the repair prompt,
+                    # not an inferred algorithm reference or subsequent feedback.
+                    feedback=str(
+                        candidate["evaluation"].get("error")
+                        or candidate["evaluation"].get("validation_error")
+                    ),
+                    model_call_ids=[
+                        row["call_id"]
+                        for row in recorded.records
+                        if row["call_id"].startswith(recorded.context + ":")
+                    ],
+                )
                 _publish_code(root, child, fault)
                 recorded.mark_adopted(
                     [f"{recorded.context}:{recorded.ordinal - 1:04d}"]
@@ -757,6 +800,24 @@ def run_optimization(
                     optimizer.pending_parent_id,
                     "generated",
                     number,
+                )
+                child["lineage_context"] = _lineage_context(
+                    generation_status="generated" if adopted else "unchanged_fallback",
+                    references=[
+                        item.id for item in getattr(optimizer, "sampled_strategies", [])
+                    ],
+                    feedback=state["feedback"],
+                    revision_mode=optimizer.current_revision_mode,
+                    model_call_ids=[
+                        row["call_id"]
+                        for row in recorded.records
+                        if row["call_id"].startswith(
+                            (
+                                f"iteration:{state['iteration']:04d}:backward:",
+                                recorded.context + ":",
+                            )
+                        )
+                    ],
                 )
                 _publish_code(root, child, fault)
                 if recorded.ordinal and adopted:

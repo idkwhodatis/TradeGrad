@@ -685,6 +685,7 @@ function ResearchContent({ run }: { run: ResearchRunDetail }) {
           <CandidateInspector
             key={selectedCandidate}
             id={selectedCandidate}
+            strategyId={run.strategy_version_id}
             close={() => setSelectedCandidate("")}
           />
         )}
@@ -814,7 +815,15 @@ function PagedResearch<T>({
     </Panel>
   );
 }
-function CandidateInspector({ id, close }: { id: string; close: () => void }) {
+function CandidateInspector({
+  id,
+  strategyId,
+  close,
+}: {
+  id: string;
+  strategyId: string;
+  close: () => void;
+}) {
   const candidate = useQuery(candidateOptions(id));
   const parent = useQuery(candidateOptions(candidate.data?.parent_id || ""));
   const [showDiff, setShowDiff] = useState(false);
@@ -847,6 +856,18 @@ function CandidateInspector({ id, close }: { id: string; close: () => void }) {
                 "Repair index": candidate.data.repair_index,
               }}
             />
+            <Button asChild variant="outline" className="mt-4">
+              <Link
+                to="/strategies/$strategyId/research"
+                params={{ strategyId }}
+                search={{
+                  candidate_id: candidate.data.id,
+                  code_sha256: candidate.data.code_sha256,
+                }}
+              >
+                Open research workbench
+              </Link>
+            </Button>
             <details className="mt-4">
               <summary className="text-link">
                 Candidate source (read-only plain text)

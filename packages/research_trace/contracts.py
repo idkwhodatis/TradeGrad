@@ -422,7 +422,7 @@ class Rule(Contract):
     inputs: list[str]
     outputs: list[str]
     source_ref: SourceRef
-    source: EvidenceSource
+    source: EvidenceSource | Literal["human_explanation"]
     stage_id: Identifier | None
     mapping: Literal["controlled", "human_confirmed", "inferred", "unmapped"]
 

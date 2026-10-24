@@ -164,3 +164,72 @@ branch. The 16 new PostgreSQL HTTP cases are **not locally executed**; actual
 PostgreSQL, Docker isolation, recovery and browser acceptance remain required at
 the final exact-head hosted gate. Local HTTP-stub projection tests are explicitly
 labelled and are not substituted for that gate.
+
+## I2 implementation boundaries
+
+- Descriptions are append-only, exact-code StrategySpec revisions for either a
+  StrategyVersion or an actual Candidate. A prose change never changes code,
+  execution parameters, graph edges, source anchors or historical observations.
+  Reads of an explicit revision require its paired hash. The initial syntax-only
+  description may be materialized under a source-row lock; it never evaluates,
+  imports or re-runs strategy code and makes no model call.
+- Only exact maintained native template bytes in the native execution mode have
+  controlled graphs. Arbitrary or edited code receives inferred/unmapped source
+  cards and explicit missing semantics. Identical template text in portable mode
+  does not certify a native graph. Human prose is labelled `human_explanation`,
+  not strategy-emitted or engine-observed evidence.
+- Candidate code ancestry and actual algorithm references are separate. New
+  optimizer checkpoints preserve the sampled candidate keys, actual revision
+  mode, feedback hash and bounded UTF-8 preview, relevant logical model calls,
+  and explicit unchanged-fallback/repair state at generation time. Old checkpoint
+  candidates omit this optional context and remain unknown; no later sample set
+  or code-parent relationship is relabelled as historical algorithm references.
+  Existing random decisions, source prompts and logical-call replay are unchanged.
+- Feedback previews are at most 64 KiB with an explicit truncation flag and hash
+  of the complete feedback. Source model-call evidence remains independently
+  addressable. The logical-call list is bounded by the existing 10,000-call run
+  budget, not a smaller observer limit that could interrupt valid memory updates.
+- The five-tab shell preserves exact source/spec and leaf attempt/result/trace
+  pins. Later-phase tabs remain explicitly unavailable until their own increment;
+  no static chart or placeholder is presented as completed replay/verification.
+  This intermediate local checkpoint is not published as final acceptance.
+- Leaf source associations preserve raw nullable candidate foreign keys and add
+  separately verified provenance. Candidate association is either the exact FK
+  and code hash, or the exact same-run candidate key and hash. Saved-source
+  association requires a genuine seed identity; a generated unchanged-code
+  candidate is not silently relabelled as the seed. A final leaf must match the
+  immutable owned FinalSelection's selected version, source candidate and hash.
+  Both paginated discovery and direct deep-link admission use the same predicates.
+
+## I2 checkpoint
+
+Validated locally on 2026-10-23 before I3: **1,952 tests passed** in 58.91 seconds
+across the research-trace, API/backend, runner, operations and configuration
+aggregate, with actual native capture execution required. A separate current
+hash-locked research runtime passed **118 optimizer/provenance/model-boundary/
+worker tests** in 11.56 seconds, including actual source sampling/prompt parity
+and crash/resume parity. Its 56 exact package versions and the API's 50 exact
+versions passed runtime-separation checks. Frontend: **569 tests passed** (68 new),
+typecheck, production build and formatting passed. The new lazy workbench chunk
+is about 210 KiB (66.75 KiB gzip); existing large Monaco/ECharts vendor chunks and
+the existing Starlette/httpx deprecation remain warnings. Ruff checked all 25
+changed Python files; diff checks and the preserved original checkout are clean.
+
+Independent review found and cleared controlled-template mode handling, separate
+native/portable final leaf discovery, source-only audit writes, immutable-context
+downgrade protection and null-FK/same-code source-association edge cases. Source
+and leaf verification now precede trace fetching and rendering. Migration 007
+adds append-only spec revisions, separate bookmarks and optional immutable
+candidate generation context. The cold PostgreSQL restore drill now includes
+007 descriptions, bookmarks and context; historical 003 data stays unmodified.
+
+**25 new PostgreSQL cases are collected, not locally executed.** The existing
+native and portable Docker final pipelines now also assert workbench discovery,
+selection and foreign-owner denial. **54 Playwright scenarios are collected**
+in 13 files, including seven new real-stack I2 scenarios for both templates,
+read-only graph/source navigation, lost-response idempotent prose editing,
+history/login restoration, ownership and real isolated leaf/bookmark workflow.
+The baseline result-workbench browser suite is unchanged. Collection and local
+projections are not browser, PostgreSQL, Docker or recovery certification. The
+hosted gate requires the workbench PostgreSQL selector and remains mandatory on
+the exact final published head.

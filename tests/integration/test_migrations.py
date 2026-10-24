@@ -28,6 +28,8 @@ def test_migrations_create_application_and_real_queue_schema(migrated_engine):
         "procrastinate_events",
         "procrastinate_workers",
         "alembic_version",
+        "strategy_spec_revisions",
+        "candidate_bookmarks",
     } <= tables
     with migrated_engine.connect() as connection:
         assert (

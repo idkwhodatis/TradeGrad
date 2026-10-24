@@ -26,7 +26,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import Engine, create_engine, inspect, text
+from sqlalchemy import Engine, create_engine, inspect, select, text
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.exc import ArgumentError, SQLAlchemyError
 from sqlalchemy.pool import NullPool
@@ -695,6 +695,38 @@ def test_real_m3_backup_restore_then_current_upgrade_preserves_history(
         _assert_historical_snapshot(restored, old_rows)
         assert _config_identity(restored) == config_identity
         _assert_storage(restored_storage, expected_files)
+        # I2 adds descriptions/bookmarks without inventing old generation context.
+        _upgrade(restored, "007_research_specs")
+        with restored.connect() as connection:
+            assert (
+                connection.execute(
+                    text("SELECT version_num FROM alembic_version")
+                ).scalar_one()
+                == "007_research_specs"
+            )
+            assert (
+                connection.execute(
+                    text("SELECT count(*) FROM strategy_spec_revisions")
+                ).scalar_one()
+                == 0
+            )
+            assert (
+                connection.execute(
+                    text("SELECT count(*) FROM candidate_bookmarks")
+                ).scalar_one()
+                == 0
+            )
+            assert (
+                connection.execute(
+                    text(
+                        "SELECT bool_and(lineage_context IS NULL) FROM research_candidates"
+                    )
+                ).scalar_one()
+                is True
+            )
+        _assert_historical_snapshot(restored, old_rows)
+        assert _config_identity(restored) == config_identity
+        _assert_storage(restored_storage, expected_files)
         # Original database and immutable backup remain usable and unchanged.
         _assert_historical_snapshot(source, old_rows)
         assert (
@@ -729,7 +761,97 @@ def test_settings_seed_uses_explicit_json_bindings():
     assert "CAST(:defaults AS jsonb)" in str(statement)
 
 
-@pytest.mark.parametrize("revision", ["005_settings", "006_provider_connections"])
+def _seed_workbench_evidence(engine):
+    """Persist real append-only revisions, a bookmark and new bounded context."""
+    from sqlalchemy.orm import Session
+
+    from backend.app.models import Candidate, ResearchRun
+    from backend.app.workbench_schemas import SpecRevisionCreate
+    from backend.app.workbench_services import (
+        create_spec_revision,
+        read_spec,
+        set_bookmark,
+    )
+
+    with Session(engine) as session:
+        seed = session.scalar(select(Candidate))
+        run = session.get(ResearchRun, seed.run_id)
+        feedback = (
+            "Synthetic persisted generation suggestion for cold-restore acceptance."
+        )
+        source = seed.code + "\n# retained derived candidate\n"
+        child = Candidate(
+            run_id=run.id,
+            attempt_id=seed.attempt_id,
+            generation=seed.generation,
+            candidate_key="restore-derived",
+            parent_id=seed.id,
+            kind="generated",
+            iteration=1,
+            repair_index=0,
+            code=source,
+            code_sha256=_sha(source.encode()),
+            lineage_context={
+                "schema_version": "tradegrad.candidate-context.v1",
+                "reference_candidate_keys": [seed.candidate_key],
+                "feedback": feedback,
+                "feedback_sha256": _sha(feedback.encode()),
+                "feedback_truncated": False,
+                "revision_mode": "small",
+                "generation_status": "generated",
+                "model_call_ids": [],
+            },
+        )
+        session.add(child)
+        session.flush()
+        initial = read_spec(session, "candidate", child.id, run.owner_id)
+        create_spec_revision(
+            session,
+            "candidate",
+            child.id,
+            run.owner_id,
+            SpecRevisionCreate(
+                code_sha256=initial.code_sha256,
+                base_revision=initial.revision,
+                base_spec_sha256=initial.spec_sha256,
+                rules=[
+                    {
+                        "rule_id": initial.spec.rules[0].rule_id,
+                        "title": "Retained human revision",
+                        "description": "Append-only description survives actual pg_dump/pg_restore.",
+                    }
+                ],
+            ),
+            "restore-description",
+        )
+        set_bookmark(session, child.id, run.owner_id, True)
+        session.commit()
+    with engine.connect() as connection:
+        assert (
+            connection.execute(
+                text("SELECT count(*) FROM strategy_spec_revisions")
+            ).scalar_one()
+            == 2
+        )
+        assert (
+            connection.execute(
+                text("SELECT count(*) FROM candidate_bookmarks")
+            ).scalar_one()
+            == 1
+        )
+        assert (
+            connection.execute(
+                text(
+                    "SELECT count(*) FROM research_candidates WHERE lineage_context IS NOT NULL"
+                )
+            ).scalar_one()
+            == 1
+        )
+
+
+@pytest.mark.parametrize(
+    "revision", ["005_settings", "006_provider_connections", "007_research_specs"]
+)
 def test_real_settings_backup_restores_management_and_immutable_history(
     drill_databases: DrillDatabases,
     tmp_path: Path,
@@ -764,7 +886,7 @@ def test_real_settings_backup_restores_management_and_immutable_history(
         _upgrade(source, revision)
         with source.begin() as connection:
             connection.execute(_settings_seed_statement())
-        if revision == "006_provider_connections":
+        if revision in {"006_provider_connections", "007_research_specs"}:
             from sqlalchemy.orm import Session
 
             from backend.app.data_schemas import ProviderConnectionUpdate
@@ -797,6 +919,8 @@ def test_real_settings_backup_restores_management_and_immutable_history(
                     ),
                 )
                 session.commit()
+        if revision == "007_research_specs":
+            _seed_workbench_evidence(source)
         expected = _historical_snapshot(source)
         manifest = create_backup(
             database=PostgresDatabase(

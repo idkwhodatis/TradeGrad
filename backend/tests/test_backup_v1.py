@@ -1211,7 +1211,14 @@ def test_relative_home_profile_fails_before_inspection_or_client_invocation(
 
 
 @pytest.mark.parametrize(
-    "revision", ["003_m3", "004_m5", "005_settings", "006_provider_connections"]
+    "revision",
+    [
+        "003_m3",
+        "004_m5",
+        "005_settings",
+        "006_provider_connections",
+        "007_research_specs",
+    ],
 )
 def test_supported_revisions_backup_roundtrip_without_relabeling(
     tmp_path, source, revision
@@ -1224,7 +1231,8 @@ def test_supported_revisions_backup_roundtrip_without_relabeling(
 
 
 @pytest.mark.parametrize(
-    "revision", ["004_m5", "005_settings", "006_provider_connections"]
+    "revision",
+    ["004_m5", "005_settings", "006_provider_connections", "007_research_specs"],
 )
 def test_source_inventory_retains_strategy_packages_after_settings_revision(
     monkeypatch, revision

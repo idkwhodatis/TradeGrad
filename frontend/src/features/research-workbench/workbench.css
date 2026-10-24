@@ -1,0 +1,98 @@
+.workbench-layout {
+  display: grid;
+  grid-template-columns: minmax(230px, 290px) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+.workbench-main {
+  min-width: 0;
+  display: grid;
+  gap: 1rem;
+}
+.workbench-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.workbench-tabs a {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.9rem;
+}
+.workbench-tabs a[aria-current="page"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.workbench-rules {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+}
+.workbench-rule {
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  padding: 1rem;
+  min-width: 0;
+}
+.workbench-rule[data-selected="true"] {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.workbench-rule dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.3rem 0.65rem;
+  font-size: 0.8rem;
+  margin: 0.8rem 0;
+}
+.workbench-rule dd {
+  overflow-wrap: anywhere;
+}
+.workbench-rule dt {
+  color: var(--muted-foreground);
+}
+.workbench-graph {
+  height: 420px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  margin: 0.8rem 0;
+}
+.workbench-source-highlight {
+  background-color: #c8ebdf55;
+}
+.workbench-lineage-node {
+  border-left: 2px solid var(--border);
+  padding: 0.5rem 0.65rem;
+  margin: 0.5rem 0;
+}
+.workbench-lineage-node[data-selected="true"] {
+  border-left-color: var(--primary);
+}
+.workbench-lineage-children {
+  padding-left: 0.8rem;
+}
+.workbench-field {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.65rem 0;
+}
+.workbench-field select,
+.workbench-field textarea {
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.5rem;
+  background: var(--background);
+  color: var(--foreground);
+  width: 100%;
+}
+.workbench-pins {
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+}
+@media (max-width: 1000px) {
+  .workbench-layout {
+    grid-template-columns: 1fr;
+  }
+}

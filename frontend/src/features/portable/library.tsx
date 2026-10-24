@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import * as sdk from "@/client/sdk.gen";
 import type {
   PortableSourceCreate,
@@ -433,6 +434,15 @@ export function PortableLibrary({ owner }: { owner: string }) {
                 )}
               </pre>
             </details>
+            <Button asChild variant="outline">
+              <Link
+                to="/strategies/$strategyId/research"
+                params={{ strategyId: selected.id }}
+                search={{ code_sha256: selected.content_sha256 }}
+              >
+                Open research workbench
+              </Link>
+            </Button>
             <CodeViewer code={selected.code} label="Saved portable source" />
             <Button
               disabled={busy || !!draft}
