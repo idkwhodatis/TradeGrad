@@ -1,9 +1,25 @@
 {
   "windows": {
-    "train": { "start": "2024-02-01", "end": "2024-03-15" },
-    "validation": { "start": "2024-03-15", "end": "2024-04-20" },
-    "holdout": { "start": "2024-04-22", "end": "2024-04-27" }
+    "train": {
+      "start": "2024-02-01",
+      "end": "2024-03-15"
+    },
+    "validation": {
+      "start": "2024-03-15",
+      "end": "2024-04-20"
+    },
+    "holdout": {
+      "start": "2024-04-22",
+      "end": "2024-04-27"
+    }
   },
   "warmup_sessions": 20,
-  "allocation_and_fees": { "max_weight": 0.25, "commission_rate": 0.001 }
+  "allocation_and_fees": {
+    "max_weight": 0.25,
+    "commission_rate": 0.001
+  },
+  "execution_only": {
+    "recorder_hook": "    return current_recorder()",
+    "replacement": "    return None  # I4 fixture: native execution only; no strategy-emitted observations."
+  }
 }

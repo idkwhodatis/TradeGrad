@@ -22,6 +22,7 @@ from .comparison_contracts import (
     COMMON_CONFIG_FIELDS,
     DEFAULT_LIMITS,
     FIELD_TOLERANCES,
+    READABLE_ALGORITHM_VERSIONS,
     SECTIONS,
     TOLERANCE_VERSION,
     ComparisonError,
@@ -182,13 +183,28 @@ def comparison_side_pins(value, *, limits=DEFAULT_LIMITS):
     return _pins(_snapshot(value, limits))
 
 
-def comparison_input_hash(left, right, *, limits=DEFAULT_LIMITS):
+def comparison_input_hash(
+    left, right, *, limits=DEFAULT_LIMITS, algorithm_version: str = ALGORITHM_VERSION
+):
+    """Hash a current request or explicitly validate a supported persisted identity.
+
+    Selecting a legacy version here never enables legacy recomputation. New
+    comparisons always use the current algorithm; readers must retain the saved
+    manifest's original version instead of silently upgrading its identity.
+    """
+    if (
+        type(algorithm_version) is not str
+        or algorithm_version not in READABLE_ALGORITHM_VERSIONS
+    ):
+        raise ComparisonError(
+            "comparison_integrity", "Unsupported comparison algorithm"
+        )
     left, right = _snapshot(left, limits), _snapshot(right, limits)
     return digest(
         {
             "left": _pins(left).model_dump(mode="json"),
             "right": _pins(right).model_dump(mode="json"),
-            "algorithm": ALGORITHM_VERSION,
+            "algorithm": algorithm_version,
             "tolerance_version": TOLERANCE_VERSION,
             "tolerances": FIELD_TOLERANCES,
             "limits": limits.model_dump(mode="json"),
@@ -461,7 +477,98 @@ def _pair_events(connection, left, right, common, control, limits):
     return pairs
 
 
-def _missing_state(value, *, event=False):
+def _observation_kind(event):
+    # A capability is not a pairing key: it only limits claims of absence.
+    # Dates, prices and proximity never establish event identity.
+    return tuple(event[field] for field in ("callback_phase", "scope", "instrument_id"))
+
+
+def _observation_capabilities(events, control, limits):
+    kinds = {}
+    opaque = False
+    # Charge the original event metadata and every new key/stage entry against
+    # the same fixed index envelope, with conservative container overhead. This
+    # is a union of observed keys, never phase/scope/instrument Cartesian products.
+    size = 2
+
+    def charge(amount):
+        nonlocal size
+        size += amount
+        if size > limits.max_event_index_bytes:
+            raise ComparisonError(
+                "comparison_capacity",
+                "Comparison observation capabilities exceed the fixed event index budget",
+            )
+
+    for event in events:
+        control.check()
+        charge(len(canonical_bytes(event)) + 1)
+        if not _pairable(event):
+            opaque = True
+        else:
+            key = _observation_kind(event)
+            if key not in kinds:
+                charge(512 + len(canonical_bytes(key)))
+                kinds[key] = {}
+                for stage in event["stage_ids"]:
+                    if stage not in kinds[key]:
+                        charge(128 + len(stage.encode("utf-8")))
+                        # Two collection bits, not target values or target arrays.
+                        kinds[key][stage] = 0
+            else:
+                # A stage omitted on even one matching-kind callback cannot
+                # certify collection on a missing callback. Keep an intersection,
+                # with no new entries and no refund of the charged peak storage.
+                for stage in tuple(kinds[key]):
+                    if stage not in event["stage_ids"]:
+                        del kinds[key][stage]
+    return kinds, opaque
+
+
+def _target_collection_capabilities(
+    connection, scan, side, capabilities, control, limits
+):
+    control.check()
+    kinds, _ = capabilities
+    paths = scan.source("stages")
+    if not paths or not kinds:
+        return
+    # Inspect only collection presence on pinned trusted stage files. Per-kind
+    # all-observation intersection keeps even intermittently null targets unknown;
+    # an explicit [] is collected, never confused with an omitted/None target.
+    largest = connection.execute(
+        "SELECT coalesce(max(octet_length(encode(payload))),0) FROM read_parquet(?)",
+        [paths],
+    ).fetchone()[0]
+    if largest > limits.max_record_bytes:
+        raise ComparisonError(
+            "comparison_capacity", "A stage exceeds the fixed record budget"
+        )
+    cursor = connection.execute(
+        f"""SELECT e.callback_phase, e.scope, e.instrument_id, s.stage_id,
+            bool_and(coalesce(json_type(s.payload, '$.raw_targets') = 'ARRAY', false)),
+            bool_and(coalesce(json_type(s.payload, '$.constrained_plan') = 'ARRAY', false))
+        FROM read_parquet(?) s JOIN comparison_{side}_events e
+            ON s.decision_id = e.decision_id
+        WHERE e.pairable
+        GROUP BY e.callback_phase, e.scope, e.instrument_id, s.stage_id""",
+        [paths],
+    )
+    while batch := cursor.fetchmany(128):
+        control.check()
+        for phase, scope, instrument, stage, raw, constrained in batch:
+            key = (phase, scope, instrument)
+            if key not in kinds:
+                raise ComparisonError()
+            if stage not in kinds[key]:
+                # Intermittently omitted stages were deliberately removed from
+                # the capability intersection. Exact event validation still runs.
+                continue
+            # Update only already charged entries; no second capability index.
+            kinds[key][stage] = int(raw) | (int(constrained) << 1)
+
+
+def _missing_state(value, event, capabilities):
     trace = value.trace_manifest
     if trace is None or trace.capture.mode == "off":
         return "not_collected"
@@ -473,10 +580,35 @@ def _missing_state(value, *, event=False):
         or capture.instrument_ids
     ):
         return "incomplete_coverage"
-    # A partial native final-state stage alone is not a missing decision event.
-    if event and trace.decisions_seen == trace.decisions_saved:
-        return "observed_absence"
-    return "observed_absence" if trace.coverage == "complete" else "incomplete_coverage"
+    kinds, opaque = capabilities
+    # Retaining every emitted record does not mean the strategy emitted every
+    # callback. Generic execution snapshots cannot certify strategy observation
+    # capability, including in a mixed source-emitted/execution-only trace.
+    if opaque or _observation_kind(event) not in kinds:
+        return "incomplete_coverage"
+    # A partial linked final-state stage alone is not a missing source event.
+    return "observed_absence"
+
+
+def _missing_section_state(value, event, capabilities, key, table, fallback):
+    if fallback != "observed_absence":
+        return fallback
+    trace = value.trace_manifest
+    kinds, _ = capabilities
+    if key[0] not in kinds.get(_observation_kind(event), ()) or (
+        table in {"features", "predicates"} and trace.capture.mode != "research"
+    ):
+        return "not_collected"
+    if table == "targets":
+        bit = 1 if key[2] == "raw_targets" else 2
+        if not kinds[_observation_kind(event)][key[0]] & bit:
+            return "not_collected"
+    if (
+        trace.detail_rows_seen != trace.detail_rows_saved
+        or trace.stage_coverage.get(key[0]) != "complete"
+    ):
+        return "incomplete_coverage"
+    return "observed_absence"
 
 
 def _details(connection, scan, event):
@@ -604,10 +736,29 @@ def _targets(stages):
     return grouped
 
 
-def _section_absence(stages, key, table, fallback):
+def _section_absence(stages, key, table, fallback, capture):
+    if fallback in {"unpaired", "not_collected"}:
+        return fallback
+    if table in {"features", "predicates"} and (
+        capture is None or capture.mode != "research"
+    ):
+        return "not_collected"
+    if capture and (
+        (capture.stage_ids and key[0] not in capture.stage_ids)
+        or (
+            table in {"candidates", "features", "predicates"}
+            and capture.instrument_ids
+            and key[1] is not None
+            and key[1] not in capture.instrument_ids
+        )
+    ):
+        return "not_collected"
     stage = stages.get(key[0])
     if stage is None:
-        return "incomplete_coverage" if stages else fallback
+        # Seeing the callback does not mean a missing stage/detail was observed.
+        # In particular, a fully filtered or dropped stage collection is not an
+        # observed empty collection. Preserve missing-event evidence separately.
+        return "incomplete_coverage" if stages or fallback == "observed" else fallback
     if stage["coverage"] != "complete":
         return "incomplete_coverage"
     if table == "targets" and stage[key[2]] is None:
@@ -741,6 +892,35 @@ def compare_evaluations(
                 connection, *events, namespace == "common", control, limits
             )
             indexed = [{row["decision_id"]: row for row in rows} for rows in events]
+            # Fully paired traces need no absence-capability work. Do not add a
+            # global stage scan to the normal paired-event comparison path.
+            capabilities = [
+                _observation_capabilities(rows, control, limits)
+                if any(pair[index] is None for pair in pairs)
+                else ({}, False)
+                for index, rows in enumerate(events)
+            ]
+            if namespace == "common":
+                for index, side in enumerate(("left", "right")):
+                    if any(
+                        pair[index] is None
+                        and _pairable(indexed[1 - index][pair[1 - index]])
+                        and _missing_state(
+                            (left, right)[index],
+                            indexed[1 - index][pair[1 - index]],
+                            capabilities[index],
+                        )
+                        == "observed_absence"
+                        for pair in pairs
+                    ):
+                        _target_collection_capabilities(
+                            connection,
+                            scans[index],
+                            side,
+                            capabilities[index],
+                            control,
+                            limits,
+                        )
             writer = ComparisonWriter(
                 output_dir,
                 publication,
@@ -755,8 +935,10 @@ def compare_evaluations(
                 pair_id = digest({"input_hash": input_hash, "left": lid, "right": rid})
                 lh, lstages = _details(connection, scans[0], le)
                 rh, rstages = _details(connection, scans[1], revent)
-                ls = "observed" if le else _missing_state(left, event=True)
-                rs = "observed" if revent else _missing_state(right, event=True)
+                ls = "observed" if le else _missing_state(left, revent, capabilities[0])
+                rs = (
+                    "observed" if revent else _missing_state(right, le, capabilities[1])
+                )
                 pairable = namespace == "common" and all(
                     _pairable(event) for event in (le, revent) if event
                 )
@@ -846,8 +1028,32 @@ def compare_evaluations(
                         groups[0].keys() | groups[1].keys(),
                         key=lambda key: canonical_bytes(key),
                     ):
-                        lstate = _section_absence(lstages, key, section, ls)
-                        rstate = _section_absence(rstages, key, section, rs)
+                        lstate = _section_absence(
+                            lstages,
+                            key,
+                            section,
+                            ls
+                            if le
+                            else _missing_section_state(
+                                left, revent, capabilities[0], key, section, ls
+                            ),
+                            left.trace_manifest.capture
+                            if left.trace_manifest
+                            else None,
+                        )
+                        rstate = _section_absence(
+                            rstages,
+                            key,
+                            section,
+                            rs
+                            if revent
+                            else _missing_section_state(
+                                right, le, capabilities[1], key, section, rs
+                            ),
+                            right.trace_manifest.capture
+                            if right.trace_manifest
+                            else None,
+                        )
                         row = group_record(
                             section,
                             key,

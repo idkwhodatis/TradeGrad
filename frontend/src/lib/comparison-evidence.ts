@@ -206,7 +206,8 @@ export function comparisonResultProblem(
     result.manifest.publication.run_id !== status.run_id ||
     result.manifest.publication.execution_attempt_id !==
       status.active_attempt_id ||
-    result.manifest.input_hash !== status.engine_input_sha256
+    result.manifest.input_hash !== status.engine_input_sha256 ||
+    result.manifest.algorithm_version !== status.algorithm_version
   )
     return "Comparison response identity differs from the pinned job and artifact. It is not displayed.";
   for (const side of ["left", "right"] as const) {

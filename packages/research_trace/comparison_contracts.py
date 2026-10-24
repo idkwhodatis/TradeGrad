@@ -25,7 +25,14 @@ from .contracts import (
     TraceManifest,
 )
 
-ALGORITHM_VERSION = "tradegrad.observed-comparison.v1"
+LEGACY_ALGORITHM_VERSION = "tradegrad.observed-comparison.v1"
+ALGORITHM_VERSION = "tradegrad.observed-comparison.v2"
+ComparisonAlgorithmVersion = Literal[
+    "tradegrad.observed-comparison.v1", "tradegrad.observed-comparison.v2"
+]
+# Compatibility is read-only: historical identities are never recomputed with
+# new semantics or rewritten into the current algorithm's cache namespace.
+READABLE_ALGORITHM_VERSIONS = frozenset({LEGACY_ALGORITHM_VERSION, ALGORITHM_VERSION})
 TOLERANCE_VERSION = "tradegrad.comparison-tolerances.v1"
 # Only these named numerical fields have a tolerance. Integers, booleans,
 # identities, timestamps, missing values and every other field compare exactly.
@@ -83,6 +90,15 @@ class ComparisonError(ValueError):
     ):
         self.code, self.message = code, message
         super().__init__(message)
+
+
+def require_current_algorithm(algorithm_version):
+    """Fail closed before executing a queued/retried historical computation."""
+    if algorithm_version != ALGORITHM_VERSION:
+        raise ComparisonError(
+            "comparison_algorithm_unsupported",
+            "This historical comparison algorithm is read-only; submit a new comparison",
+        )
 
 
 class ComparisonLimits(Contract):
@@ -299,7 +315,7 @@ class ComparisonManifest(Contract):
     input_hash: Sha256
     left: ComparisonSidePins
     right: ComparisonSidePins
-    algorithm_version: Literal["tradegrad.observed-comparison.v1"] = ALGORITHM_VERSION
+    algorithm_version: ComparisonAlgorithmVersion = ALGORITHM_VERSION
     tolerance_version: Literal["tradegrad.comparison-tolerances.v1"] = TOLERANCE_VERSION
     field_tolerances: dict[str, dict[str, float]]
     limits: ComparisonLimits

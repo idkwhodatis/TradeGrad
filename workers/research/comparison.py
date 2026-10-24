@@ -21,6 +21,7 @@ from backend.app.services import FenceLost, claim_attempt, mark_running
 from packages.research_trace.comparison_contracts import (
     ComparisonError,
     ComparisonPublication,
+    require_current_algorithm,
 )
 from workers.research.lease import AttemptLease
 
@@ -81,6 +82,7 @@ def execute_comparison(run_id: str, generation: int, settings=None, factory=None
             lease.start()
             try:
                 if ready:
+                    require_current_algorithm(config.algorithm_version)
                     control = ComparisonControl(
                         cancel_event=lease.cancelled,
                         timeout_seconds=config.request.options.max_runtime_seconds,

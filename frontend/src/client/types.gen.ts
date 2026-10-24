@@ -861,6 +861,10 @@ export type ComparisonDetail = {
      */
     active_attempt_id: string | null;
     /**
+     * Algorithm Version
+     */
+    algorithm_version: 'tradegrad.observed-comparison.v1' | 'tradegrad.observed-comparison.v2';
+    /**
      * Artifact Ready
      */
     artifact_ready: boolean;
@@ -1042,7 +1046,7 @@ export type ComparisonManifest = {
     /**
      * Algorithm Version
      */
-    algorithm_version?: 'tradegrad.observed-comparison.v1';
+    algorithm_version?: 'tradegrad.observed-comparison.v1' | 'tradegrad.observed-comparison.v2';
     /**
      * Artifacts
      */
@@ -1145,6 +1149,10 @@ export type ComparisonPublic = {
      * Active Attempt Id
      */
     active_attempt_id: string | null;
+    /**
+     * Algorithm Version
+     */
+    algorithm_version: 'tradegrad.observed-comparison.v1' | 'tradegrad.observed-comparison.v2';
     /**
      * Artifact Ready
      */

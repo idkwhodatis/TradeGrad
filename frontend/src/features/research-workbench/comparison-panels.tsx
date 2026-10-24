@@ -25,6 +25,7 @@ import {
   type WorkbenchSelection,
 } from "@/lib/workbench-selection";
 import { AnchoredSource } from "./anchored-source";
+import { ComparisonVersion } from "./comparison-version";
 import {
   ReplayTimestampCaveat,
   replayTimestampPresentation,
@@ -243,6 +244,7 @@ export function ComparisonOutcome({
 }) {
   return (
     <Panel title="3. Observed behavior and coverage">
+      <ComparisonVersion version={manifest.algorithm_version} />
       <p className="notice" data-testid="comparison-outcome">
         {manifest.observed_behavior === "unchanged_observed"
           ? `${manifest.code_changed ? "Code changed, but" : "Source code is unchanged and"} no behavior difference was observed in the declared comparable sections and saved window. Result: unchanged_observed.`

@@ -11,6 +11,7 @@ from backend.app.trace_schemas import TimestampEvidence
 from packages.research_trace.comparison_contracts import (
     ALGORITHM_VERSION,
     TOLERANCE_VERSION,
+    ComparisonAlgorithmVersion,
     ComparisonLimits,
     ComparisonManifest,
 )
@@ -58,7 +59,7 @@ class ComparisonConfig(Contract):
     input_sha256: Sha256
     engine_input_sha256: Sha256
     request: ComparisonCreate
-    algorithm_version: Literal["tradegrad.observed-comparison.v1"] = ALGORITHM_VERSION
+    algorithm_version: ComparisonAlgorithmVersion = ALGORITHM_VERSION
     tolerance_version: Literal["tradegrad.comparison-tolerances.v1"] = TOLERANCE_VERSION
     limits: ComparisonLimits = Field(default_factory=ComparisonLimits)
 
@@ -69,6 +70,7 @@ class ComparisonConfig(Contract):
 
 class ComparisonPublic(Contract):
     id: UUID
+    algorithm_version: ComparisonAlgorithmVersion
     run_id: UUID
     status: RunStatus
     generation: int

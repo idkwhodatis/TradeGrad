@@ -381,7 +381,7 @@ type ActualSide = Awaited<ReturnType<typeof runActual>>;
 async function actualPair(
   request: APIRequestContext,
   owned: Owned,
-  variant: "comment_only" | "changed_allocation_and_fees",
+  variant: "comment_only" | "changed_allocation_and_fees" | "execution_only",
 ) {
   const templates = await rows<ResearchTemplate>(
     request,
@@ -421,10 +421,20 @@ async function actualPair(
     // the admissible allocation change instead of weakening that gate.
     maximum!.value = comparisonFixture.allocation_and_fees.max_weight;
   }
+  if (variant === "execution_only")
+    expect(
+      template!.code.split(comparisonFixture.execution_only.recorder_hook),
+      "The execution-only fixture replaces exactly the maintained recorder hook",
+    ).toHaveLength(2);
   const source =
-    variant === "comment_only"
-      ? `${template!.code}\n# I4 comparison: documentation only, no executable change.\n`
-      : template!.code;
+    variant === "execution_only"
+      ? template!.code.replace(
+          comparisonFixture.execution_only.recorder_hook,
+          comparisonFixture.execution_only.replacement,
+        )
+      : variant === "comment_only"
+        ? `${template!.code}\n# I4 comparison: documentation only, no executable change.\n`
+        : template!.code;
   const derived = await saveVersion(
     request,
     owned.auth,
@@ -1202,9 +1212,9 @@ test("comment-only native versions preserve scoped unchanged observations, expli
   const comparison = await createInBrowser(page, request, owned, pair);
   const { result } = comparison;
   expect(result.manifest.code_changed).toBe(true);
-  // Native execution-only snapshots deliberately remain unpaired. Global
-  // insufficient_coverage is honest here; the specific observed equal sections
-  // must still be explicit rather than erasing the unchanged-decision finding.
+  // Explicitly linked completion snapshots can pair, while their partial
+  // final-state coverage still cannot certify all intermediate transitions.
+  // Scoped unchanged decisions must remain visible regardless of that limit.
   expect(["unchanged_observed", "insufficient_coverage"]).toContain(
     result.manifest.observed_behavior,
   );
@@ -1300,14 +1310,34 @@ test("comment-only native versions preserve scoped unchanged observations, expli
   }
   await assertExplicitOrderAssociation(page, request, owned, result, pair);
 
-  // Same-day native execution snapshots are not paired by date or stock with
-  // strategy callbacks. Keep authentic one-sided records and missing linkage.
-  const unpaired = events.filter((item) => item.match_basis === "none");
-  expect(unpaired.length).toBeGreaterThan(0);
-  for (const item of unpaired) {
-    expect(item.left === null || item.right === null).toBe(true);
-    expect([item.left_state, item.right_state]).toContain("unpaired");
-    expect(item.missing_reason).toBeTruthy();
+  // This fully emitted, comment-only source has genuine order origins for
+  // every completion. Do not demand missing linkage or discard those origins
+  // merely to create a one-sided test row. The execution-only case below covers
+  // real native records that genuinely lack a source-event association.
+  expect(matched).toHaveLength(events.length);
+  const completions = matched.filter((item) =>
+    header(item, "left").callback_phase.startsWith("native.execution_result:"),
+  );
+  expect(completions.length).toBeGreaterThan(0);
+  for (const item of completions) {
+    const completion = header(item, "left");
+    expect(completion.pre_state).toBeNull();
+    expect(completion.pre_state_missing_reason).toBeTruthy();
+    expect(
+      matched.some((other) => {
+        const callback = header(other, "left");
+        return (
+          callback.data_event_id === completion.data_event_id &&
+          callback.event_seq === completion.event_seq &&
+          callback.scope === completion.scope &&
+          callback.instrument_id === completion.instrument_id &&
+          `native.execution_result:${callback.callback_phase}` ===
+            completion.callback_phase &&
+          other.event_pair_id !== item.event_pair_id
+        );
+      }),
+      "An explicit completion origin remains distinct from its strategy callback",
+    ).toBe(true);
   }
   expect(
     events.some((item) =>
@@ -1620,5 +1650,147 @@ test("code-parent comparison exposes real allocation and fee changes, both path-
     await page.goBack();
     await expect(page).toHaveURL(exactUrl);
   }
+  await assertDurableCache(request, owned, comparison);
+});
+
+test("actual execution-only source retains one-sided native events and unknown pre-states without date or instrument pairing", async ({
+  page,
+  request,
+  owned,
+}) => {
+  test.setTimeout(900_000);
+  await signIn(page);
+  const pair = await actualPair(request, owned, "execution_only");
+  await page.goto(workbenchUrl(pair.left));
+  await page
+    .getByRole("button", { name: "Use current selection as Left", exact: true })
+    .click();
+  await page
+    .getByLabel("Right source type", { exact: true })
+    .selectOption("strategy_version");
+  await page
+    .getByLabel("Right saved strategy", { exact: true })
+    .selectOption(pair.right.strategy.id);
+  await page
+    .getByLabel("Right actual leaf Evaluation", { exact: true })
+    .selectOption(pair.right.leaf.evaluation_id);
+  const comparison = await createInBrowser(page, request, owned, pair);
+  const { result } = comparison;
+  const events = await allSectionRows(request, owned.auth, result, "events");
+  const nativeOnly = events.filter(
+    (item) =>
+      item.right &&
+      header(item, "right").data_event_id.startsWith("native_order:"),
+  );
+  expect(
+    nativeOnly.length,
+    "The real uninstrumented source must produce observable native orders",
+  ).toBeGreaterThan(0);
+  expect(events.every((item) => item.match_basis === "none")).toBe(true);
+  expect(result.manifest.observed_behavior).toBe("insufficient_coverage");
+  const missingStrategy = events.filter((item) => item.left && !item.right);
+  expect(missingStrategy.length).toBeGreaterThan(0);
+  expect(
+    missingStrategy.every((item) => item.right_state === "incomplete_coverage"),
+  ).toBe(true);
+  for (const item of nativeOnly) {
+    const observed = header(item, "right");
+    expect(item).toMatchObject({
+      status: "right_only",
+      left: null,
+      left_state: "unpaired",
+      right_state: "observed",
+      match_basis: "none",
+    });
+    expect(item.missing_reason).toBeTruthy();
+    expect(observed.callback_phase).toBe("native.execution_result");
+    expect(observed.pre_state).toBeNull();
+    expect(observed.pre_state_missing_reason).toBeTruthy();
+    // The real baseline has records on this same day and instrument. These
+    // tempting proximity matches must not turn native UUIDs into source IDs.
+    expect(
+      events.some(
+        (other) =>
+          other.left &&
+          header(other, "left").session_date === observed.session_date &&
+          header(other, "left").instrument_id === observed.instrument_id &&
+          other.event_pair_id !== item.event_pair_id,
+      ),
+    ).toBe(true);
+  }
+  for (const section of ["candidates", "features", "predicates", "targets"])
+    expect(result.manifest.sections[section].observed_equality).toBe("unknown");
+  const selected = nativeOnly[0];
+  const observed = header(selected, "right");
+  const position = events.findIndex((item) => item.row_id === selected.row_id);
+  const selection = new URL(page.url());
+  selection.searchParams.set("comparison_section", "events");
+  selection.searchParams.set(
+    "comparison_event_offset",
+    String(Math.floor(position / 25) * 25),
+  );
+  selection.searchParams.set("comparison_offset", "0");
+  selection.searchParams.delete("event_pair_id");
+  await page.goto(selection.href);
+  await page
+    .getByRole("button", {
+      name: `Select event pair ${selected.event_pair_id}`,
+      exact: true,
+    })
+    .click();
+  await expectSelection(page, { event_pair_id: selected.event_pair_id! });
+  await expect(page.getByTestId("comparison-prestate-left")).toContainText(
+    "unpaired",
+  );
+  await expect(page.getByTestId("comparison-prestate-left")).toContainText(
+    "not assumed to be zero",
+  );
+  await expect(
+    page.getByRole("link", { name: "Open Left immutable replay", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByTestId("comparison-prestate-right")).toContainText(
+    observed.pre_state_missing_reason!,
+  );
+  const detail = await read<DecisionDetail>(
+    request,
+    owned.auth,
+    `/evaluations/${pair.right.leaf.evaluation_id}/decisions/${observed.decision_id}?${query(tracePins(pair.right.leaf))}`,
+  );
+  expect(detail.decision).toMatchObject({
+    decision_id: observed.decision_id,
+    data_event_id: observed.data_event_id,
+    callback_phase: "native.execution_result",
+    pre_state: null,
+    pre_state_missing_reason: observed.pre_state_missing_reason,
+  });
+  expect(detail.stages).toHaveLength(1);
+  expect(detail.stages![0]).toMatchObject({
+    stage_id: "execution_result",
+    coverage: "partial",
+  });
+  expect(detail.stages![0].order_links.length).toBeGreaterThan(0);
+  const replay = page.getByRole("link", {
+    name: "Open Right immutable replay",
+    exact: true,
+  });
+  const target = assertReplayUrl(
+    await replay.getAttribute("href"),
+    page.url(),
+    pair.right,
+    observed,
+  );
+  const exactUrl = page.url();
+  await replay.click();
+  await expectSelection(page, Object.fromEntries(target.searchParams));
+  await expect(page.getByTestId("replay-pre-state")).toContainText(
+    observed.pre_state_missing_reason!,
+  );
+  await page.goBack();
+  await expect(page).toHaveURL(exactUrl);
+  await page.reload();
+  await expectSelection(page, { event_pair_id: selected.event_pair_id! });
+  await expect(
+    page.getByRole("link", { name: "Open Left immutable replay", exact: true }),
+  ).toHaveCount(0);
   await assertDurableCache(request, owned, comparison);
 });

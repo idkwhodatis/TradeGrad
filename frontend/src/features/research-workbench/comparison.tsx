@@ -51,6 +51,10 @@ import {
 } from "@/lib/workbench-selection";
 import { ComparisonSourcePicker } from "./comparison-source";
 import {
+  ComparisonVersion,
+  currentComparisonAlgorithm,
+} from "./comparison-version";
+import {
   ComparisonAvailability,
   ComparisonConfiguration,
   ComparisonMechanisms,
@@ -437,6 +441,7 @@ function ComparisonJob({
       <p data-testid="comparison-status" role="status">
         {status.status}
       </p>
+      <ComparisonVersion version={status.algorithm_version} />
       <Metadata
         values={{
           "Comparison ID": status.id,
@@ -480,6 +485,7 @@ function ComparisonJob({
             variant="outline"
             disabled={
               busy ||
+              status.algorithm_version !== currentComparisonAlgorithm ||
               actionBlocked ||
               Boolean(pending && pending.action !== "retry")
             }
@@ -491,7 +497,12 @@ function ComparisonJob({
         {pending && (
           <Button
             variant="outline"
-            disabled={busy || actionBlocked}
+            disabled={
+              busy ||
+              actionBlocked ||
+              (pending.action === "retry" &&
+                status.algorithm_version !== currentComparisonAlgorithm)
+            }
             onClick={() => void act(pending.action)}
           >
             Retry same {pending.action} action

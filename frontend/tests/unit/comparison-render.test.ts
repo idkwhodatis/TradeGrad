@@ -193,6 +193,29 @@ describe("configuration and mechanism explanation precede interpretation", () =>
     ).toContain("No other source anchor was selected"));
 });
 describe("scope-limited behavior outcomes", () => {
+  it("labels historical semantics without rewriting saved outcomes or fetching", () => {
+    const saved = manifest();
+    saved.algorithm_version = "tradegrad.observed-comparison.v1";
+    const original = structuredClone(saved);
+    const html = render(createElement(ComparisonOutcome, { manifest: saved }));
+    for (const text of [
+      "tradegrad.observed-comparison.v1",
+      "Historical comparison semantics",
+      "uncollected strategy",
+      "unsupported",
+      "as unknown",
+      "existing notes and links will not be retargeted",
+      "unchanged_observed",
+    ])
+      expect(html).toContain(text);
+    expect(saved).toEqual(original);
+    expect(noNetwork).not.toHaveBeenCalled();
+    const current = render(
+      createElement(ComparisonOutcome, { manifest: manifest() }),
+    );
+    expect(current).toContain("tradegrad.observed-comparison.v2");
+    expect(current).not.toContain("Historical comparison semantics");
+  });
   it("states changed code with unchanged observed behavior and exact retained scopes", () => {
     const html = render(
       createElement(ComparisonOutcome, { manifest: manifest() }),
@@ -668,3 +691,46 @@ it("resolves a duplicate logical-order observation only with its saved stage ord
       ?.missing_reason,
   ).toContain("not present");
 });
+
+it.each([
+  ["tradegrad.observed-comparison.v1", true],
+  ["tradegrad.observed-comparison.v2", false],
+] as const)(
+  "keeps %s retry eligibility explicit",
+  async (version, disabled) => {
+    const { MechanismComparison } =
+      await import("../../src/features/research-workbench/comparison");
+    const query = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: Infinity, gcTime: Infinity },
+      },
+    });
+    query.setQueryData(
+      ["mechanism-comparison", comparisonSelection.comparison_id],
+      {
+        ...status(),
+        status: "failed",
+        algorithm_version: version,
+        artifact_ready: false,
+      },
+    );
+    query.setQueryData(["events", status().run_id], []);
+    const html = await routed(
+      createElement(MechanismComparison, {
+        owner: "owner",
+        selection: comparisonSelection,
+        update: () => undefined,
+        currentSpec: spec,
+        currentVerified: false,
+      }),
+      query,
+    );
+    const retry = html.match(
+      /<button[^>]*>Retry comparison job<\/button>/,
+    )?.[0];
+    expect(retry).toBeTruthy();
+    expect(/\sdisabled(?:=|\s|>)/.test(retry!)).toBe(disabled);
+    expect(html).toContain(version);
+    expect(noNetwork).not.toHaveBeenCalled();
+  },
+);

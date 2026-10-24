@@ -69,6 +69,7 @@ export function status(): ComparisonPublic {
     run_id: comparisonRun,
     status: "succeeded",
     generation: 1,
+    algorithm_version: "tradegrad.observed-comparison.v2",
     input_sha256: inputHash,
     engine_input_sha256: engineHash,
     request: structuredClone(comparisonBody),
@@ -135,6 +136,7 @@ export function manifest(): ComparisonManifest {
     namespace: null,
   };
   return {
+    algorithm_version: "tradegrad.observed-comparison.v2",
     publication: {
       comparison_id: comparisonId,
       run_id: comparisonRun,

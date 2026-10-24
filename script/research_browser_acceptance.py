@@ -28,6 +28,7 @@ REQUIRED_RESEARCH_CASES = {
     "mechanism-comparison.spec.ts": [
         "comment-only native versions preserve scoped unchanged observations, explicit event identity, immutable history and durable owner-scoped cache",
         "code-parent comparison exposes real allocation and fee changes, both path-dependent pre-states and exact behavioral drilldown without causal certification",
+        "actual execution-only source retains one-sided native events and unknown pre-states without date or instrument pairing",
     ],
     "independent-verification.spec.ts": [
         "actual original-start diagnostic reports complete semantic parity and exact event/hash/history admission",

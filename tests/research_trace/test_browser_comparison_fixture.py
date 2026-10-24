@@ -45,13 +45,25 @@ assert fixture.name == 'research-cn.csv' and not fixture.is_symlink()
 assert hashlib.sha256(source.read_bytes()).hexdigest() == source_sha
 assert hashlib.sha256(fixture.read_bytes()).hexdigest() == fixture_sha
 contract = json.loads(contract_json)
+assert variant in {'baseline', 'changed', 'inadmissible_old_variant', 'comment_only', 'execution_only', 'mixed'}
+executed_source = source.read_text()
+if variant == 'comment_only':
+    executed_source += '\n# I4 comparison: documentation only, no executable change.\n'
+elif variant in {'execution_only', 'mixed'}:
+    mutation = contract['execution_only']
+    assert executed_source.count(mutation['recorder_hook']) == 1
+    replacement = mutation['replacement'] if variant == 'execution_only' else (
+        '    recorder = current_recorder()\n'
+        '    return recorder if recorder is not None and recorder.decisions_seen == 0 else None'
+    )
+    executed_source = executed_source.replace(mutation['recorder_hook'], replacement)
 window = contract['windows'][split]
-parameters = {} if variant == 'baseline' else {
+parameters = {} if variant in {'baseline', 'comment_only', 'execution_only', 'mixed'} else {
     'max_weight': 0.15 if variant == 'inadmissible_old_variant'
     else contract['allocation_and_fees']['max_weight'],
 }
 engine = MarketConfig.for_market('CN', 'corrected_explicit_config').engine_kwargs()
-if variant != 'baseline':
+if variant in {'changed', 'inadmissible_old_variant'}:
     engine['commission_rate'] = contract['allocation_and_fees']['commission_rate']
 
 # Reproduce write_bundle's evaluator CSV for these explicitly mapped upload
@@ -93,7 +105,7 @@ report = {
 with tempfile.TemporaryDirectory(prefix='native-browser-comparison-') as directory:
     root = Path(directory).resolve(); inputs = root / 'input'; output = root / 'output'
     (inputs / 'data').mkdir(parents=True)
-    (inputs / 'strategy.py').write_bytes(source.read_bytes())
+    (inputs / 'strategy.py').write_text(executed_source)
     (inputs / 'data/INDEX.csv').write_bytes(staged.content)
     (inputs / 'request.json').write_bytes(canonical_bytes(request))
     stdout = io.StringIO()
@@ -134,6 +146,9 @@ with tempfile.TemporaryDirectory(prefix='native-browser-comparison-') as directo
             closed_trades=len(bundle['closed_trades']['rows']),
             fills=len(bundle['fills']['rows']), decisions=decisions,
             capture_mode=captured['research_capture']['capture']['mode'],
+            source=executed_source, code_sha256=hashlib.sha256(executed_source.encode()).hexdigest(),
+            records=[record.model_dump(mode='json') for record in records],
+            capture=captured['research_capture'], bundle=bundle, config=config,
         )
 print('BROWSER_COMPARISON_NATIVE:' + json.dumps(report, allow_nan=False, sort_keys=True))
 """
@@ -227,3 +242,274 @@ def test_previous_15_percent_variant_remains_ineligible_for_optimization():
     result = execute("train", "inadmissible_old_variant")
     assert result["status"] == "rejected"
     assert result["error"] == "No trades executed, invalid strategy."
+
+
+def stored_browser_input(path, observed, namespace):
+    """Persist only actual evaluator records; UUIDs are local query bindings."""
+    from uuid import uuid4
+
+    from packages.research_trace.comparison_contracts import ComparisonInput
+    from packages.research_trace.contracts import (
+        DateRange,
+        DecisionRecord,
+        EvaluationBinding,
+        digest,
+    )
+    from packages.research_trace.storage import write_trace_artifacts
+    from packages.research_trace.templates import template_spec
+
+    config, bundle = observed["config"], observed["bundle"]
+    engine = bundle["engine"]
+    kwargs = engine["requested_kwargs"]
+    source_id = uuid4()
+    binding = EvaluationBinding(
+        run_id=uuid4(),
+        execution_attempt_id=uuid4(),
+        evaluation_id=uuid4(),
+        candidate_id=None,
+        strategy_version_id=source_id,
+        code_sha256=observed["code_sha256"],
+        dataset_version_id=namespace.dataset_version_id,
+        dataset_sha256=namespace.dataset_sha256,
+        universe_version_id=None,
+        universe_sha256=None,
+        execution_config_sha256=digest(config),
+        engine_dependencies_sha256=digest(engine["dependencies"]),
+        result_manifest_sha256=digest(bundle),
+    )
+    manifest, artifacts = write_trace_artifacts(
+        [DecisionRecord.model_validate(row) for row in observed["records"]],
+        binding,
+        observed["capture"],
+        path,
+    )
+    ref = next(row for row in artifacts if row.name.endswith(".json"))
+    spec = template_spec("daily_timing", source=observed["source"])
+    return ComparisonInput(
+        binding=binding,
+        source_kind="strategy_version",
+        source_id=source_id,
+        source=observed["source"],
+        window=DateRange.model_validate(COMPARISON["windows"]["train"]),
+        spec=spec,
+        spec_sha256=digest(spec),
+        trace_manifest=manifest,
+        trace_manifest_sha256=ref.sha256,
+        trace_paths={row.name: row.path for row in artifacts},
+        common_config={
+            "data": {"snapshot_sha256": namespace.dataset_sha256},
+            "universe": {
+                "effective_membership_sha256": namespace.frozen_universe_sha256
+            },
+            "window": config["window"],
+            "warmup": config["warmup"],
+            "initial_state": {
+                "cash": kwargs["initial_cash"],
+                "positions": "fresh_engine",
+            },
+            "state_policy": "fresh_full_window_reconstruction",
+            "fees": {key: kwargs[key] for key in ("commission_rate", "stamp_tax_rate")},
+            "fill": engine["resolved_execution_policy"],
+            "market": {
+                "currency": "CNY",
+                "lot_size": kwargs["lot_size"],
+                "t_plus_one": kwargs["t_plus_one"],
+            },
+            "RNG": {
+                "status": "not_recorded",
+                "reason": "No historical strategy RNG declaration",
+            },
+            "engine": {
+                "dependencies": engine["dependencies"],
+                "resolved_config": engine["resolved_config"],
+            },
+        },
+        economic_bundle=bundle,
+        namespace=namespace,
+    )
+
+
+def test_actual_browser_sources_pair_explicit_origins_but_not_execution_only_ids(
+    tmp_path,
+):
+    from uuid import uuid4
+
+    from packages.research_trace.comparison import compare_evaluations
+    from packages.research_trace.comparison_contracts import (
+        ComparisonPublication,
+        EventNamespace,
+    )
+    from packages.research_trace.comparison_storage import (
+        ComparisonControl,
+        ComparisonReader,
+    )
+    from packages.research_trace.contracts import digest
+
+    observed = {
+        name: execute("train", name)
+        for name in ("baseline", "comment_only", "execution_only", "mixed")
+    }
+    baseline = observed["baseline"]
+    for value in observed.values():
+        assert value["status"] == "succeeded"
+        assert value["metrics"] == baseline["metrics"]
+        assert value["closed_trades"] == baseline["closed_trades"] > 0
+        assert value["fills"] == baseline["fills"] > 0
+        assert value["engine"] == baseline["engine"]
+    namespace = EventNamespace(
+        dataset_version_id=uuid4(),
+        dataset_sha256=CSV_METADATA["sha256"],
+        universe_version_id=None,
+        universe_sha256=None,
+        frozen_universe_sha256=digest({"instrument_ids": ["target_symbol"]}),
+        instrument_namespace="native_symbol",
+    )
+    inputs = {
+        name: stored_browser_input(tmp_path / name, value, namespace)
+        for name, value in observed.items()
+    }
+    compared = {}
+    for label, left_name, right_name in (
+        ("comment_only", "baseline", "comment_only"),
+        ("execution_only:right", "baseline", "execution_only"),
+        ("execution_only:left", "execution_only", "baseline"),
+        ("mixed:right", "baseline", "mixed"),
+        ("mixed:left", "mixed", "baseline"),
+    ):
+        control = ComparisonControl()
+        try:
+            manifest, artifacts = compare_evaluations(
+                inputs[left_name],
+                inputs[right_name],
+                tmp_path / (label.replace(":", "-") + "-comparison"),
+                publication=ComparisonPublication(
+                    comparison_id=uuid4(), run_id=uuid4(), execution_attempt_id=uuid4()
+                ),
+                control=control,
+            )
+        finally:
+            control.close()
+        reader = ComparisonReader(manifest, {row.name: row.path for row in artifacts})
+        events = reader.page("events", limit=100).items
+        assert reader.page("events", limit=100).total == len(events)
+        compared[label] = (manifest, events, reader)
+
+    manifest, paired, _ = compared["comment_only"]
+    assert len(paired) == len(baseline["records"]) == 28
+    assert all(
+        row.left
+        and row.right
+        and row.match_basis == "source_event"
+        and row.status == "equal"
+        for row in paired
+    )
+    fields = ("data_event_id", "callback_phase", "scope", "event_seq", "instrument_id")
+    for row in paired:
+        assert all(row.left[key] == row.right[key] for key in fields)
+        assert row.left["decision_id"] != row.right["decision_id"]
+    completions = [
+        row
+        for row in paired
+        if row.left["callback_phase"] == "native.execution_result:on_bar"
+    ]
+    assert len(completions) == 3
+    for row in completions:
+        assert row.left["pre_state"] is row.right["pre_state"] is None
+        assert any(
+            other.left["callback_phase"] == "on_bar"
+            and all(
+                other.left[key] == row.left[key]
+                for key in fields
+                if key != "callback_phase"
+            )
+            for other in paired
+        )
+    assert {"candidates", "features", "predicates", "targets"} <= set(
+        manifest.observed_equal_sections
+    )
+
+    for variant in ("execution_only", "mixed"):
+        for generic_side, source_side in (("left", "right"), ("right", "left")):
+            manifest, events, reader = compared[f"{variant}:{generic_side}"]
+            generic = [
+                row
+                for row in events
+                if getattr(row, generic_side)
+                and getattr(row, generic_side)["data_event_id"].startswith(
+                    "native_order:"
+                )
+            ]
+            assert len(generic) == 3
+            matched = [row for row in events if row.left and row.right]
+            assert len(matched) == (1 if variant == "mixed" else 0)
+            assert all(
+                row.match_basis == "source_event" and row.status == "equal"
+                for row in matched
+            )
+            assert len(events) == len(baseline["records"]) + len(
+                observed[variant]["records"]
+            ) - len(matched)
+            for row in generic:
+                header = getattr(row, generic_side)
+                assert (
+                    row.status == generic_side + "_only"
+                    and getattr(row, source_side) is None
+                )
+                assert getattr(row, source_side + "_state") == "unpaired"
+                assert getattr(row, generic_side + "_state") == "observed"
+                assert row.match_basis == "none" and row.missing_reason
+                assert header["callback_phase"] == "native.execution_result"
+                assert (
+                    header["pre_state"] is None and header["pre_state_missing_reason"]
+                )
+                assert any(
+                    getattr(other, source_side)
+                    and all(
+                        getattr(other, source_side)[key] == header[key]
+                        for key in ("session_date", "instrument_id")
+                    )
+                    for other in events
+                )
+            unmatched_sources = [
+                row
+                for row in events
+                if getattr(row, source_side) and getattr(row, generic_side) is None
+            ]
+            assert unmatched_sources
+            assert all(
+                getattr(row, generic_side + "_state") == "incomplete_coverage"
+                for row in unmatched_sources
+            )
+            for section in ("candidates", "features", "predicates", "targets"):
+                assert manifest.sections[section].observed_equality == "unknown"
+                absent = [
+                    row
+                    for offset in range(0, manifest.sections[section].rows, 100)
+                    for row in reader.page(section, offset=offset, limit=100).items
+                    if getattr(row, generic_side) is None
+                ]
+                assert absent and all(
+                    getattr(row, generic_side + "_state") == "incomplete_coverage"
+                    for row in absent
+                )
+            assert manifest.observed_behavior == "insufficient_coverage"
+            assert not manifest.diagnostic_parity_certified
+
+
+def test_execution_only_browser_source_passes_validation_reward_gate():
+    baseline, execution_only = (
+        execute("validation", name) for name in ("baseline", "execution_only")
+    )
+    assert execution_only["status"] == "succeeded"
+    assert execution_only["metrics"] == baseline["metrics"]
+    assert execution_only["closed_trades"] == baseline["closed_trades"] > 0
+    assert execution_only["fills"] == baseline["fills"] > 0
+    assert execution_only["engine"] == baseline["engine"]
+    assert execution_only["records"]
+    assert all(
+        row["data_event_id"].startswith("native_order:")
+        and row["callback_phase"] == "native.execution_result"
+        and row["pre_state"] is None
+        and row["pre_state_missing_reason"]
+        for row in execution_only["records"]
+    )

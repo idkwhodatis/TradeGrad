@@ -57,6 +57,7 @@ from packages.research_trace.comparison_contracts import (
     ComparisonManifest,
     ComparisonPublication,
     EventNamespace,
+    require_current_algorithm,
 )
 from packages.research_trace.contracts import DateRange, canonical_bytes, digest
 
@@ -111,10 +112,24 @@ def comparison_config(run, comparison=None):
             or comparison.input_sha256 != digest(comparison.input_snapshot)
             or comparison.left_evaluation_id != config.request.left.evaluation_id
             or comparison.right_evaluation_id != config.request.right.evaluation_id
+            or comparison.input_snapshot.get("schema_version")
+            != "tradegrad.comparison-input.v1"
+            or comparison.input_snapshot.get("owner_id") != str(run.owner_id)
+            or comparison.input_snapshot.get("request")
+            != config.request.model_dump(mode="json")
+            or comparison.input_snapshot.get("request_sha256") != config.request.sha256
+            or comparison.input_snapshot.get("engine_input_sha256")
+            != config.engine_input_sha256
+            or comparison.input_snapshot.get("algorithm_version")
+            != config.algorithm_version
+            or comparison.input_snapshot.get("tolerance_version")
+            != config.tolerance_version
+            or comparison.input_snapshot.get("limits")
+            != config.limits.model_dump(mode="json")
         ):
             raise ValueError("Comparison business binding differs")
         return config
-    except (ValueError, TypeError, KeyError):
+    except (ValueError, TypeError, KeyError, AttributeError):
         raise _integrity() from None
 
 
@@ -444,17 +459,24 @@ def load_comparison_inputs(session, owner_id, body, settings):
     )
 
 
-def input_snapshot(owner_id, body, sides, limits=DEFAULT_LIMITS):
+def input_snapshot(
+    owner_id, body, sides, limits=DEFAULT_LIMITS, *, algorithm_version=ALGORITHM_VERSION
+):
     from packages.research_trace.comparison import comparison_input_hash
 
-    engine_hash = comparison_input_hash(sides[0].input, sides[1].input, limits=limits)
+    engine_hash = comparison_input_hash(
+        sides[0].input,
+        sides[1].input,
+        limits=limits,
+        algorithm_version=algorithm_version,
+    )
     value = {
         "schema_version": "tradegrad.comparison-input.v1",
         "owner_id": str(owner_id),
         "request": body.model_dump(mode="json"),
         "request_sha256": body.sha256,
         "engine_input_sha256": engine_hash,
-        "algorithm_version": ALGORITHM_VERSION,
+        "algorithm_version": algorithm_version,
         "tolerance_version": TOLERANCE_VERSION,
         "limits": limits.model_dump(mode="json"),
         "left_common_config": dict(sides[0].input.common_config),
@@ -516,7 +538,19 @@ def submit_comparison(session, owner_id, body, idempotency_key, settings):
             "idempotency_conflict", "This key already belongs to another run request"
         )
     sides = load_comparison_inputs(session, owner_id, body, settings)
-    snapshot = input_snapshot(owner_id, body, sides)
+    if alias is not None:
+        # An old idempotency key still identifies the exact original request,
+        # including its algorithm and limits. Only a new key selects v2.
+        config = comparison_config(run, item)
+        snapshot = input_snapshot(
+            owner_id,
+            body,
+            sides,
+            config.limits,
+            algorithm_version=config.algorithm_version,
+        )
+    else:
+        snapshot = input_snapshot(owner_id, body, sides)
     sha = digest(snapshot)
     if alias is not None:
         if item.input_sha256 != sha or item.input_snapshot != snapshot:
@@ -593,7 +627,13 @@ def validate_comparison_inputs(session, comparison, run, settings):
     config = comparison_config(run, comparison)
     sides = load_comparison_inputs(session, run.owner_id, config.request, settings)
     if (
-        input_snapshot(run.owner_id, config.request, sides, config.limits)
+        input_snapshot(
+            run.owner_id,
+            config.request,
+            sides,
+            config.limits,
+            algorithm_version=config.algorithm_version,
+        )
         != comparison.input_snapshot
     ):
         raise _integrity()
@@ -613,6 +653,10 @@ def retry_comparison(session, comparison_id, owner_id, settings, *, idempotency_
     )
     if receipt:
         return item, run
+    try:
+        require_current_algorithm(comparison_config(run, item).algorithm_version)
+    except ComparisonError as error:
+        raise DomainError(error.code, error.message, 409) from None
     if (
         run.status not in {"failed", "cancelled", "interrupted"}
         or item.published_attempt_id is not None
@@ -666,6 +710,8 @@ def _validate_manifest(manifest, comparison, run, attempt, sides):
             comparison_id=comparison.id, run_id=run.id, execution_attempt_id=attempt.id
         )
         or manifest.input_hash != comparison.engine_input_sha256
+        or manifest.algorithm_version != config.algorithm_version
+        or manifest.tolerance_version != config.tolerance_version
         or manifest.limits != config.limits
         or manifest.field_tolerances != FIELD_TOLERANCES
     ):
@@ -719,6 +765,9 @@ def finish_comparison_attempt(
     if run.status == "cancel_requested":
         status, error_code = "cancelled", "comparison_cancelled"
     if status == "succeeded":
+        # Even a malformed worker result cannot publish current semantics under
+        # the immutable identity of a retired algorithm.
+        require_current_algorithm(comparison_config(run, item).algorithm_version)
         sides = validate_comparison_inputs(session, item, run, settings)
         if manifest is None or item.published_attempt_id is not None:
             raise _integrity()

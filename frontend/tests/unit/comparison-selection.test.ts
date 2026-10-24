@@ -148,6 +148,18 @@ describe("ordered immutable comparison URL state", () => {
   });
 });
 describe("response admission never displays stale or substituted comparison", () => {
+  it("binds the declared algorithm while retaining exact legacy results", () => {
+    const legacyStatus = status();
+    const legacyResult = result();
+    legacyStatus.algorithm_version = "tradegrad.observed-comparison.v1";
+    expect(
+      comparisonResultProblem(comparisonSelection, legacyStatus, legacyResult),
+    ).toBeTruthy();
+    legacyResult.manifest.algorithm_version = legacyStatus.algorithm_version;
+    expect(
+      comparisonResultProblem(comparisonSelection, legacyStatus, legacyResult),
+    ).toBeNull();
+  });
   it("accepts exact ordered status and result", () => {
     expect(comparisonStatusProblem(comparisonSelection, status())).toBeNull();
     expect(

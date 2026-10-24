@@ -94,3 +94,24 @@ def test_unavailable_or_unsupported_report_fails_closed(tmp_path, fault):
         path.write_bytes(ET.tostring(root))
     with pytest.raises(ValueError):
         verify_research_browser_report(path)
+
+
+@pytest.mark.parametrize("fault", ["missing", "skipped", "failure", "duplicate"])
+def test_genuine_one_sided_native_case_is_mandatory(tmp_path, fault):
+    report = complete_report()
+    assert len(report) == 18
+    name = "actual execution-only source retains one-sided native events and unknown pre-states without date or instrument pairing"
+    target = next(case for case in report if case.get("name") == name)
+    assert target.get("classname") == "mechanism-comparison.spec.ts"
+    if fault == "missing":
+        report.remove(target)
+    elif fault == "duplicate":
+        report.append(ET.fromstring(ET.tostring(target)))
+    else:
+        ET.SubElement(target, fault)
+    path = tmp_path / "private.xml"
+    path.write_bytes(ET.tostring(report))
+    with pytest.raises(ValueError):
+        verify_research_browser_report(path)
+    with pytest.raises(ValueError):
+        export_junit(path, tmp_path / "public.xml", require_research=True)

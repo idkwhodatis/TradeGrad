@@ -224,7 +224,13 @@ def test_publication_reverifies_complete_capture_scope_pins(
         SimpleNamespace(id=publication.execution_attempt_id),
     )
     monkeypatch.setattr(
-        services, "comparison_config", lambda *a: SimpleNamespace(limits=DEFAULT_LIMITS)
+        services,
+        "comparison_config",
+        lambda *a: SimpleNamespace(
+            limits=DEFAULT_LIMITS,
+            algorithm_version=manifest.algorithm_version,
+            tolerance_version=manifest.tolerance_version,
+        ),
     )
     sides = (SimpleNamespace(input=left), SimpleNamespace(input=right))
     services._validate_manifest(manifest, item, run, attempt, sides)

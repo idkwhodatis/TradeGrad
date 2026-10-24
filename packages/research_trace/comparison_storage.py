@@ -29,14 +29,17 @@ from .comparison_codec import (
 )
 from .comparison_contracts import (
     DEFAULT_LIMITS,
+    FIELD_TOLERANCES,
+    READABLE_ALGORITHM_VERSIONS,
     SECTIONS,
+    TOLERANCE_VERSION,
     ComparisonArtifactRef,
     ComparisonError,
     ComparisonPage,
     ComparisonRecord,
     WrittenComparisonArtifact,
 )
-from .contracts import canonical_bytes
+from .contracts import canonical_bytes, digest
 from .storage import SCHEMAS, TraceReader, TraceStorageError, _table_ref, _verified_file
 
 MAX_PAGE = 500
@@ -573,6 +576,25 @@ class ComparisonReader:
 
     def __init__(self, manifest, paths):
         self.manifest, self.paths = manifest, paths
+        # Validate the persisted declaration, not the current computation
+        # default. Historical v1 bytes remain readable at their original hash.
+        if (
+            manifest.algorithm_version not in READABLE_ALGORITHM_VERSIONS
+            or manifest.tolerance_version != TOLERANCE_VERSION
+            or manifest.field_tolerances != FIELD_TOLERANCES
+            or manifest.input_hash
+            != digest(
+                {
+                    "left": manifest.left.model_dump(mode="json"),
+                    "right": manifest.right.model_dump(mode="json"),
+                    "algorithm": manifest.algorithm_version,
+                    "tolerance_version": manifest.tolerance_version,
+                    "tolerances": manifest.field_tolerances,
+                    "limits": manifest.limits.model_dump(mode="json"),
+                }
+            )
+        ):
+            raise ComparisonError()
         for ref in manifest.artifacts:
             prefix = f"comparison-{manifest.publication.comparison_id}-{ref.section}-"
             if (

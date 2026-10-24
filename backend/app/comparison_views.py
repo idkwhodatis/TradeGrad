@@ -12,6 +12,7 @@ SAFE_ERRORS = {
     "comparison_failed",
     "comparison_recovery_blocked",
     "comparison_interrupted",
+    "comparison_algorithm_unsupported",
 }
 SAFE_STATUSES = {
     "queued",
@@ -89,6 +90,7 @@ def comparison_public(comparison, run):
     ready = run.status == "succeeded" and comparison.manifest_artifact_id is not None
     return ComparisonPublic(
         id=comparison.id,
+        algorithm_version=config.algorithm_version,
         run_id=run.id,
         status=run.status,
         generation=run.generation,

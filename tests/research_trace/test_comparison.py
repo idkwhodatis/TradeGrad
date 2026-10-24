@@ -137,7 +137,10 @@ def make_input(
     event_ids=("frozen:one",),
     candidates=None,
     features=None,
+    predicates=None,
     targets="default",
+    constrained_plan="default",
+    target_by_event=None,
     capture=None,
     partial=False,
     suffix="a",
@@ -146,6 +149,8 @@ def make_input(
     no_trace=False,
     seq=0,
     stage_id="ranking",
+    callback_phase=None,
+    omit_stage_event_ids=(),
 ):
     config = CaptureConfig.model_validate(capture or {"mode": "research"})
     code_hash = hashlib.sha256(code.encode()).hexdigest()
@@ -170,9 +175,12 @@ def make_input(
             data_event_id=event_id,
             event_seq=seq + index,
             scope="portfolio",
-            callback_phase="native.execution_result"
-            if event_id.startswith("native_order:")
-            else "close",
+            callback_phase=callback_phase
+            or (
+                "native.execution_result"
+                if event_id.startswith("native_order:")
+                else "close"
+            ),
             decision_time=MOMENT,
             information_cutoff=MOMENT,
             market_timezone="UTC",
@@ -185,15 +193,25 @@ def make_input(
                 "source": "engine_observed",
             },
         )
+        if event_id in omit_stage_event_ids:
+            recorder.end_decision()
+            continue
         recorder.emit(
             stage_id,
             {
                 "candidates": candidates if candidates is not None else [candidate()],
                 "features": features or [],
-                "raw_targets": [{"instrument_id": "B", "weight": 0.2}]
-                if targets == "default"
-                else targets,
-                "constrained_plan": [{"instrument_id": "B", "weight": 0.2}],
+                "predicates": predicates or [],
+                "raw_targets": target_by_event[index]
+                if target_by_event is not None
+                else (
+                    [{"instrument_id": "B", "weight": 0.2}]
+                    if targets == "default"
+                    else targets
+                ),
+                "constrained_plan": [{"instrument_id": "B", "weight": 0.2}]
+                if constrained_plan == "default"
+                else constrained_plan,
                 "coverage": "partial" if partial else "complete",
                 "missing_reason": "Captured detail was incomplete" if partial else None,
                 "order_links": [
@@ -286,22 +304,39 @@ def test_generic_uuid_and_date_only_events_never_pair(tmp_path, namespace, event
     assert all("unpaired" in (row.left_state, row.right_state) for row in rows)
 
 
+@pytest.mark.parametrize("reverse", [False, True])
 def test_same_date_distinct_callbacks_sequences_retained_and_unmatched(
-    tmp_path, namespace
+    tmp_path, namespace, reverse
 ):
-    left = make_input(
-        tmp_path / "left", namespace, event_ids=("frozen:one", "frozen:two")
+    complete = make_input(
+        tmp_path / "left",
+        namespace,
+        event_ids=("frozen:one", "frozen:two"),
+        features=[feature()],
     )
-    right = make_input(
-        tmp_path / "right", namespace, suffix="b", event_ids=("frozen:one",)
+    shorter = make_input(
+        tmp_path / "right",
+        namespace,
+        suffix="b",
+        event_ids=("frozen:one",),
+        features=[feature()],
     )
-    _, reader, _ = run_compare(tmp_path / "out", left, right)
+    left, right = (shorter, complete) if reverse else (complete, shorter)
+    manifest, reader, _ = run_compare(tmp_path / "out", left, right)
     rows = reader.page("events").items
     assert len(rows) == 2
     assert sum(row.left is not None and row.right is not None for row in rows) == 1
-    assert (
-        next(row for row in rows if row.right is None).right_state == "observed_absence"
-    )
+    missing_side = "left" if reverse else "right"
+    missing = next(row for row in rows if getattr(row, missing_side) is None)
+    assert getattr(missing, missing_side + "_state") == "observed_absence"
+    for section in ("candidates", "features", "targets"):
+        details = reader.page(section, event_pair_id=missing.event_pair_id).items
+        assert details and all(
+            getattr(row, missing_side) is None
+            and getattr(row, missing_side + "_state") == "observed_absence"
+            for row in details
+        )
+        assert manifest.sections[section].observed_equality == "different"
 
 
 def test_changed_namespace_disables_event_pairing(tmp_path, namespace):
@@ -1125,3 +1160,488 @@ def test_shutdown_during_failed_close_backoff_cannot_escape_guard(monkeypatch):
         pass
     assert calls == ["close", "backoff", "close"]
     assert control.closure_confirmed and not external.is_set()
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize(
+    "opaque_phase", [None, "close", "native.execution_result:close"]
+)
+def test_mixed_opaque_events_cannot_certify_missing_source_observations(
+    tmp_path, namespace, reverse, opaque_phase
+):
+    complete = make_input(
+        tmp_path / "complete",
+        namespace,
+        event_ids=("frozen:one", "frozen:two"),
+        features=[feature()],
+    )
+    mixed = make_input(
+        tmp_path / "mixed",
+        namespace,
+        event_ids=("frozen:one", "native_order:unknown"),
+        features=[feature()],
+        suffix="b",
+        callback_phase=opaque_phase,
+    )
+    left, right = (mixed, complete) if reverse else (complete, mixed)
+    manifest, reader, _ = run_compare(tmp_path / "out", left, right)
+    observed_side, missing_side = ("right", "left") if reverse else ("left", "right")
+    missing = next(
+        row
+        for row in reader.page("events").items
+        if getattr(row, observed_side)
+        and getattr(row, observed_side)["data_event_id"] == "frozen:two"
+    )
+    assert getattr(missing, missing_side) is None
+    assert getattr(missing, missing_side + "_state") == "incomplete_coverage"
+    for section in ("candidates", "features", "targets"):
+        rows = reader.page(section, event_pair_id=missing.event_pair_id).items
+        assert rows
+        assert all(
+            getattr(row, missing_side) is None
+            and getattr(row, missing_side + "_state") == "incomplete_coverage"
+            for row in rows
+        )
+        assert manifest.sections[section].observed_equality == "unknown"
+    generic = next(
+        row
+        for row in reader.page("events").items
+        if getattr(row, missing_side)
+        and getattr(row, missing_side)["data_event_id"].startswith("native_order:")
+    )
+    assert getattr(generic, observed_side) is None
+    assert getattr(generic, observed_side + "_state") == "unpaired"
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_complete_source_absence_needs_observed_stage_capability(
+    tmp_path, namespace, reverse
+):
+    complete = make_input(
+        tmp_path / "complete",
+        namespace,
+        event_ids=("frozen:one", "frozen:two"),
+        features=[feature()],
+    )
+    other_stage = make_input(
+        tmp_path / "other",
+        namespace,
+        stage_id="different_stage",
+        features=[feature()],
+        suffix="b",
+    )
+    left, right = (other_stage, complete) if reverse else (complete, other_stage)
+    _, reader, _ = run_compare(tmp_path / "out", left, right)
+    observed_side, missing_side = ("right", "left") if reverse else ("left", "right")
+    missing = next(
+        row
+        for row in reader.page("events").items
+        if getattr(row, observed_side)
+        and getattr(row, observed_side)["data_event_id"] == "frozen:two"
+    )
+    assert getattr(missing, missing_side + "_state") == "observed_absence"
+    for section in ("candidates", "features", "targets"):
+        rows = reader.page(section, event_pair_id=missing.event_pair_id).items
+        assert rows
+        assert all(
+            getattr(row, missing_side + "_state") == "not_collected" for row in rows
+        )
+
+
+def test_observation_capabilities_share_fixed_event_index_budget():
+    from packages.research_trace.comparison import _observation_capabilities
+
+    event = {
+        "data_event_id": "frozen:one",
+        "callback_phase": "p" * 100,
+        "scope": "instrument",
+        "instrument_id": "i" * 100,
+        "stage_ids": ["s" * 100],
+    }
+    assert len(json.dumps(event).encode()) < 1024
+    control = ComparisonControl()
+    try:
+        with pytest.raises(ComparisonError) as error:
+            _observation_capabilities(
+                [event], control, ComparisonLimits(max_event_index_bytes=1024)
+            )
+        assert error.value.code == "comparison_capacity"
+        kinds, opaque = _observation_capabilities(
+            [event, event], control, ComparisonLimits()
+        )
+        assert not opaque and len(kinds) == 1
+        assert next(iter(kinds.values())) == {"s" * 100: 0}
+    finally:
+        control.close()
+
+
+def test_input_identity_keeps_legacy_algorithm_separate_without_recomputing_it(
+    tmp_path, namespace
+):
+    left = make_input(tmp_path / "left", namespace)
+    right = make_input(tmp_path / "right", namespace, suffix="b")
+    legacy = comparison_input_hash(
+        left, right, algorithm_version="tradegrad.observed-comparison.v1"
+    )
+    current = comparison_input_hash(
+        left, right, algorithm_version="tradegrad.observed-comparison.v2"
+    )
+    assert legacy != current
+    assert legacy == comparison_input_hash(
+        left, right, algorithm_version="tradegrad.observed-comparison.v1"
+    )
+    with pytest.raises(ComparisonError, match="Unsupported comparison algorithm"):
+        comparison_input_hash(
+            left, right, algorithm_version="tradegrad.observed-comparison.v999"
+        )
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("fault", ["partial_stage", "lost_details", "summary"])
+def test_missing_event_does_not_promote_incomplete_details_to_absence(
+    tmp_path, namespace, reverse, fault
+):
+    complete = make_input(
+        tmp_path / "complete",
+        namespace,
+        event_ids=("frozen:one", "frozen:two"),
+        features=[feature()],
+    )
+    incomplete = make_input(
+        tmp_path / "incomplete",
+        namespace,
+        features=[feature()],
+        suffix="b",
+        partial=fault == "partial_stage",
+        capture={"mode": "summary" if fault == "summary" else "research"},
+    )
+    if fault == "lost_details":
+        trace = incomplete.trace_manifest.model_copy(
+            update={
+                "coverage": "partial",
+                "detail_rows_seen": incomplete.trace_manifest.detail_rows_seen + 1,
+                "missing_reasons": ["Actual detail capture was truncated"],
+            }
+        )
+        incomplete = replace(
+            incomplete, trace_manifest=trace, trace_manifest_sha256=digest(trace)
+        )
+    left, right = (incomplete, complete) if reverse else (complete, incomplete)
+    _, reader, _ = run_compare(tmp_path / "out", left, right)
+    observed_side, missing_side = ("right", "left") if reverse else ("left", "right")
+    event = next(
+        row
+        for row in reader.page("events").items
+        if getattr(row, observed_side)
+        and getattr(row, observed_side)["data_event_id"] == "frozen:two"
+    )
+    assert getattr(event, missing_side + "_state") == "observed_absence"
+    rows = reader.page("features", event_pair_id=event.event_pair_id).items
+    assert rows
+    expected = "not_collected" if fault == "summary" else "incomplete_coverage"
+    assert all(
+        getattr(row, missing_side) is None
+        and getattr(row, missing_side + "_state") == expected
+        for row in rows
+    )
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("kind", ["raw_targets", "constrained_plan"])
+@pytest.mark.parametrize("collection", [None, []])
+def test_missing_target_event_preserves_each_kind_collection_presence(
+    tmp_path, namespace, reverse, kind, collection
+):
+    full = make_input(
+        tmp_path / "full", namespace, event_ids=("frozen:one", "frozen:two")
+    )
+    option = {"targets" if kind == "raw_targets" else "constrained_plan": collection}
+    shorter = make_input(tmp_path / "shorter", namespace, suffix="b", **option)
+    left, right = (shorter, full) if reverse else (full, shorter)
+    _, reader, _ = run_compare(tmp_path / "out", left, right)
+    source, missing = ("right", "left") if reverse else ("left", "right")
+    events = reader.page("events").items
+    paired = next(row for row in events if row.left and row.right)
+    unmatched = next(row for row in events if getattr(row, missing) is None)
+    assert getattr(unmatched, missing + "_state") == "observed_absence"
+    expected = "not_collected" if collection is None else "observed_absence"
+    for event in (paired, unmatched):
+        rows = reader.page("targets", event_pair_id=event.event_pair_id).items
+        selected = [
+            row
+            for row in rows
+            if getattr(row, source)
+            and any(
+                item["target_kind"] == kind for item in getattr(row, source)["items"]
+            )
+        ]
+        assert selected and all(
+            getattr(row, missing + "_state") == expected for row in selected
+        )
+        if event is unmatched:
+            other_kind = "constrained_plan" if kind == "raw_targets" else "raw_targets"
+            collected = [
+                row
+                for row in rows
+                if getattr(row, source)
+                and any(
+                    item["target_kind"] == other_kind
+                    for item in getattr(row, source)["items"]
+                )
+            ]
+            assert collected and all(
+                getattr(row, missing + "_state") == "observed_absence"
+                for row in collected
+            )
+        elif collection == []:
+            empty = [row for row in rows if getattr(row, missing)]
+            assert any(
+                item["target_kind"] == kind and item["record"].get("targets") == []
+                for row in empty
+                for item in getattr(row, missing)["items"]
+            )
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("target_values", [[None, []], [[], None]])
+def test_intermittently_uncollected_target_kind_does_not_certify_missing_event(
+    tmp_path, namespace, reverse, target_values
+):
+    full = make_input(
+        tmp_path / "full",
+        namespace,
+        event_ids=("frozen:one", "frozen:two", "frozen:three"),
+    )
+    mixed = make_input(
+        tmp_path / "mixed",
+        namespace,
+        event_ids=("frozen:one", "frozen:two"),
+        target_by_event=target_values,
+        suffix="b",
+    )
+    left, right = (mixed, full) if reverse else (full, mixed)
+    _, reader, _ = run_compare(tmp_path / "out", left, right)
+    source, missing = ("right", "left") if reverse else ("left", "right")
+    event = next(
+        row for row in reader.page("events").items if getattr(row, missing) is None
+    )
+    rows = reader.page("targets", event_pair_id=event.event_pair_id).items
+    raw = [
+        row
+        for row in rows
+        if any(
+            item["target_kind"] == "raw_targets"
+            for item in getattr(row, source)["items"]
+        )
+    ]
+    assert raw and all(
+        getattr(row, missing + "_state") == "not_collected" for row in raw
+    )
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("table", ["features", "predicates"])
+def test_paired_summary_stage_does_not_claim_research_detail_absence(
+    tmp_path, namespace, reverse, table
+):
+    observation = (
+        feature()
+        if table == "features"
+        else {
+            "condition_id": "threshold",
+            "instrument_id": "B",
+            "operator": "gt",
+            "operands": [2.0],
+            "threshold": 1.0,
+            "state": "true",
+        }
+    )
+    full = make_input(tmp_path / "full", namespace, **{table: [observation]})
+    summary = make_input(
+        tmp_path / "summary", namespace, capture={"mode": "summary"}, suffix="b"
+    )
+    left, right = (summary, full) if reverse else (full, summary)
+    manifest, reader, _ = run_compare(tmp_path / "out", left, right)
+    missing = "left" if reverse else "right"
+    rows = reader.page(table).items
+    assert rows and all(
+        getattr(row, missing) is None
+        and getattr(row, missing + "_state") == "not_collected"
+        for row in rows
+    )
+    assert manifest.sections[table].observed_equality == "unknown"
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_paired_event_with_all_stages_filtered_keeps_detail_unknown(
+    tmp_path, namespace, reverse
+):
+    full = make_input(tmp_path / "full", namespace, features=[feature()])
+    filtered = make_input(
+        tmp_path / "filtered",
+        namespace,
+        features=[feature()],
+        capture={"mode": "research", "stage_ids": ["different"]},
+        suffix="b",
+    )
+    left, right = (filtered, full) if reverse else (full, filtered)
+    manifest, reader, _ = run_compare(tmp_path / "out", left, right)
+    missing = "left" if reverse else "right"
+    assert reader.page("events").items[0].left and reader.page("events").items[0].right
+    for table in ("candidates", "features", "targets"):
+        rows = reader.page(table).items
+        assert rows and all(
+            getattr(row, missing) is None
+            and getattr(row, missing + "_state") == "not_collected"
+            for row in rows
+        )
+        assert manifest.sections[table].observed_equality == "unknown"
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_paired_instrument_filter_cannot_certify_out_of_scope_detail_absence(
+    tmp_path, namespace, reverse
+):
+    full = make_input(tmp_path / "full", namespace, features=[feature()])
+    filtered = make_input(
+        tmp_path / "filtered",
+        namespace,
+        candidates=[candidate("C")],
+        capture={"mode": "research", "instrument_ids": ["C"]},
+        suffix="b",
+    )
+    left, right = (filtered, full) if reverse else (full, filtered)
+    _, reader, _ = run_compare(tmp_path / "out", left, right)
+    missing = "left" if reverse else "right"
+    for table in ("candidates", "features"):
+        rows = reader.page(table, instrument_id="B").items
+        assert rows and all(
+            getattr(row, missing) is None
+            and getattr(row, missing + "_state") == "not_collected"
+            for row in rows
+        )
+    # The recorder does not instrument-filter target arrays: actual retained B
+    # targets remain observed on both sides, not replaced by the new guard.
+    targets = reader.page("targets", instrument_id="B").items
+    assert targets and all(
+        row.left_state == row.right_state == "observed" for row in targets
+    )
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_paired_event_with_stage_dropped_at_capacity_keeps_detail_unknown(
+    tmp_path, namespace, reverse
+):
+    full = make_input(tmp_path / "full", namespace, features=[feature()])
+    dropped = make_input(
+        tmp_path / "dropped",
+        namespace,
+        features=[feature()],
+        capture={"mode": "research", "max_detail_rows": 1},
+        suffix="b",
+    )
+    left, right = (dropped, full) if reverse else (full, dropped)
+    manifest, reader, _ = run_compare(tmp_path / "out", left, right)
+    missing = "left" if reverse else "right"
+    for table in ("candidates", "features", "targets"):
+        rows = reader.page(table).items
+        assert rows and all(
+            getattr(row, missing) is None
+            and getattr(row, missing + "_state") == "incomplete_coverage"
+            for row in rows
+        )
+        assert manifest.sections[table].observed_equality == "unknown"
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_instrument_filter_does_not_discard_portfolio_wide_feature_absence(
+    tmp_path, namespace, reverse
+):
+    full = make_input(
+        tmp_path / "full", namespace, features=[{**feature(), "instrument_id": None}]
+    )
+    filtered = make_input(
+        tmp_path / "filtered",
+        namespace,
+        candidates=[candidate("C")],
+        capture={"mode": "research", "instrument_ids": ["C"]},
+        suffix="b",
+    )
+    left, right = (filtered, full) if reverse else (full, filtered)
+    _, reader, _ = run_compare(tmp_path / "out", left, right)
+    missing = "left" if reverse else "right"
+    rows = reader.page("features").items
+    assert rows and all(
+        getattr(row, missing) is None
+        and getattr(row, missing + "_state") == "observed_absence"
+        for row in rows
+    )
+
+
+@pytest.mark.parametrize("opaque", [False, True])
+def test_target_presence_aggregate_is_skipped_without_supported_missing_event(
+    tmp_path, namespace, monkeypatch, opaque
+):
+    from packages.research_trace import comparison
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError(
+            "No target-presence scan is needed for paired or opaque events"
+        )
+
+    monkeypatch.setattr(comparison, "_target_collection_capabilities", forbidden)
+    left = make_input(tmp_path / "left", namespace)
+    right = make_input(
+        tmp_path / "right",
+        namespace,
+        suffix="b",
+        event_ids=("native_order:opaque",) if opaque else ("frozen:one",),
+    )
+    run_compare(tmp_path / "out", left, right)
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("omitted", ["frozen:one", "frozen:two"])
+def test_intermittent_stage_collection_does_not_certify_missing_event_details(
+    tmp_path, namespace, reverse, omitted
+):
+    full = make_input(
+        tmp_path / "full",
+        namespace,
+        event_ids=("frozen:one", "frozen:two", "frozen:three"),
+        features=[feature()],
+    )
+    intermittent = make_input(
+        tmp_path / "intermittent",
+        namespace,
+        event_ids=("frozen:one", "frozen:two"),
+        features=[feature()],
+        omit_stage_event_ids=(omitted,),
+        suffix="b",
+    )
+    assert intermittent.trace_manifest.coverage == "complete"
+    assert intermittent.trace_manifest.stage_coverage["ranking"] == "complete"
+    left, right = (intermittent, full) if reverse else (full, intermittent)
+    manifest, reader, _ = run_compare(tmp_path / "out", left, right)
+    source, missing = ("right", "left") if reverse else ("left", "right")
+    events = reader.page("events").items
+    paired_without_stage = next(
+        row for row in events if getattr(row, source)["data_event_id"] == omitted
+    )
+    unmatched = next(row for row in events if getattr(row, missing) is None)
+    assert getattr(unmatched, missing + "_state") == "observed_absence"
+    for table in ("candidates", "features", "targets"):
+        paired_rows = reader.page(
+            table, event_pair_id=paired_without_stage.event_pair_id
+        ).items
+        assert paired_rows and all(
+            getattr(row, missing + "_state") == "incomplete_coverage"
+            for row in paired_rows
+        )
+        rows = reader.page(table, event_pair_id=unmatched.event_pair_id).items
+        assert rows and all(
+            getattr(row, missing) is None
+            and getattr(row, missing + "_state") == "not_collected"
+            for row in rows
+        )
+        assert manifest.sections[table].observed_equality == "unknown"

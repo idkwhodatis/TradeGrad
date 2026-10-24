@@ -1550,6 +1550,14 @@
             ],
             "title": "Active Attempt Id"
           },
+          "algorithm_version": {
+            "enum": [
+              "tradegrad.observed-comparison.v1",
+              "tradegrad.observed-comparison.v2"
+            ],
+            "title": "Algorithm Version",
+            "type": "string"
+          },
           "artifact_ready": {
             "title": "Artifact Ready",
             "type": "boolean"
@@ -1663,6 +1671,7 @@
         },
         "required": [
           "id",
+          "algorithm_version",
           "run_id",
           "status",
           "generation",
@@ -1868,8 +1877,11 @@
         "additionalProperties": false,
         "properties": {
           "algorithm_version": {
-            "const": "tradegrad.observed-comparison.v1",
-            "default": "tradegrad.observed-comparison.v1",
+            "default": "tradegrad.observed-comparison.v2",
+            "enum": [
+              "tradegrad.observed-comparison.v1",
+              "tradegrad.observed-comparison.v2"
+            ],
             "title": "Algorithm Version",
             "type": "string"
           },
@@ -2057,6 +2069,14 @@
             ],
             "title": "Active Attempt Id"
           },
+          "algorithm_version": {
+            "enum": [
+              "tradegrad.observed-comparison.v1",
+              "tradegrad.observed-comparison.v2"
+            ],
+            "title": "Algorithm Version",
+            "type": "string"
+          },
           "artifact_ready": {
             "title": "Artifact Ready",
             "type": "boolean"
@@ -2163,6 +2183,7 @@
         },
         "required": [
           "id",
+          "algorithm_version",
           "run_id",
           "status",
           "generation",
