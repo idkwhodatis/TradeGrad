@@ -348,6 +348,7 @@ export async function runActual(
 export async function createActualSource(
   request: APIRequestContext,
   owned: IndependentOwned,
+  options?: Parameters<typeof runActual>[6],
 ) {
   const templates = await rows<ResearchTemplate>(
     request,
@@ -377,7 +378,15 @@ export async function createActualSource(
     template!.code,
     null,
   );
-  return runActual(request, owned, strategy, snapshot, capabilities);
+  return runActual(
+    request,
+    owned,
+    strategy,
+    snapshot,
+    capabilities,
+    undefined,
+    options,
+  );
 }
 export type ActualSource = Awaited<ReturnType<typeof createActualSource>>;
 export function sourcePins(source: ActualSource) {

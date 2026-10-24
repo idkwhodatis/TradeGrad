@@ -76,7 +76,8 @@ def test_native_observed_only_distinguishes_same_timestamp_orders_and_later_mult
 
 def test_explicit_logical_to_multiple_children_is_not_joined_by_timestamp():
     recorder = Recorder(code_sha256="a" * 64, config=CaptureConfig(mode="research"))
-    observer = NativeCapture(recorder, lambda value: None)
+    output = []
+    observer = NativeCapture(recorder, output.append)
     recorder._on_record = observer.append
     recorder.begin_decision(
         data_event_id="complete-portfolio-event",
@@ -104,8 +105,8 @@ def test_explicit_logical_to_multiple_children_is_not_joined_by_timestamp():
         },
     )
     recorder.end_decision()
-    output = []
-    recorder._on_record = output.append
+    original_origins = observer.order_origins.copy()
+    output.clear()
     observer.finalize(
         SimpleNamespace(
             _raw=SimpleNamespace(
@@ -127,6 +128,11 @@ def test_explicit_logical_to_multiple_children_is_not_joined_by_timestamp():
     link = output[0].stages[0].order_links[0]
     assert link.logical_order_id == "intent-B"
     assert link.child_order_ids == ["one", "two"] and link.fill_ids == ["a", "b"]
+    assert observer.order_origins == original_origins
+    assert not observer._emitting_result
+    assert not any(
+        "Conflicting" in reason for reason in recorder.summary()["missing_reasons"]
+    )
 
 
 def test_conflicting_order_origin_is_never_resurrected_by_later_emissions():
@@ -138,7 +144,11 @@ def test_conflicting_order_origin_is_never_resurrected_by_later_emissions():
             data_event_id=f"event:{index}",
             event_seq=index,
             scope="portfolio",
-            callback_phase="on_session",
+            # A strategy cannot bypass conflict detection by claiming the
+            # collector's reserved completion phase outside finalize().
+            callback_phase="native.execution_result:on_session"
+            if index == 1
+            else "on_session",
             decision_time="2024-01-04T12:00:00Z",
             information_cutoff="2024-01-04T12:00:00Z",
             market_timezone="UTC",
@@ -174,6 +184,31 @@ def test_conflicting_order_origin_is_never_resurrected_by_later_emissions():
         == "observed-native:same-child"
     )
     assert output[0].data_event_id.startswith("native_order:")
+
+
+@pytest.mark.parametrize("prior", [False, True])
+def test_completion_guard_restores_prior_state_if_record_completion_raises(
+    monkeypatch, prior
+):
+    recorder = Recorder(code_sha256="a" * 64, config=CaptureConfig(mode="research"))
+    observer = NativeCapture(recorder, lambda record: None)
+    recorder._on_record = observer.append
+    observer._emitting_result = prior
+
+    def fail():
+        raise RuntimeError("Completion sink unavailable")
+
+    monkeypatch.setattr(recorder, "end_decision", fail)
+    observer.finalize(
+        SimpleNamespace(_raw=SimpleNamespace(orders=[order("one")], executions=[])),
+        market_timezone="UTC",
+    )
+    assert observer._emitting_result is prior
+    monkeypatch.undo()
+    assert any(
+        "could not be fully collected" in reason
+        for reason in recorder.summary()["missing_reasons"]
+    )
 
 
 SCRIPT = r"""

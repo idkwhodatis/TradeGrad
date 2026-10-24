@@ -41,9 +41,17 @@ class NativeCapture:
         self.recorder = recorder
         self.sink = sink
         self.order_origins = {}
+        self._emitting_result = False
 
     def append(self, record):
         self.sink(record)
+        # Completion snapshots retain the original explicit child association,
+        # but are not another strategy submission. Their distinct callback phase
+        # must not conflict with the source origin we used to construct them.
+        # Only the collector controls this flag; a record's claimed phase/source
+        # cannot opt an emitted strategy association out of conflict detection.
+        if self._emitting_result:
+            return
         # Native is intentionally not a trust boundary. This registry only
         # preserves explicit emitted associations, never matches by timestamp.
         for stage in record.stages:
@@ -186,7 +194,12 @@ class NativeCapture:
                         "order_links": list(group["links"].values()),
                     },
                 )
-                self.recorder.end_decision()
+                previous = self._emitting_result
+                self._emitting_result = True
+                try:
+                    self.recorder.end_decision()
+                finally:
+                    self._emitting_result = previous
         except Exception:  # noqa: BLE001 - observer must never alter economic execution
             self.recorder._failed(
                 "Native execution linkage could not be fully collected; no missing event was inferred."
