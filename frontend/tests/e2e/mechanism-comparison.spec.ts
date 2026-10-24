@@ -35,6 +35,7 @@ import type {
   WorkbenchSpec,
 } from "../../src/client/types.gen";
 import { account, api, authorization, signIn, token } from "./helpers";
+import comparisonFixture from "../fixtures/mechanism-comparison.json" with { type: "json" };
 
 // I4 REAL-STACK ACCEPTANCE. These tests require a migrated PostgreSQL API,
 // data/research/comparison workers and the real isolated native evaluator.
@@ -66,11 +67,7 @@ const terminal = new Set([
   "interrupted",
   "paused",
 ]);
-const windows = {
-  train: { start: "2024-02-01", end: "2024-03-15" },
-  validation: { start: "2024-03-15", end: "2024-04-20" },
-  holdout: { start: "2024-04-22", end: "2024-04-27" },
-};
+const windows = comparisonFixture.windows;
 const sections = [
   "events",
   "candidates",
@@ -292,7 +289,7 @@ async function runActual(
     seed_strategy: { id: strategy.id, sha256: strategy.content_sha256 },
     strategy_contract: strategy.manifest,
     windows,
-    warmup: { ...profile!.warmup, sessions: 20 },
+    warmup: { ...profile!.warmup, sessions: comparisonFixture.warmup_sessions },
     market_profile: {
       ...structuredClone(profile!.market_profile),
       ...(commissionRate === undefined
@@ -418,7 +415,11 @@ async function actualPair(
       (item) => item.name === "max_weight",
     );
     expect(maximum).toBeDefined();
-    maximum!.value = 0.15;
+    // This exact frozen tape must produce closed trades on both splits under
+    // the unchanged optimization reward gate. At 0.15, train has only an open
+    // position and is correctly rejected; the native fixture regression pins
+    // the admissible allocation change instead of weakening that gate.
+    maximum!.value = comparisonFixture.allocation_and_fees.max_weight;
   }
   const source =
     variant === "comment_only"
@@ -447,7 +448,9 @@ async function actualPair(
     derived,
     snapshot,
     capabilities,
-    variant === "changed_allocation_and_fees" ? 0.001 : undefined,
+    variant === "changed_allocation_and_fees"
+      ? comparisonFixture.allocation_and_fees.commission_rate
+      : undefined,
   );
   expect(left.leaf.evaluation_id).not.toBe(right.leaf.evaluation_id);
   expect(left.leaf.execution_attempt_id).not.toBe(
