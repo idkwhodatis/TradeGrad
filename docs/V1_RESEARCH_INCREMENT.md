@@ -985,3 +985,82 @@ This was a deterministic synthetic-input comparison using the actual old
 algorithm, not a native-market, full-scale, PostgreSQL or cold-database claim.
 The frozen budget, historical capacity reports, runtime locks, original baseline
 worktree, and 010/011 migrations remain unchanged by these second-run repairs.
+
+### Third exact-head run: browser success, remaining strict gates
+
+Run [40065743172](https://github.com/idkwhodatis/TradeGrad/actions/runs/40065743172)
+executed clean head `9193a3e91d69ba1b965de1818bb9182014c3b380`, tree
+`e2971f339b413c97eb792397847616451c91177b`. Baseline and exact Compose acceptance
+passed: **63 browser cases passed**, with **two opt-in synthetic model-profile
+cases skipped** out of 65. All mandatory research identities, the actual cold
+restart and bounded owned-resource cleanup passed. The separate application
+operator-profile and cold database backup/restore gates were not reached after
+its integration failure, and are not implied by Compose success.
+
+Actual PostgreSQL now stayed healthy throughout: **663 passed, two failed,
+21 skipped**, without the former error cascade. Effective durability flags were
+all enabled; the 2 GiB filesystem ended at 362,807,296 used bytes, including
+268,435,456 WAL bytes. Both new comparison-version boundary tests and the 011
+pin-upgrade/history regression passed. The remaining defects were a symlink
+trace admission returning HTTP 500 instead of a sanitized 409, and a stale
+downgrade-fixture expectation of one candidate when four existed. The scoped
+trace admission boundary now preserves all path/no-follow checks while returning
+`trace_integrity`/409; unrelated operational errors are unchanged. Nineteen
+real-filesystem HTTP regressions cover ownership, leaf/parent symlinks, unsafe
+paths and read-time races. The rollback test compares exact candidate rows and
+schema revision, not an obsolete count. These repairs still need hosted rerun.
+
+The fresh full-size capacity job **failed** both comparisons at the unchanged
+300-second deadline, after completing only 1,789,613 and 1,812,016 logical rows.
+No exhaustive comparison audit completed. Peak RSS was 188,547,072 and
+187,871,232 bytes, below the fixed limit; output-size limits were not exceeded.
+The [unchanged failed report](evidence/research-trace-capacity-timeout-20261024.json)
+has SHA-256 `7b5a66f1475dbcd151cf00f0f7d83c5ab019878026ff964b4ce6b0d773e62827`.
+This runner used AMD EPYC 7763 rather than the prior 9V74; even unchanged
+collection took about 83 seconds instead of 67–68. That context does not turn
+the timeout into a pass. The corrective path is a measured, lossless bounded
+implementation improvement, not relaxed deadlines, reduced data, runner
+selection, or a retry until a faster host happens to pass. The original budget,
+protocol, reference data and prior reports remain unchanged.
+
+### Bounded serialization repair and full local measurement
+
+The corrective implementation reuses immutable canonical encoder configuration,
+exact semantic bytes only within the existing retained-allocation bound, and
+repeated pair/provenance serialization. It preserves comparison algorithm v2,
+canonical output, semantic traversal order, node/byte/cancellation accounting,
+and final Parquet bytes. Independent differential review covered 6,560 semantic
+and budget outcomes, 306 row/provenance charges, malformed/concurrent encoding,
+and legacy/mixed records. An interleaved 80-record, 12-block fixture reproduced
+the pre-optimization Parquet hashes, references, indexes and boundaries exactly.
+No deadline, output, memory, spill, query or dataset limit was raised.
+
+A fresh **1,000 listings × 750 sessions × three variants** local protocol passed
+with the five implementation/test files hash-pinned throughout. The complete
+[optimized report](evidence/research-trace-capacity-optimized-20261024.json) has
+SHA-256 `397a6bab974c02de2b3997bcd3f06fd31c0aab01a7db3e130431917ed7a8d447`.
+All three collections, source audits and query sweeps passed. Comparisons took
+**241.094983 / 229.345018 seconds**, below the unchanged 300-second limit;
+separate exhaustive audits took **260.308886 / 255.292770 seconds**. Every one
+of **2,252,251 / 2,253,751** logical rows round-tripped, including complete source
+observation/query equivalence and closure checks. Encoded aggregate sizes were
+**1,870,339,406 / 1,870,688,906 bytes**, reconstructed sizes
+**2,368,825,532 / 2,369,520,032 bytes**, and compressed sizes
+**123,023,004 / 123,132,040 bytes**. Peak RSS was
+**180,764,672 / 189,579,264 bytes**. Trace-query P95 peaked at 125.61 ms;
+cached-comparison P95 was 57.10 / 40.94 ms. The complete protocol took
+1,183.170 seconds and passed the original baseline/budget validator.
+
+This run used the local EPYC 9V74 host with nine logical CPUs in its affinity
+set and an overlay filesystem. Dedicated CPU, SSD/reference-host equivalence,
+and performance on the failed hosted runner were not established. The report
+records a dirty but exact source-hash-pinned candidate, not a clean final-commit
+CI certification. The earlier hosted timeout report remains a valid failure.
+
+The frozen candidate also passed **2,616 backend/runner/operations/trace tests**
+with the real hash-locked native interpreter required and no skips (167.74s),
+plus **1,036 frontend tests**, typecheck, production build and formatting.
+The final published head must still pass fresh actual PostgreSQL (including
+the two repaired cases), 011 cold database backup/restore, operator profiles,
+Docker/browser acceptance, and the unchanged full-size capacity gate before
+the increment can be accepted or V2 started.
