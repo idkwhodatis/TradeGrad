@@ -66,13 +66,20 @@ def main():
             thread.join(timeout=20)
         return
     runner = portable = None
-    if args.role == "reconciler":
+
+    def stop_attempt(attempt_id, sandbox_id):
+        nonlocal runner, portable
+        # Lazy: comparison recovery is independent of Docker availability.
         from runtimes.evaluator.portable_runner import PortableDockerEvaluator
         from runtimes.evaluator.runner import DockerEvaluator
         from workers.research.containment import AttemptSandboxStopper
 
-        runner = DockerEvaluator()
-        portable = PortableDockerEvaluator()
+        if runner is None:
+            runner = DockerEvaluator()
+        if portable is None:
+            portable = PortableDockerEvaluator()
+        return AttemptSandboxStopper(attempt_id, runner, portable).stop(sandbox_id)
+
     while True:
         try:
             with factory.begin() as session:
@@ -96,8 +103,14 @@ def main():
                         .limit(100)
                     ).all()
                     for attempt_id in ids:
-                        stopper = AttemptSandboxStopper(attempt_id, runner, portable)
-                        reconcile_attempt(session, attempt_id, stopper.stop)
+                        reconcile_attempt(
+                            session,
+                            attempt_id,
+                            lambda sandbox_id, owned_id=attempt_id: stop_attempt(
+                                owned_id, sandbox_id
+                            ),
+                            settings=settings,
+                        )
                     recover_stalled_jobs(session)
         except Exception:  # noqa: BLE001 - service loop must remain available after transient outages
             # Do not serialize SQLAlchemy exceptions/connection strings into logs.

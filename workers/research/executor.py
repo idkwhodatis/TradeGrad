@@ -180,13 +180,15 @@ def publish_artifacts(root: Path, target: Path, outcome: dict, max_bytes: int):
 def execute(
     run_id: str, generation: int, settings: Settings | None = None, factory=None
 ):
-    from runtimes.evaluator.runner import DockerEvaluator
-
     settings = settings or get_settings()
     factory = factory or session_factory(create_db_engine(settings))
     with factory() as session:
         current = session.get(ResearchRun, UUID(run_id))
         schema = current.config.get("schema_version") if current is not None else None
+    if schema == "tradegrad.comparison.v1":
+        from workers.research.comparison import execute_comparison
+
+        return execute_comparison(run_id, generation, settings, factory)
     if schema == "tradegrad.portable.final-evaluation.v1":
         from workers.research.portable_final_evaluation import execute_portable_final
 
@@ -205,6 +207,8 @@ def execute(
         from workers.research.optimization import execute_configured
 
         return execute_configured(run_id, generation, settings, factory)
+    from runtimes.evaluator.runner import DockerEvaluator
+
     worker_id = f"research:{socket.gethostname()}:{uuid4()}"
     with factory.begin() as session:
         attempt = claim_attempt(session, UUID(run_id), generation, worker_id, settings)

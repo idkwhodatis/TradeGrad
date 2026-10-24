@@ -285,7 +285,9 @@
               "003_m3",
               "004_m5",
               "005_settings",
-              "006_provider_connections"
+              "006_provider_connections",
+              "007_research_specs",
+              "008_comparisons"
             ],
             "title": "Schema Revision",
             "type": "string"
@@ -1375,6 +1377,308 @@
         "title": "CheckpointPublic",
         "type": "object"
       },
+      "ComparisonArtifactRef": {
+        "additionalProperties": false,
+        "properties": {
+          "event_pair_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16384,
+            "title": "Event Pair Ids",
+            "type": "array"
+          },
+          "first_row": {
+            "minimum": 0.0,
+            "title": "First Row",
+            "type": "integer"
+          },
+          "last_row": {
+            "minimum": 0.0,
+            "title": "Last Row",
+            "type": "integer"
+          },
+          "media_type": {
+            "const": "application/vnd.apache.parquet",
+            "default": "application/vnd.apache.parquet",
+            "title": "Media Type",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9_.-]+$",
+            "title": "Name",
+            "type": "string"
+          },
+          "rows": {
+            "minimum": 0.0,
+            "title": "Rows",
+            "type": "integer"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size_bytes": {
+            "minimum": 0.0,
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "sha256",
+          "size_bytes",
+          "rows",
+          "section",
+          "first_row",
+          "last_row"
+        ],
+        "title": "ComparisonArtifactRef",
+        "type": "object"
+      },
+      "ComparisonAssociation": {
+        "additionalProperties": false,
+        "properties": {
+          "child_order_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Child Order Ids",
+            "type": "array"
+          },
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "event_pair_id": {
+            "title": "Event Pair Id",
+            "type": "string"
+          },
+          "fill_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fill Ids",
+            "type": "array"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "string"
+          },
+          "link_ordinal": {
+            "minimum": 0.0,
+            "title": "Link Ordinal",
+            "type": "integer"
+          },
+          "logical_order_id": {
+            "title": "Logical Order Id",
+            "type": "string"
+          },
+          "side": {
+            "enum": [
+              "left",
+              "right"
+            ],
+            "title": "Side",
+            "type": "string"
+          },
+          "source_event_paired": {
+            "title": "Source Event Paired",
+            "type": "boolean"
+          },
+          "stage_id": {
+            "title": "Stage Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "side",
+          "event_pair_id",
+          "decision_id",
+          "stage_id",
+          "logical_order_id",
+          "instrument_id",
+          "link_ordinal",
+          "source_event_paired",
+          "child_order_ids",
+          "fill_ids"
+        ],
+        "title": "ComparisonAssociation",
+        "type": "object"
+      },
+      "ComparisonCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "left": {
+            "$ref": "#/components/schemas/ComparisonSideCreate"
+          },
+          "options": {
+            "$ref": "#/components/schemas/ComparisonOptions"
+          },
+          "right": {
+            "$ref": "#/components/schemas/ComparisonSideCreate"
+          }
+        },
+        "required": [
+          "left",
+          "right"
+        ],
+        "title": "ComparisonCreate",
+        "type": "object"
+      },
+      "ComparisonDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "active_attempt_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Attempt Id"
+          },
+          "artifact_ready": {
+            "title": "Artifact Ready",
+            "type": "boolean"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/AttemptPublic"
+            },
+            "title": "Attempts",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "engine_input_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Engine Input Sha256",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "execution_mode": {
+            "const": "comparison",
+            "default": "comparison",
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "generation": {
+            "title": "Generation",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Input Sha256",
+            "type": "string"
+          },
+          "manifest_artifact_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Artifact Id"
+          },
+          "manifest_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Sha256"
+          },
+          "next_event_seq": {
+            "title": "Next Event Seq",
+            "type": "integer"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ComparisonCreate"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "preparing",
+              "running",
+              "finalizing",
+              "pause_requested",
+              "paused",
+              "cancel_requested",
+              "cancelled",
+              "failed",
+              "interrupted",
+              "succeeded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "status",
+          "generation",
+          "input_sha256",
+          "engine_input_sha256",
+          "request",
+          "active_attempt_id",
+          "next_event_seq",
+          "artifact_ready",
+          "manifest_artifact_id",
+          "manifest_sha256",
+          "error_code",
+          "created_at",
+          "updated_at",
+          "attempts"
+        ],
+        "title": "ComparisonDetail",
+        "type": "object"
+      },
       "ComparisonDifference": {
         "additionalProperties": false,
         "properties": {
@@ -1400,6 +1704,1225 @@
           "values"
         ],
         "title": "ComparisonDifference",
+        "type": "object"
+      },
+      "ComparisonLimits": {
+        "additionalProperties": false,
+        "properties": {
+          "block_bytes": {
+            "default": 8388608,
+            "maximum": 8388608.0,
+            "minimum": 1024.0,
+            "title": "Block Bytes",
+            "type": "integer"
+          },
+          "block_rows": {
+            "default": 8192,
+            "maximum": 16384.0,
+            "minimum": 1.0,
+            "title": "Block Rows",
+            "type": "integer"
+          },
+          "duckdb_memory_bytes": {
+            "const": 268435456,
+            "default": 268435456,
+            "title": "Duckdb Memory Bytes",
+            "type": "integer"
+          },
+          "duckdb_threads": {
+            "const": 1,
+            "default": 1,
+            "title": "Duckdb Threads",
+            "type": "integer"
+          },
+          "max_bundle_bytes": {
+            "default": 8388608,
+            "maximum": 8388608.0,
+            "minimum": 1024.0,
+            "title": "Max Bundle Bytes",
+            "type": "integer"
+          },
+          "max_event_bytes": {
+            "default": 67108864,
+            "maximum": 67108864.0,
+            "minimum": 1024.0,
+            "title": "Max Event Bytes",
+            "type": "integer"
+          },
+          "max_event_index_bytes": {
+            "default": 67108864,
+            "maximum": 67108864.0,
+            "minimum": 1024.0,
+            "title": "Max Event Index Bytes",
+            "type": "integer"
+          },
+          "max_event_rows": {
+            "default": 100000,
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Max Event Rows",
+            "type": "integer"
+          },
+          "max_events": {
+            "default": 100000,
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Max Events",
+            "type": "integer"
+          },
+          "max_files": {
+            "default": 4096,
+            "maximum": 4096.0,
+            "minimum": 1.0,
+            "title": "Max Files",
+            "type": "integer"
+          },
+          "max_graph_bytes": {
+            "default": 67108864,
+            "maximum": 67108864.0,
+            "minimum": 1024.0,
+            "title": "Max Graph Bytes",
+            "type": "integer"
+          },
+          "max_graph_edges": {
+            "default": 100000,
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Max Graph Edges",
+            "type": "integer"
+          },
+          "max_input_bytes": {
+            "default": 4294967296,
+            "maximum": 4294967296.0,
+            "minimum": 1024.0,
+            "title": "Max Input Bytes",
+            "type": "integer"
+          },
+          "max_input_rows": {
+            "default": 40000000,
+            "maximum": 40000000.0,
+            "minimum": 1.0,
+            "title": "Max Input Rows",
+            "type": "integer"
+          },
+          "max_manifest_bytes": {
+            "default": 4194304,
+            "maximum": 4194304.0,
+            "minimum": 1024.0,
+            "title": "Max Manifest Bytes",
+            "type": "integer"
+          },
+          "max_output_bytes": {
+            "default": 2147483648,
+            "maximum": 2147483648.0,
+            "minimum": 1024.0,
+            "title": "Max Output Bytes",
+            "type": "integer"
+          },
+          "max_output_rows": {
+            "default": 40000000,
+            "maximum": 40000000.0,
+            "minimum": 1.0,
+            "title": "Max Output Rows",
+            "type": "integer"
+          },
+          "max_record_bytes": {
+            "default": 33554432,
+            "maximum": 33554432.0,
+            "minimum": 1024.0,
+            "title": "Max Record Bytes",
+            "type": "integer"
+          },
+          "semantic_matching_bytes": {
+            "const": 67108864,
+            "default": 67108864,
+            "title": "Semantic Matching Bytes",
+            "type": "integer"
+          },
+          "semantic_matching_nodes": {
+            "const": 65536,
+            "default": 65536,
+            "title": "Semantic Matching Nodes",
+            "type": "integer"
+          },
+          "spill_bytes": {
+            "const": 0,
+            "default": 0,
+            "title": "Spill Bytes",
+            "type": "integer"
+          },
+          "tolerant_multiset_max_size": {
+            "const": 64,
+            "default": 64,
+            "title": "Tolerant Multiset Max Size",
+            "type": "integer"
+          }
+        },
+        "title": "ComparisonLimits",
+        "type": "object"
+      },
+      "ComparisonManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm_version": {
+            "const": "tradegrad.observed-comparison.v1",
+            "default": "tradegrad.observed-comparison.v1",
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "artifacts": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonArtifactRef"
+            },
+            "title": "Artifacts",
+            "type": "array"
+          },
+          "causal_claim": {
+            "const": false,
+            "default": false,
+            "title": "Causal Claim",
+            "type": "boolean"
+          },
+          "code_changed": {
+            "title": "Code Changed",
+            "type": "boolean"
+          },
+          "configuration_differences": {
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationDifference"
+            },
+            "title": "Configuration Differences",
+            "type": "array"
+          },
+          "diagnostic_parity_certified": {
+            "const": false,
+            "default": false,
+            "title": "Diagnostic Parity Certified",
+            "type": "boolean"
+          },
+          "field_tolerances": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            "title": "Field Tolerances",
+            "type": "object"
+          },
+          "input_hash": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Input Hash",
+            "type": "string"
+          },
+          "left": {
+            "$ref": "#/components/schemas/ComparisonSidePins"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/ComparisonLimits"
+          },
+          "local_counterfactual": {
+            "const": false,
+            "default": false,
+            "title": "Local Counterfactual",
+            "type": "boolean"
+          },
+          "mechanism_changes": {
+            "items": {
+              "$ref": "#/components/schemas/MechanismChange"
+            },
+            "title": "Mechanism Changes",
+            "type": "array"
+          },
+          "namespace_reason": {
+            "title": "Namespace Reason",
+            "type": "string"
+          },
+          "namespace_status": {
+            "enum": [
+              "common",
+              "different",
+              "unknown"
+            ],
+            "title": "Namespace Status",
+            "type": "string"
+          },
+          "observed_behavior": {
+            "enum": [
+              "changed",
+              "unchanged_observed",
+              "insufficient_coverage"
+            ],
+            "title": "Observed Behavior",
+            "type": "string"
+          },
+          "observed_equal_sections": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Observed Equal Sections",
+            "type": "array"
+          },
+          "pairing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Pairing Fields",
+            "type": "array"
+          },
+          "publication": {
+            "$ref": "#/components/schemas/ComparisonPublication"
+          },
+          "right": {
+            "$ref": "#/components/schemas/ComparisonSidePins"
+          },
+          "schema_version": {
+            "const": "tradegrad.comparison.v1",
+            "default": "tradegrad.comparison.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "sections": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ComparisonSectionSummary"
+            },
+            "title": "Sections",
+            "type": "object"
+          },
+          "tolerance_version": {
+            "const": "tradegrad.comparison-tolerances.v1",
+            "default": "tradegrad.comparison-tolerances.v1",
+            "title": "Tolerance Version",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "publication",
+          "input_hash",
+          "left",
+          "right",
+          "field_tolerances",
+          "limits",
+          "namespace_status",
+          "namespace_reason",
+          "pairing_fields",
+          "code_changed",
+          "configuration_differences",
+          "mechanism_changes",
+          "sections",
+          "observed_behavior",
+          "observed_equal_sections",
+          "artifacts",
+          "warnings"
+        ],
+        "title": "ComparisonManifest",
+        "type": "object"
+      },
+      "ComparisonOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "max_runtime_seconds": {
+            "default": 300,
+            "maximum": 3600.0,
+            "minimum": 1.0,
+            "title": "Max Runtime Seconds",
+            "type": "integer"
+          }
+        },
+        "title": "ComparisonOptions",
+        "type": "object"
+      },
+      "ComparisonPublic": {
+        "additionalProperties": false,
+        "properties": {
+          "active_attempt_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Attempt Id"
+          },
+          "artifact_ready": {
+            "title": "Artifact Ready",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "engine_input_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Engine Input Sha256",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "execution_mode": {
+            "const": "comparison",
+            "default": "comparison",
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "generation": {
+            "title": "Generation",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Input Sha256",
+            "type": "string"
+          },
+          "manifest_artifact_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Artifact Id"
+          },
+          "manifest_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Sha256"
+          },
+          "next_event_seq": {
+            "title": "Next Event Seq",
+            "type": "integer"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ComparisonCreate"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "preparing",
+              "running",
+              "finalizing",
+              "pause_requested",
+              "paused",
+              "cancel_requested",
+              "cancelled",
+              "failed",
+              "interrupted",
+              "succeeded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "status",
+          "generation",
+          "input_sha256",
+          "engine_input_sha256",
+          "request",
+          "active_attempt_id",
+          "next_event_seq",
+          "artifact_ready",
+          "manifest_artifact_id",
+          "manifest_sha256",
+          "error_code",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ComparisonPublic",
+        "type": "object"
+      },
+      "ComparisonPublication": {
+        "additionalProperties": false,
+        "properties": {
+          "comparison_id": {
+            "format": "uuid",
+            "title": "Comparison Id",
+            "type": "string"
+          },
+          "execution_attempt_id": {
+            "format": "uuid",
+            "title": "Execution Attempt Id",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "comparison_id",
+          "run_id",
+          "execution_attempt_id"
+        ],
+        "title": "ComparisonPublication",
+        "type": "object"
+      },
+      "ComparisonRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "ambiguous": {
+            "default": false,
+            "title": "Ambiguous",
+            "type": "boolean"
+          },
+          "associations": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonAssociation"
+            },
+            "title": "Associations",
+            "type": "array"
+          },
+          "event_pair_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Pair Id"
+          },
+          "instrument_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrument Id"
+          },
+          "left": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left"
+          },
+          "left_state": {
+            "enum": [
+              "observed",
+              "observed_absence",
+              "incomplete_coverage",
+              "not_collected",
+              "unpaired"
+            ],
+            "title": "Left State",
+            "type": "string"
+          },
+          "match_basis": {
+            "enum": [
+              "source_event",
+              "semantic_multiset",
+              "observed_timestamp",
+              "window_metric",
+              "none"
+            ],
+            "title": "Match Basis",
+            "type": "string"
+          },
+          "missing_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Reason"
+          },
+          "right": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Right"
+          },
+          "right_state": {
+            "enum": [
+              "observed",
+              "observed_absence",
+              "incomplete_coverage",
+              "not_collected",
+              "unpaired"
+            ],
+            "title": "Right State",
+            "type": "string"
+          },
+          "row_id": {
+            "title": "Row Id",
+            "type": "string"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          },
+          "session_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Date"
+          },
+          "stage_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage Id"
+          },
+          "status": {
+            "enum": [
+              "equal",
+              "changed",
+              "left_only",
+              "right_only",
+              "ambiguous",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "row_id",
+          "section",
+          "status",
+          "left_state",
+          "right_state",
+          "left",
+          "right",
+          "match_basis"
+        ],
+        "title": "ComparisonRecord",
+        "type": "object"
+      },
+      "ComparisonResult": {
+        "additionalProperties": false,
+        "properties": {
+          "comparison_id": {
+            "format": "uuid",
+            "title": "Comparison Id",
+            "type": "string"
+          },
+          "input_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Input Sha256",
+            "type": "string"
+          },
+          "left_source": {
+            "$ref": "#/components/schemas/ComparisonSource"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/ComparisonManifest"
+          },
+          "manifest_artifact_id": {
+            "format": "uuid",
+            "title": "Manifest Artifact Id",
+            "type": "string"
+          },
+          "manifest_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Manifest Sha256",
+            "type": "string"
+          },
+          "right_source": {
+            "$ref": "#/components/schemas/ComparisonSource"
+          }
+        },
+        "required": [
+          "comparison_id",
+          "input_sha256",
+          "manifest_artifact_id",
+          "manifest_sha256",
+          "manifest",
+          "left_source",
+          "right_source"
+        ],
+        "title": "ComparisonResult",
+        "type": "object"
+      },
+      "ComparisonSectionPage": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "$ref": "#/components/schemas/ComparisonSectionSummary"
+          },
+          "comparison_id": {
+            "format": "uuid",
+            "title": "Comparison Id",
+            "type": "string"
+          },
+          "input_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Input Sha256",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonRecord"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "manifest_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Manifest Sha256",
+            "type": "string"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "section",
+          "availability",
+          "items",
+          "total",
+          "offset",
+          "limit",
+          "comparison_id",
+          "input_sha256",
+          "manifest_sha256"
+        ],
+        "title": "ComparisonSectionPage",
+        "type": "object"
+      },
+      "ComparisonSectionSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "ambiguous": {
+            "default": 0,
+            "title": "Ambiguous",
+            "type": "integer"
+          },
+          "changed": {
+            "default": 0,
+            "title": "Changed",
+            "type": "integer"
+          },
+          "definition": {
+            "title": "Definition",
+            "type": "string"
+          },
+          "equal": {
+            "default": 0,
+            "title": "Equal",
+            "type": "integer"
+          },
+          "equality_scope": {
+            "const": "named_observations_only",
+            "default": "named_observations_only",
+            "title": "Equality Scope",
+            "type": "string"
+          },
+          "left_availability": {
+            "enum": [
+              "available",
+              "partial",
+              "not_collected",
+              "unsupported"
+            ],
+            "title": "Left Availability",
+            "type": "string"
+          },
+          "left_only": {
+            "default": 0,
+            "title": "Left Only",
+            "type": "integer"
+          },
+          "left_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left Reason"
+          },
+          "left_scope": {
+            "additionalProperties": true,
+            "title": "Left Scope",
+            "type": "object"
+          },
+          "observed_equality": {
+            "default": "unknown",
+            "enum": [
+              "equal",
+              "different",
+              "unknown"
+            ],
+            "title": "Observed Equality",
+            "type": "string"
+          },
+          "right_availability": {
+            "enum": [
+              "available",
+              "partial",
+              "not_collected",
+              "unsupported"
+            ],
+            "title": "Right Availability",
+            "type": "string"
+          },
+          "right_only": {
+            "default": 0,
+            "title": "Right Only",
+            "type": "integer"
+          },
+          "right_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Right Reason"
+          },
+          "right_scope": {
+            "additionalProperties": true,
+            "title": "Right Scope",
+            "type": "object"
+          },
+          "rows": {
+            "default": 0,
+            "title": "Rows",
+            "type": "integer"
+          },
+          "unavailable": {
+            "default": 0,
+            "title": "Unavailable",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "left_availability",
+          "right_availability",
+          "definition"
+        ],
+        "title": "ComparisonSectionSummary",
+        "type": "object"
+      },
+      "ComparisonSideCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "code_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Code Sha256",
+            "type": "string"
+          },
+          "evaluation_id": {
+            "format": "uuid",
+            "title": "Evaluation Id",
+            "type": "string"
+          },
+          "execution_attempt_id": {
+            "format": "uuid",
+            "title": "Execution Attempt Id",
+            "type": "string"
+          },
+          "result_manifest_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Result Manifest Sha256",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "strategy_version",
+              "candidate"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "spec_revision": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Revision"
+          },
+          "spec_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Sha256"
+          },
+          "trace_manifest_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Manifest Sha256"
+          }
+        },
+        "required": [
+          "evaluation_id",
+          "execution_attempt_id",
+          "result_manifest_sha256",
+          "trace_manifest_sha256",
+          "source_kind",
+          "source_id",
+          "code_sha256"
+        ],
+        "title": "ComparisonSideCreate",
+        "type": "object"
+      },
+      "ComparisonSidePins": {
+        "additionalProperties": false,
+        "properties": {
+          "binding": {
+            "$ref": "#/components/schemas/EvaluationBinding"
+          },
+          "capture": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CaptureConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "common_config_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Common Config Sha256",
+            "type": "string"
+          },
+          "economic_bundle_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Economic Bundle Sha256",
+            "type": "string"
+          },
+          "namespace": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventNamespace"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "strategy_version",
+              "candidate"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "spec_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Revision"
+          },
+          "spec_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Sha256"
+          },
+          "trace_coverage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Coverage"
+          },
+          "trace_manifest_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Manifest Sha256"
+          },
+          "trace_missing_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Trace Missing Reasons",
+            "type": "array"
+          },
+          "trace_state": {
+            "enum": [
+              "registered",
+              "registered_off",
+              "historical_absence"
+            ],
+            "title": "Trace State",
+            "type": "string"
+          },
+          "window": {
+            "$ref": "#/components/schemas/DateRange"
+          }
+        },
+        "required": [
+          "binding",
+          "source_kind",
+          "source_id",
+          "window",
+          "spec_revision",
+          "spec_sha256",
+          "trace_manifest_sha256",
+          "trace_state",
+          "trace_coverage",
+          "capture",
+          "trace_missing_reasons",
+          "common_config_sha256",
+          "economic_bundle_sha256",
+          "namespace"
+        ],
+        "title": "ComparisonSidePins",
+        "type": "object"
+      },
+      "ComparisonSource": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "code_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Code Sha256",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "strategy_version",
+              "candidate"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_strategy_version_id": {
+            "format": "uuid",
+            "title": "Source Strategy Version Id",
+            "type": "string"
+          },
+          "spec": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StrategySpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "spec_missing_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Missing Reason"
+          },
+          "spec_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Sha256"
+          }
+        },
+        "required": [
+          "source_strategy_version_id",
+          "source_kind",
+          "source_id",
+          "code_sha256",
+          "code",
+          "spec",
+          "spec_sha256",
+          "spec_missing_reason"
+        ],
+        "title": "ComparisonSource",
+        "type": "object"
+      },
+      "ConfigurationDifference": {
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "left": {
+            "title": "Left"
+          },
+          "left_present": {
+            "title": "Left Present",
+            "type": "boolean"
+          },
+          "right": {
+            "title": "Right"
+          },
+          "right_present": {
+            "title": "Right Present",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "equal",
+              "different",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "left_present",
+          "right_present",
+          "status"
+        ],
+        "title": "ConfigurationDifference",
         "type": "object"
       },
       "ConnectionSnapshot": {
@@ -2713,6 +4236,81 @@
           "end"
         ],
         "title": "EvaluationWindow",
+        "type": "object"
+      },
+      "EventNamespace": {
+        "additionalProperties": false,
+        "description": "Backend-derived evidence, not a caller-supplied 'verified' boolean.",
+        "properties": {
+          "data_event_namespace": {
+            "const": "frozen_source_event.v1",
+            "default": "frozen_source_event.v1",
+            "title": "Data Event Namespace",
+            "type": "string"
+          },
+          "dataset_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Dataset Sha256",
+            "type": "string"
+          },
+          "dataset_version_id": {
+            "format": "uuid",
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "frozen_universe_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frozen Universe Sha256"
+          },
+          "instrument_namespace": {
+            "enum": [
+              "native_symbol",
+              "portable_listing_id"
+            ],
+            "title": "Instrument Namespace",
+            "type": "string"
+          },
+          "universe_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Universe Sha256"
+          },
+          "universe_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Universe Version Id"
+          }
+        },
+        "required": [
+          "dataset_version_id",
+          "dataset_sha256",
+          "universe_version_id",
+          "universe_sha256",
+          "instrument_namespace"
+        ],
+        "title": "EventNamespace",
         "type": "object"
       },
       "EventPublic": {
@@ -5616,6 +7214,121 @@
         "title": "MarketConfig",
         "type": "object"
       },
+      "MechanismChange": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": [
+              "input",
+              "filter",
+              "scoring",
+              "portfolio",
+              "execution"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "left": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left"
+          },
+          "left_source_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mapping": {
+            "enum": [
+              "controlled",
+              "human_confirmed",
+              "inferred",
+              "unmapped"
+            ],
+            "title": "Mapping",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "right": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Right"
+          },
+          "right_source_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          },
+          "status": {
+            "enum": [
+              "equal",
+              "changed",
+              "left_only",
+              "right_only",
+              "unmapped"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "rule_id",
+          "status",
+          "mapping",
+          "left_source_ref",
+          "right_source_ref",
+          "left",
+          "right"
+        ],
+        "title": "MechanismChange",
+        "type": "object"
+      },
       "ModelCallDetail": {
         "properties": {
           "adopted": {
@@ -6726,6 +8439,27 @@
           "count"
         ],
         "title": "Page[CheckpointPublic]",
+        "type": "object"
+      },
+      "Page_ComparisonPublic_": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonPublic"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data",
+          "count"
+        ],
+        "title": "Page[ComparisonPublic]",
         "type": "object"
       },
       "Page_DataUsageExposurePublic_": {
@@ -18129,6 +19863,771 @@
           }
         ],
         "summary": "Revise Candidate Spec"
+      }
+    },
+    "/api/v1/comparisons": {
+      "get": {
+        "operationId": "list_comparisons",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ComparisonPublic_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Listing",
+        "tags": [
+          "comparisons"
+        ]
+      },
+      "post": {
+        "operationId": "create_comparison",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComparisonCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create",
+        "tags": [
+          "comparisons"
+        ]
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}": {
+      "get": {
+        "operationId": "read_comparison",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "comparison_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Comparison Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Detail",
+        "tags": [
+          "comparisons"
+        ]
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/cancel": {
+      "post": {
+        "operationId": "cancel_comparison",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "comparison_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Comparison Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Cancel",
+        "tags": [
+          "comparisons"
+        ]
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/pause": {
+      "post": {
+        "operationId": "pause_comparison_unsupported",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "comparison_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Comparison Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Pause",
+        "tags": [
+          "comparisons"
+        ]
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/result": {
+      "get": {
+        "operationId": "read_comparison_result",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "comparison_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Comparison Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "manifest_sha256",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Manifest Sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Result",
+        "tags": [
+          "comparisons"
+        ]
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/retry": {
+      "post": {
+        "operationId": "retry_comparison",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "comparison_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Comparison Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Retry",
+        "tags": [
+          "comparisons"
+        ]
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/sections/{section}": {
+      "get": {
+        "operationId": "read_comparison_section",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "comparison_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Comparison Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "enum": [
+                "events",
+                "candidates",
+                "features",
+                "predicates",
+                "targets",
+                "orders",
+                "fills",
+                "positions",
+                "account",
+                "turnover",
+                "holding_duration"
+              ],
+              "title": "Section",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "manifest_sha256",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Manifest Sha256",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "event_pair_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Event Pair Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonSectionPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Section",
+        "tags": [
+          "comparisons"
+        ]
       }
     },
     "/api/v1/data-usage-exposures": {

@@ -323,17 +323,21 @@ export function selectedRecord(
   if (selection.record_kind === "order") {
     const rows = (detail.stages ?? [])
       .filter((stage) => stage.stage_id === selection.stage_id)
-      .flatMap((stage) => stage.order_links)
+      .flatMap((stage) =>
+        stage.order_links.map((row, ordinal) => ({ row, ordinal })),
+      )
       .filter(
-        (row) =>
+        ({ row, ordinal }) =>
           row.logical_order_id === selection.record_id &&
-          row.instrument_id === selection.instrument_id,
+          row.instrument_id === selection.instrument_id &&
+          (selection.record_ordinal === undefined ||
+            ordinal === selection.record_ordinal),
       );
     if (rows.length > 1) return ambiguous();
     if (rows.length === 1)
       return {
-        label: `Logical order ${rows[0].logical_order_id}`,
-        value: rows[0],
+        label: `Logical order ${rows[0].row.logical_order_id}${selection.record_ordinal !== undefined ? ` · saved ordinal ${selection.record_ordinal}` : ""}`,
+        value: rows[0].row,
         source_ref: null,
         missing_reason:
           "This saved order association has no source anchor. No nearby rule was guessed.",

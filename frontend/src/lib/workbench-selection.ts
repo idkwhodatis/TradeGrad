@@ -9,7 +9,48 @@ export const workbenchTabs = [
   "notes",
 ] as const;
 export type WorkbenchTab = (typeof workbenchTabs)[number];
-export type WorkbenchSelection = {
+export const comparisonSides = ["left", "right"] as const;
+export type ComparisonSide = (typeof comparisonSides)[number];
+export const comparisonSections = [
+  "events",
+  "candidates",
+  "features",
+  "predicates",
+  "targets",
+  "orders",
+  "fills",
+  "positions",
+  "account",
+  "turnover",
+  "holding_duration",
+] as const;
+export type ComparisonSection = (typeof comparisonSections)[number];
+export type ComparisonSideSelection = {
+  source_kind?: "candidate" | "strategy_version";
+  source_id?: string;
+  strategy_version_id?: string;
+  code_sha256?: string;
+  spec_revision?: number;
+  spec_sha256?: string;
+  evaluation_id?: string;
+  execution_attempt_id?: string;
+  result_manifest_sha256?: string;
+  trace_manifest_sha256?: string;
+  trace_status?: "registered" | "historical_absence";
+};
+type ComparisonRoutePins = {
+  [
+    Side in ComparisonSide as `${Side}_${keyof ComparisonSideSelection}`
+  ]?: never;
+};
+type ComparisonPins = {
+  [
+    Key in keyof ComparisonRoutePins
+  ]?: Key extends `${ComparisonSide}_${infer Field extends keyof ComparisonSideSelection}`
+    ? ComparisonSideSelection[Field]
+    : never;
+};
+export type WorkbenchSelection = ComparisonPins & {
   tab?: WorkbenchTab;
   candidate_id?: string;
   code_sha256?: string;
@@ -42,9 +83,13 @@ export type WorkbenchSelection = {
   rule_id?: string;
   spec_revision?: number;
   spec_sha256?: string;
-  left_evaluation_id?: string;
-  right_evaluation_id?: string;
   comparison_id?: string;
+  comparison_manifest_sha256?: string;
+  comparison_section?: ComparisonSection;
+  comparison_offset?: number;
+  comparison_event_offset?: number;
+  comparison_instrument_id?: string;
+  mechanism_index?: number;
   event_pair_id?: string;
 };
 const textKeys = [
@@ -63,9 +108,10 @@ const textKeys = [
   "stage_id",
   "rule_id",
   "spec_sha256",
-  "left_evaluation_id",
-  "right_evaluation_id",
+
   "comparison_id",
+  "comparison_manifest_sha256",
+  "comparison_instrument_id",
   "event_pair_id",
 ] as const;
 /** Reject malformed pins rather than discarding them and loading newer evidence. */
@@ -77,6 +123,68 @@ export function workbenchSearch(
     ...search,
     evaluation_id: search.evaluation_id ?? search.eval_id,
   };
+  for (const side of comparisonSides) {
+    const pins: ComparisonSideSelection = {};
+    for (const field of [
+      "source_id",
+      "strategy_version_id",
+      "code_sha256",
+      "spec_sha256",
+      "evaluation_id",
+      "execution_attempt_id",
+      "result_manifest_sha256",
+      "trace_manifest_sha256",
+    ] as const) {
+      const value = search[`${side}_${field}`];
+      if (value === undefined) continue;
+      if (
+        typeof value !== "string" ||
+        !value ||
+        value.length > 500 ||
+        (field.endsWith("sha256") && !/^[a-f0-9]{64}$/.test(value))
+      )
+        throw new Error(
+          `Invalid ${side} comparison pin: ${field}. No newer evidence was substituted.`,
+        );
+      pins[field] = value;
+    }
+    for (const [field, choices] of [
+      ["source_kind", ["candidate", "strategy_version"]],
+      ["trace_status", ["registered", "historical_absence"]],
+    ] as const) {
+      const value = search[`${side}_${field}`];
+      if (value === undefined) continue;
+      if (
+        typeof value !== "string" ||
+        !(choices as readonly string[]).includes(value)
+      )
+        throw new Error(`Invalid ${side} comparison ${field}.`);
+      Object.assign(pins, { [field]: value });
+    }
+    const revision = search[`${side}_spec_revision`];
+    if (revision !== undefined) {
+      const value =
+        typeof revision === "number" ||
+        (typeof revision === "string" && revision.trim())
+          ? Number(revision)
+          : NaN;
+      if (!Number.isSafeInteger(value) || value < 1)
+        throw new Error(`Invalid ${side} comparison description revision.`);
+      pins.spec_revision = value;
+    }
+    Object.assign(result, comparisonSidePatch(side, pins));
+  }
+  if (search.comparison_section !== undefined) {
+    if (
+      !comparisonSections.includes(
+        search.comparison_section as ComparisonSection,
+      )
+    )
+      throw new Error(
+        "Invalid comparison section. No other evidence was substituted.",
+      );
+    result.comparison_section = search.comparison_section as ComparisonSection;
+  }
   for (const key of textKeys) {
     const value = input[key];
     if (value === undefined) continue;
@@ -129,6 +237,9 @@ export function workbenchSearch(
   }
   for (const key of [
     "record_ordinal",
+    "mechanism_index",
+    "comparison_offset",
+    "comparison_event_offset",
     "event_offset",
     "instrument_offset",
     "candidate_offset",
@@ -148,7 +259,9 @@ export function workbenchSearch(
         : NaN;
     if (
       !Number.isFinite(value) ||
-      ((key.includes("offset") || key === "record_ordinal") &&
+      ((key.includes("offset") ||
+        key === "record_ordinal" ||
+        key === "mechanism_index") &&
         (!Number.isSafeInteger(value) ||
           value < 0 ||
           value >
@@ -205,7 +318,9 @@ export function selectionProblem(value: WorkbenchSelection): string | null {
   if (
     value.record_ordinal !== undefined &&
     (!value.stage_id ||
-      !["candidate", "feature", "predicate"].includes(value.record_kind ?? ""))
+      !["candidate", "feature", "predicate", "order"].includes(
+        value.record_kind ?? "",
+      ))
   )
     return "An exact observation ordinal requires its recorded stage and observation kind.";
   if (Boolean(value.record_kind) !== Boolean(value.record_id))
@@ -288,7 +403,8 @@ export function changeSelection(
     Object.hasOwn(patch, "record_kind") &&
     patch.record_kind !== "feature" &&
     patch.record_kind !== "predicate" &&
-    patch.record_kind !== "candidate"
+    patch.record_kind !== "candidate" &&
+    !(patch.record_kind === "order" && Object.hasOwn(patch, "record_ordinal"))
   ) {
     next.record_ordinal = undefined;
   }
@@ -321,4 +437,52 @@ export function clearedReplaySelection(): Partial<WorkbenchSelection> {
     stage_id: undefined,
     rule_id: undefined,
   };
+}
+
+/** A side is always explicit; there is no fallback to the currently open source. */
+export function comparisonSideSelection(
+  value: WorkbenchSelection,
+  side: ComparisonSide,
+): ComparisonSideSelection {
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => key.startsWith(`${side}_`))
+      .map(([key, item]) => [key.slice(side.length + 1), item]),
+  ) as ComparisonSideSelection;
+}
+export function comparisonSidePatch(
+  side: ComparisonSide,
+  pins: ComparisonSideSelection,
+): Partial<WorkbenchSelection> {
+  return Object.fromEntries(
+    Object.entries(pins).map(([key, item]) => [`${side}_${key}`, item]),
+  );
+}
+export function clearComparisonResult(): Partial<WorkbenchSelection> {
+  return {
+    comparison_id: undefined,
+    comparison_manifest_sha256: undefined,
+    event_pair_id: undefined,
+    comparison_offset: undefined,
+    comparison_event_offset: undefined,
+    comparison_instrument_id: undefined,
+    mechanism_index: undefined,
+  };
+}
+export function clearComparisonSide(
+  side: ComparisonSide,
+): Partial<WorkbenchSelection> {
+  return comparisonSidePatch(side, {
+    source_kind: undefined,
+    source_id: undefined,
+    strategy_version_id: undefined,
+    code_sha256: undefined,
+    spec_revision: undefined,
+    spec_sha256: undefined,
+    evaluation_id: undefined,
+    execution_attempt_id: undefined,
+    result_manifest_sha256: undefined,
+    trace_manifest_sha256: undefined,
+    trace_status: undefined,
+  });
 }

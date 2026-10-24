@@ -223,12 +223,14 @@ export function LineageSidebar({
   busy,
   onPage,
   onOpen,
+  onCompareParent,
 }: {
   lineage: WorkbenchLineage;
   offset: number;
   busy: boolean;
   onPage: (offset: number) => void;
   onOpen: OpenSource;
+  onCompareParent?: () => void;
 }) {
   const focus = lineage.focus;
   return (
@@ -248,6 +250,11 @@ export function LineageSidebar({
           <section aria-label="Code parent">
             <h3 className="text-sm font-semibold">Code parent</h3>
             <NodeSummary node={lineage.parent} onOpen={onOpen} />
+            {onCompareParent && (
+              <Button variant="outline" size="sm" onClick={onCompareParent}>
+                Compare with code parent
+              </Button>
+            )}
           </section>
         )}
         <NodeSummary node={focus} selected onOpen={onOpen} />

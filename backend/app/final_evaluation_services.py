@@ -342,6 +342,9 @@ def record_final_admission(session, run, selection, split, dataset):
 def submit_final_evaluation(session, owner_id, body, idempotency_key, settings):
     _idempotency_key(idempotency_key)
     advisory_lock(session, f"submit:{owner_id}")
+    from backend.app.comparison_services import reject_comparison_key
+
+    reject_comparison_key(session, owner_id, idempotency_key)
     previous = session.scalar(
         select(ResearchRun).where(
             ResearchRun.owner_id == owner_id,

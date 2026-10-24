@@ -200,6 +200,10 @@ def load_result_aware_artifact(session, artifact, owner_id, settings):
     run = session.get(ResearchRun, artifact.run_id)
     if run is None or run.owner_id != owner_id:
         raise DomainError("not_found", "Artifact not found", 404)
+    if run.config.get("schema_version") == "tradegrad.comparison.v1":
+        from backend.app.comparison_services import load_comparison_artifact
+
+        return load_comparison_artifact(session, artifact, owner_id, settings)
     match = re.fullmatch(r"evaluation-([0-9a-f-]{36})-(.+)", artifact.name)
     suffix = match[2] if match else artifact.name
     evaluation = session.get(Evaluation, UUID(match[1])) if match else None

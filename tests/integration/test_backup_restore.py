@@ -1,4 +1,4 @@
-"""Opt-in, real PostgreSQL cold-restore and genuine M3-to-M5-to-Settings upgrade drill.
+"""Opt-in, real PostgreSQL cold-restore and genuine M3-through-I4 upgrade drill.
 
 RUN_BACKUP_RESTORE_DRILL=1 is mandatory. TEST_DATABASE_URL is a maintenance
 connection on a dedicated test server; its role must have CREATEDB. Only two
@@ -28,7 +28,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import Engine, create_engine, inspect, select, text
 from sqlalchemy.engine import URL, make_url
-from sqlalchemy.exc import ArgumentError, SQLAlchemyError
+from sqlalchemy.exc import ArgumentError, DBAPIError, SQLAlchemyError
 from sqlalchemy.pool import NullPool
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -420,11 +420,13 @@ def _rows(connection, table: str, columns: list[str]) -> list[tuple]:
     # Names originate in PostgreSQL's inspector, not user-controlled identifiers.
     quote = connection.dialect.identifier_preparer.quote
     projection = ", ".join(quote(column) for column in columns)
-    # All migrated tables have an id, except worker_heartbeats/provider_budgets.
+    # Include every composite-key component: owner alone does not order multiple
+    # comparison submission aliases or bookmarks deterministically after restore.
     keys = (
-        ["connection_id", "revision"]
-        if table == "provider_connections"
-        else ["id" if "id" in columns else columns[0]]
+        inspect(connection)
+        .get_pk_constraint(table, schema="public")
+        .get("constrained_columns")
+        or columns
     )
     ordering = ", ".join(quote(key) for key in keys)
     return [
@@ -444,7 +446,10 @@ def _assert_historical_snapshot(engine: Engine, expected: dict) -> None:
 def _config_identity(engine: Engine) -> tuple[str, str, str]:
     with engine.connect() as connection:
         row = connection.execute(
-            text("SELECT config::text, request_sha256 FROM public.research_runs")
+            text(
+                "SELECT config::text, request_sha256 FROM public.research_runs "
+                "WHERE idempotency_key = 'historical-cold-restore'"
+            )
         ).one()
     config_text, request_hash = row
     assert json.loads(config_text)["schema_version"] == "tradegrad.run.v1"
@@ -727,6 +732,26 @@ def test_real_m3_backup_restore_then_current_upgrade_preserves_history(
         _assert_historical_snapshot(restored, old_rows)
         assert _config_identity(restored) == config_identity
         _assert_storage(restored_storage, expected_files)
+        # I4 adds comparison business history, not fabricated historical jobs or
+        # source evaluations. The genuine M3 rows and every stored byte survive.
+        _upgrade(restored, "008_comparisons")
+        with restored.connect() as connection:
+            assert (
+                connection.execute(
+                    text("SELECT version_num FROM alembic_version")
+                ).scalar_one()
+                == "008_comparisons"
+            )
+            for table in ("comparisons", "comparison_submissions"):
+                assert (
+                    connection.execute(
+                        text(f"SELECT count(*) FROM {table}")
+                    ).scalar_one()
+                    == 0
+                )
+        _assert_historical_snapshot(restored, old_rows)
+        assert _config_identity(restored) == config_identity
+        _assert_storage(restored_storage, expected_files)
         # Original database and immutable backup remain usable and unchanged.
         _assert_historical_snapshot(source, old_rows)
         assert (
@@ -759,6 +784,28 @@ def test_settings_seed_uses_explicit_json_bindings():
     }
     assert json.loads(parameters["disabled_profiles"]) == ["existing-disabled-profile"]
     assert "CAST(:defaults AS jsonb)" in str(statement)
+
+
+def test_supported_backup_revisions_are_receiptable():
+    """Pure receipt-schema coverage, not evidence of a PostgreSQL restore."""
+    from typing import get_args
+
+    from backend.app.operations_backup import REVISIONS
+    from backend.app.operations_schemas import BackupReceipt
+
+    assert set(get_args(BackupReceipt.model_fields["schema_revision"].annotation)) == (
+        REVISIONS
+    )
+    for revision in REVISIONS:
+        receipt = BackupReceipt(
+            operation="restore",
+            application_ref=APPLICATION_REF,
+            schema_revision=revision,
+            manifest_sha256="b" * 64,
+            backup_created_at=datetime(2024, 4, 1, tzinfo=UTC),
+            observed_at=datetime(2024, 4, 2, tzinfo=UTC),
+        )
+        assert receipt.schema_revision == revision
 
 
 def _seed_workbench_evidence(engine):
@@ -849,8 +896,208 @@ def _seed_workbench_evidence(engine):
         )
 
 
+def _seed_comparison_boundary(engine: Engine, storage: Path) -> dict[str, bytes]:
+    """Synthetic persistence boundary only, never an engine/admission success.
+
+    The historical fixture has no real Evaluation/ResultBundle. Explicitly
+    cancelled, stopped source registrations therefore anchor this cancelled
+    Comparison and its two aliases. The registered diagnostic is NOT a comparison
+    result/manifest, and the comparison's publication pointers remain NULL.
+    """
+    from sqlalchemy.orm import Session
+
+    from backend.app.comparison_schemas import ComparisonConfig, ComparisonCreate
+    from backend.app.comparison_services import comparison_config
+    from backend.app.core.atomic_storage import publish_bytes
+    from backend.app.models import (
+        Artifact,
+        Candidate,
+        Comparison,
+        ComparisonSubmission,
+        Evaluation,
+        ExecutionAttempt,
+        ResearchRun,
+        RunEvent,
+    )
+    from packages.research_trace.contracts import digest
+
+    now = datetime(2024, 4, 2, tzinfo=UTC)
+    diagnostic = _json(
+        {
+            "schema_version": "tradegrad.synthetic-backup-boundary.v1",
+            "synthetic": True,
+            "engine_executed": False,
+            "result_available": False,
+            "reason": "Cancelled persistence fixture, not an observed comparison result",
+        }
+    )
+    diagnostic_hash = _sha(diagnostic)
+    with Session(engine) as session:
+        source = session.scalar(
+            select(ResearchRun).where(
+                ResearchRun.idempotency_key == "historical-cold-restore"
+            )
+        )
+        evaluations = []
+        for key in ("seed", "restore-derived"):
+            candidate = session.scalar(
+                select(Candidate).where(
+                    Candidate.run_id == source.id, Candidate.candidate_key == key
+                )
+            )
+            window = source.config["windows"]["train"]
+            evaluation = Evaluation(
+                id=uuid4(),
+                run_id=source.id,
+                attempt_id=candidate.attempt_id,
+                generation=candidate.generation,
+                candidate_id=candidate.id,
+                candidate_key=candidate.candidate_key,
+                code_sha256=candidate.code_sha256,
+                split="train",
+                window=window,
+                window_sha256=digest(window),
+                image_digest=source.research_image_digest,
+                sandbox_id=f"synthetic-not-launched-{uuid4().hex}",
+                sandbox_stopped=True,
+                status="cancelled",
+                error="Synthetic backup boundary; no engine was launched",
+                created_at=now,
+                finished_at=now,
+            )
+            session.add(evaluation)
+            evaluations.append(evaluation)
+        session.flush()
+        body = ComparisonCreate.model_validate(
+            {
+                side: {
+                    "evaluation_id": str(evaluation.id),
+                    "execution_attempt_id": str(evaluation.attempt_id),
+                    # Intentionally synthetic pins, not an admitted ResultBundle.
+                    "result_manifest_sha256": diagnostic_hash,
+                    "trace_manifest_sha256": None,
+                    "source_kind": "candidate",
+                    "source_id": str(evaluation.candidate_id),
+                    "code_sha256": evaluation.code_sha256,
+                }
+                for side, evaluation in zip(("left", "right"), evaluations, strict=True)
+            }
+        )
+        snapshot = {
+            "schema_version": "tradegrad.synthetic-comparison-backup-boundary.v1",
+            "owner_id": str(source.owner_id),
+            "request": body.model_dump(mode="json"),
+            "request_sha256": body.sha256,
+            "engine_input_sha256": diagnostic_hash,
+            "engine_executed": False,
+            "result_available": False,
+        }
+        config = ComparisonConfig(
+            comparison_id=uuid4(),
+            input_sha256=digest(snapshot),
+            engine_input_sha256=diagnostic_hash,
+            request=body,
+        )
+        run = ResearchRun(
+            id=uuid4(),
+            owner_id=source.owner_id,
+            idempotency_key="restore-comparison-z-submit",
+            request_sha256=config.sha256,
+            config=config.model_dump(mode="json"),
+            dataset_version_id=source.dataset_version_id,
+            strategy_version_id=source.strategy_version_id,
+            status="cancelled",
+            generation=1,
+            next_event_seq=1,
+            error="Synthetic cancelled comparison; no engine result",
+            created_at=now,
+            updated_at=now,
+        )
+        session.add(run)
+        session.flush()
+        attempt = ExecutionAttempt(
+            id=uuid4(),
+            run_id=run.id,
+            generation=1,
+            worker_id="synthetic-backup-boundary-worker",
+            lease_token=uuid4(),
+            lease_expires_at=now,
+            heartbeat_at=now,
+            status="cancelled",
+            sandbox_id=f"synthetic-not-launched-{uuid4().hex}",
+            sandbox_stopped=True,
+            started_at=now,
+            finished_at=now,
+        )
+        session.add(attempt)
+        session.flush()
+        storage_key = f"runs/{run.id}/{attempt.id}/comparison-boundary.json"
+        publish_bytes(
+            storage / storage_key,
+            diagnostic,
+            sha256=diagnostic_hash,
+            durable_root=storage,
+        )
+        session.add(
+            Artifact(
+                run_id=run.id,
+                attempt_id=attempt.id,
+                name="comparison-boundary.json",
+                media_type="application/json",
+                storage_key=storage_key,
+                sha256=diagnostic_hash,
+                size_bytes=len(diagnostic),
+                created_at=now,
+            )
+        )
+        session.add(
+            RunEvent(
+                run_id=run.id,
+                attempt_id=attempt.id,
+                seq=0,
+                type="cancelled",
+                payload={"synthetic": True, "engine_executed": False},
+                occurred_at=now,
+            )
+        )
+        comparison = Comparison(
+            id=config.comparison_id,
+            owner_id=source.owner_id,
+            run_id=run.id,
+            left_evaluation_id=evaluations[0].id,
+            right_evaluation_id=evaluations[1].id,
+            input_sha256=config.input_sha256,
+            engine_input_sha256=config.engine_input_sha256,
+            input_snapshot=snapshot,
+            created_at=now,
+        )
+        session.add(comparison)
+        session.flush()
+        assert comparison_config(run, comparison) == config
+        # Reverse lexical insertion order makes owner-only ordering insufficient.
+        for key in (run.idempotency_key, "restore-comparison-a-cache-hit"):
+            session.add(
+                ComparisonSubmission(
+                    owner_id=source.owner_id,
+                    idempotency_key=key,
+                    comparison_id=comparison.id,
+                    request_sha256=body.sha256,
+                    created_at=now,
+                )
+            )
+            session.flush()
+        session.commit()
+    return {storage_key: diagnostic}
+
+
 @pytest.mark.parametrize(
-    "revision", ["005_settings", "006_provider_connections", "007_research_specs"]
+    "revision",
+    [
+        "005_settings",
+        "006_provider_connections",
+        "007_research_specs",
+        "008_comparisons",
+    ],
 )
 def test_real_settings_backup_restores_management_and_immutable_history(
     drill_databases: DrillDatabases,
@@ -886,7 +1133,11 @@ def test_real_settings_backup_restores_management_and_immutable_history(
         _upgrade(source, revision)
         with source.begin() as connection:
             connection.execute(_settings_seed_statement())
-        if revision in {"006_provider_connections", "007_research_specs"}:
+        if revision in {
+            "006_provider_connections",
+            "007_research_specs",
+            "008_comparisons",
+        }:
             from sqlalchemy.orm import Session
 
             from backend.app.data_schemas import ProviderConnectionUpdate
@@ -919,9 +1170,15 @@ def test_real_settings_backup_restores_management_and_immutable_history(
                     ),
                 )
                 session.commit()
-        if revision == "007_research_specs":
+        if revision in {"007_research_specs", "008_comparisons"}:
             _seed_workbench_evidence(source)
+        if revision == "008_comparisons":
+            files.update(_seed_comparison_boundary(source, storage))
         expected = _historical_snapshot(source)
+        if revision == "008_comparisons":
+            assert len(expected["comparisons"][1]) == 1
+            assert len(expected["comparison_submissions"][1]) == 2
+            assert len(expected["research_evaluations"][1]) == 2
         manifest = create_backup(
             database=PostgresDatabase(
                 drill_databases.source.render_as_string(hide_password=False)
@@ -935,6 +1192,11 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             limits=limits,
         )
         assert manifest["schema_revision"] == revision
+        inventory = {item["path"]: item for item in manifest["files"]}
+        assert set(inventory) == {"database.dump"} | {f"storage/{key}" for key in files}
+        for key, content in files.items():
+            assert inventory[f"storage/{key}"]["sha256"] == _sha(content)
+            assert inventory[f"storage/{key}"]["size_bytes"] == len(content)
         assert (
             restore_backup(
                 database=PostgresDatabase(
@@ -952,6 +1214,33 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             == manifest
         )
         _assert_historical_snapshot(restored, expected)
+        if revision == "008_comparisons":
+            with restored.connect() as connection:
+                assert connection.execute(
+                    text(
+                        "SELECT r.status, r.result, c.published_attempt_id, "
+                        "c.manifest_artifact_id, c.manifest_sha256 "
+                        "FROM comparisons c JOIN research_runs r ON r.id = c.run_id"
+                    )
+                ).one() == ("cancelled", None, None, None, None)
+            # pg_restore must retain the append-only protections as well as the
+            # business rows. Both rejected mutations roll back in fixture DBs.
+            for statement, error in (
+                (
+                    "UPDATE comparisons SET input_sha256 = repeat('0', 64)",
+                    "Comparison inputs and published results are immutable",
+                ),
+                (
+                    "DELETE FROM comparison_submissions",
+                    "Comparison submissions are append-only",
+                ),
+            ):
+                with (
+                    pytest.raises(DBAPIError, match=error),
+                    restored.begin() as connection,
+                ):
+                    connection.execute(text(statement))
+            _assert_historical_snapshot(restored, expected)
         assert _config_identity(restored) == identity
         _assert_storage(restored_storage, files)
         _assert_historical_snapshot(source, expected)

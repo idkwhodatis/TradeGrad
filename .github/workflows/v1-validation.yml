@@ -186,6 +186,7 @@ jobs:
           TRADEGRAD_TRACE_POSTGRES_REQUIRED: "1"
           TRADEGRAD_WORKBENCH_POSTGRES_REQUIRED: "1"
           TRADEGRAD_REPLAY_POSTGRES_REQUIRED: "1"
+          TRADEGRAD_COMPARISON_POSTGRES_REQUIRED: "1"
         run: .venv-data/bin/python -m pytest tests/integration -q --junitxml=m1-m2-postgres-junit.xml
       - name: Bind streaming PostgreSQL clients to this job's service container
         shell: bash

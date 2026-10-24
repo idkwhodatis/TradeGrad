@@ -125,6 +125,9 @@ def submit_run(
     ).hexdigest()
     # One lock per owner also serializes quota accounting across different keys.
     advisory_lock(session, f"submit:{owner_id}")
+    from backend.app.comparison_services import reject_comparison_key
+
+    reject_comparison_key(session, owner_id, idempotency_key)
     previous = session.scalar(
         select(ResearchRun).where(
             ResearchRun.owner_id == owner_id,
@@ -520,7 +523,7 @@ def resume_run(
 
 
 def reconcile_attempt(
-    session: Session, attempt_id: UUID, stop: Callable[[str], bool]
+    session: Session, attempt_id: UUID, stop: Callable[[str], bool], *, settings=None
 ) -> bool:
     run_id = session.scalar(
         select(ExecutionAttempt.run_id).where(ExecutionAttempt.id == attempt_id)
@@ -541,6 +544,47 @@ def reconcile_attempt(
         or run.active_attempt_id != attempt.id
     ):
         return False
+    if run.config.get("schema_version") == "tradegrad.comparison.v1":
+        from backend.app.comparison_guard import comparison_query_confirmed_stopped
+
+        # No Docker call proves in-process DuckDB termination. Missing settings,
+        # busy inode, unsafe path or any unknown probe result leaves quota held.
+        stopped = settings is not None and comparison_query_confirmed_stopped(
+            settings.storage_root, run.id, attempt.id
+        )
+        if not stopped:
+            if run.error != "comparison_recovery_blocked":
+                run.error = "comparison_recovery_blocked"
+                append_event(
+                    session,
+                    run,
+                    "recovery_blocked",
+                    {
+                        "error_code": "comparison_recovery_blocked",
+                        "status": run.status,
+                    },
+                    attempt.id,
+                )
+            return False
+        attempt.sandbox_stopped = True
+        attempt.lease_token = uuid4()
+        attempt.finished_at = utcnow()
+        attempt.status = run.status = (
+            "cancelled" if run.status == "cancel_requested" else "interrupted"
+        )
+        attempt.error = run.error = "comparison_interrupted"
+        run.result = None
+        append_event(
+            session,
+            run,
+            "run_finished",
+            {
+                "status": run.status,
+                "error_code": run.error,
+            },
+            attempt.id,
+        )
+        return True
     # Holding the Run lock prevents cancellation/resume/old completion racing stop.
     # Stop is bounded by runner timeout. On False, absolutely no retry is released.
     # A research attempt owns many distinct evaluator sandboxes. Registering them

@@ -12,7 +12,12 @@ class BackupReceipt(BaseModel):
     operation: Literal["create", "verify", "restore"]
     application_ref: str = Field(pattern=r"^(?:[a-f0-9]{40}|[a-f0-9]{64})$")
     schema_revision: Literal[
-        "003_m3", "004_m5", "005_settings", "006_provider_connections"
+        "003_m3",
+        "004_m5",
+        "005_settings",
+        "006_provider_connections",
+        "007_research_specs",
+        "008_comparisons",
     ]
     manifest_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     backup_created_at: datetime

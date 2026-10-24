@@ -144,3 +144,22 @@
 .replay-record .preview {
   max-height: 260px;
 }
+
+.comparison-sides {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.comparison-sides > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.comparison-sides fieldset {
+  margin: 0;
+}
+@media (max-width: 1200px) {
+  .comparison-sides {
+    grid-template-columns: 1fr;
+  }
+}

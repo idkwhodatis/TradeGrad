@@ -41,6 +41,7 @@ REVISIONS = {
     "005_settings",
     "006_provider_connections",
     "007_research_specs",
+    "008_comparisons",
 }
 NAMESPACES = {"datasets", "runs", "data-checkpoints", "uploads", "strategy-packages"}
 HEX = re.compile(r"[a-f0-9]{64}\Z")
@@ -531,6 +532,7 @@ class PostgresDatabase:
                 "005_settings",
                 "006_provider_connections",
                 "007_research_specs",
+                "008_comparisons",
             }:
                 references += rows(
                     "SELECT storage_key AS path, archive_sha256 AS sha256, size_bytes FROM strategy_packages ORDER BY storage_key"

@@ -765,3 +765,55 @@ class CandidateBookmark(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )
+
+
+class Comparison(Base):
+    """Immutable two-sided inputs and one published, physically fenced artifact."""
+
+    __tablename__ = "comparisons"
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    run_id: Mapped[UUID] = mapped_column(ForeignKey("research_runs.id"), unique=True)
+    left_evaluation_id: Mapped[UUID] = mapped_column(
+        ForeignKey("research_evaluations.id")
+    )
+    right_evaluation_id: Mapped[UUID] = mapped_column(
+        ForeignKey("research_evaluations.id")
+    )
+    input_sha256: Mapped[str] = mapped_column(String(64))
+    engine_input_sha256: Mapped[str] = mapped_column(String(64))
+    input_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    published_attempt_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("execution_attempts.id")
+    )
+    manifest_artifact_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("artifacts.id")
+    )
+    manifest_sha256: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    __table_args__ = (
+        UniqueConstraint("owner_id", "input_sha256", name="uq_comparison_owner_input"),
+        CheckConstraint("jsonb_typeof(input_snapshot) = 'object'"),
+        CheckConstraint(
+            "(published_attempt_id IS NULL AND manifest_artifact_id IS NULL AND manifest_sha256 IS NULL) OR (published_attempt_id IS NOT NULL AND manifest_artifact_id IS NOT NULL AND manifest_sha256 IS NOT NULL)"
+        ),
+    )
+
+
+class ComparisonSubmission(Base):
+    """Append-only owner-scoped idempotency aliases, including input-cache hits."""
+
+    __tablename__ = "comparison_submissions"
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    idempotency_key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    comparison_id: Mapped[UUID] = mapped_column(
+        ForeignKey("comparisons.id"), index=True
+    )
+    request_sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )

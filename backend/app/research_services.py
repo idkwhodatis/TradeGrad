@@ -329,6 +329,9 @@ def submit_research_run(
             422,
         )
     advisory_lock(session, f"submit:{owner_id}")
+    from backend.app.comparison_services import reject_comparison_key
+
+    reject_comparison_key(session, owner_id, idempotency_key)
     previous = session.scalar(
         select(ResearchRun).where(
             ResearchRun.owner_id == owner_id,

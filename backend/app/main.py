@@ -510,8 +510,19 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
                     .order_by(RunEvent.seq)
                     .limit(200)
                 ).all()
-                response = [EventPublic.model_validate(e) for e in events]
-                if any(contains_result_data(e.payload) for e in events):
+                if current.config.get("schema_version") == "tradegrad.comparison.v1":
+                    from backend.app.comparison_views import public_comparison_event
+
+                    # Comparisons have two independently admitted sources. SSE
+                    # is status-only, never a one-source result release channel.
+                    response = [public_comparison_event(e) for e in events]
+                else:
+                    response = [EventPublic.model_validate(e) for e in events]
+                if current.config.get(
+                    "schema_version"
+                ) != "tradegrad.comparison.v1" and any(
+                    contains_result_data(e.payload) for e in events
+                ):
                     record_result_access(
                         stream_session, current, owner_id, source="event-results"
                     )
@@ -617,6 +628,10 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
     from backend.app.replay_routes import router as replay_router
 
     app.include_router(replay_router, prefix=PREFIX)
+
+    from backend.app.comparison_routes import router as comparison_router
+
+    app.include_router(comparison_router, prefix=PREFIX)
 
     from backend.app.workbench_routes import router as workbench_router
 

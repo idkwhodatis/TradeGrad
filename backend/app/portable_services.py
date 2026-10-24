@@ -407,6 +407,9 @@ def submit_portable_run(
             422,
         )
     advisory_lock(session, f"submit:{owner_id}")
+    from backend.app.comparison_services import reject_comparison_key
+
+    reject_comparison_key(session, owner_id, idempotency_key)
     binding = {
         "experiment_id": str(experiment_id) if experiment_id else None,
         "split_version_id": str(split_version_id) if split_version_id else None,

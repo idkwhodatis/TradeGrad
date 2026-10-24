@@ -146,6 +146,7 @@ def test_apply_requires_plan_ack_receipt_before_database_or_storage(changes):
         ("workers/research/portable_optimization.py", "execute_portable_configured"),
         ("workers/research/final_evaluation.py", "execute_final"),
         ("workers/research/portable_final_evaluation.py", "execute_portable_final"),
+        ("workers/research/comparison.py", "execute_comparison"),
     ],
 )
 def test_all_production_worker_entrypoints_wrap_entire_finally(path, name):

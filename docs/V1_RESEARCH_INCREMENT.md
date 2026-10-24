@@ -295,3 +295,89 @@ not the four-symbol hand-worked truth fixture. The latter is separately covered
 by the actual native-to-Parquet query tests. Collection does not certify
 PostgreSQL, Docker, Chromium or recovery. The hosted gate requires the replay
 PostgreSQL selector and final exact-head acceptance remains mandatory.
+
+## I4 implementation boundaries
+
+- Comparison is a derived asynchronous ResearchRun with its own execution
+  attempt, immutable ordered source pins and publication manifest. It is not
+  another Evaluation and never runs candidate code, a model or a provider.
+  Input-hash reuse is owner-scoped; additional submission keys are durably
+  reserved and cannot be reused by another run type.
+- Both physical leaves, source code/spec revisions, result/trace manifests and
+  final-admission fences are independently rechecked. Result reads, comparison
+  pages and downloads record both source exposures before response release.
+  Generic SSE carries bounded status and artifact readiness only, not outcomes.
+- Source-event pairing requires a verified common data, universe and instrument
+  namespace, then uses data-event identity, callback phase, decision scope and
+  event sequence. Random record IDs, date/symbol proximity and generic native
+  order IDs are not event identity. Added, removed and ambiguous events remain
+  visible; both original pre-states are retained without a causal attribution.
+- Exact missing states and observation scope survive comparison. Narrow capture
+  does not certify whole-universe equality, absent optional tables are unknown,
+  and duplicate observation IDs retain original ordinals and multiplicity.
+  Reported unchanged behavior names the actual observed sections and window;
+  it is neither diagnostic parity nor an intermediate-state counterfactual.
+- Comparison DuckDB runs synchronously under an attempt-directory flock and
+  storage lifecycle barrier. Repeated cancellation/deadline interrupts do not
+  themselves prove termination. Recovery must obtain the same durable inode
+  lock, and publication waits for actual query closure. A Docker stop is never
+  used as proof that an in-process comparison has stopped.
+- Fixed limits bound aggregate input/output, events, per-event rows and bytes,
+  files, memory, runtime and browser response sizes. Capacity failure is visible,
+  not hidden truncation or a smaller calculation universe. Browser reads remain
+  server-paged; immutable comparison files retain exact source references.
+
+## I4 checkpoint
+
+Validated locally on 2026-10-23 before I5: **2,103 tests passed** in 88.00
+seconds across backend, runner, operations, trace and configuration suites with
+actual native execution required. Final comparator safety refinements were
+additionally checked in **65 comparison/scale-smoke/actual-native tests** in
+14.38 seconds and **12 worker closure/fencing seam tests** in 0.71 seconds. The
+separate unchanged-native large result protocol passed **43 tests** in 7.39
+seconds, and the hash-locked research runtime passed **167 optimizer/provenance/
+model-boundary/worker tests** in 19.32 seconds. These focused groups overlap the
+broad suite where applicable and are not an additive unique-test count.
+
+The four new actual AKQuant comparison truth tests execute distinct baseline,
+repeat, liquidity-change, comment-only and narrow-capture runs, publish their
+real trace through Parquet, and compare event identities and actual economic
+observations. Synthetic business UUIDs are explicit and do not claim database
+admission. The 1,000-listing trace-shaped test ran only a **three-session smoke**;
+its reusable 750-session baseline-plus-two-variant generator has not yet been
+measured. There is no representative latency, memory or SLO claim at I4.
+
+Frontend: **812 tests passed** in 53 files, with typecheck, production build and
+formatting passed. The workbench chunk is 286.71 kB (86.43 kB gzip), with a
+separate lazy comparison chart; existing Monaco/ECharts vendor-size warnings
+remain. All 143 pre-existing API paths remain unchanged; the 242 previous schema
+contracts are unchanged except additive backup receipt revision support for
+007/008. Seven comparison paths and 20 component schemas were added. Ruff and
+format checks passed for 36 changed Python files, and whitespace checks passed.
+
+Independent review cleared query-close cancellation, uncertain-close guard
+retention, shutdown during retry, bilateral final admission, missing target
+coverage, capture-scope equality, mechanism parameter granularity, duplicate
+observations, bounded non-greedy tolerance matching, explicit execution graph
+topology and exact replay-link admission. Matching work has fixed declared node,
+byte and cardinality budgets; unresolved matching remains ambiguous rather than
+inventing equality or a difference. POSIX tests use actual owned child processes
+and kernel locks; mocked persistence seams are labelled separately.
+
+**56 comparison PostgreSQL cases/selectors were collected, not locally run**
+(54 database cases, one required-environment selector and one pure portable
+fixture contract). They cover genuine native/portable final loaders on both
+sides, cache/idempotency races, cancellation/publication ordering, rollback,
+lease expiry, ownership, retry, append-only bindings and process-death recovery.
+The separate seven-case backup/upgrade group includes real 003-to-008 migration
+and 008 cold restore gates, likewise collected only. The source results in these
+DB boundary fixtures are explicitly synthetic, not engine certification.
+
+**59 Playwright scenarios were collected** in 15 files, including two new real
+stack I4 scenarios for comment-only observed equality and mechanism/config
+changes with both pre-states. They require actual isolated evaluations, exact
+source-kind/history restoration, immutable result hashes, server paging,
+mandatory saved order-association drilldown, login restoration and cross-owner
+denials. No route stubs or fabricated trace fallback are used. PostgreSQL,
+Docker, Chromium and recovery acceptance remain pending the mandatory exact-head
+hosted gate; the original baseline browser suite is unchanged.

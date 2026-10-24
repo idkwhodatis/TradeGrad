@@ -201,7 +201,6 @@ describe("five-tab workbench shell", () => {
     expect(html).toContain("Algorithm references (not code parents)");
   });
   it.each([
-    ["comparison", "I4"],
     ["verification", "I5"],
     ["notes", "I6"],
   ])("keeps %s honestly pending", async (tab, phase) => {
@@ -219,4 +218,12 @@ it("opens real replay controls only after an actual leaf is selected", async () 
   expect(html).toContain("Choose an actual leaf Evaluation");
   expect(html).toContain("Diagnostic replay unavailable");
   expect(html).not.toContain("I3 decision replay is pending");
+});
+
+it("opens actual comparison selectors without fabricating either source or result", async () => {
+  const html = await renderWorkbench("comparison");
+  expect(html).toContain("Compare two immutable evaluations");
+  expect(html.replaceAll("<!-- -->", "")).toContain("Left saved strategy");
+  expect(html).toContain("Choose both sources");
+  expect(html).not.toContain("I4 immutable version comparison is pending");
 });

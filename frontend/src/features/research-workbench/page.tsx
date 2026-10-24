@@ -21,6 +21,9 @@ import {
 } from "@/lib/workbench-evidence";
 import {
   changeSelection,
+  clearComparisonSide,
+  clearComparisonResult,
+  comparisonSidePatch,
   clearedReplaySelection,
   resourceSelection,
   selectionProblem,
@@ -38,6 +41,8 @@ import {
 } from "@/lib/workbench-api";
 import { AnchoredSource } from "./anchored-source";
 import { DecisionReplay } from "./decision-replay";
+import { MechanismComparison } from "./comparison";
+import { sideFromEvidence } from "@/lib/comparison-evidence";
 import { DescriptionRevisions } from "./description-revisions";
 import { LineageSidebar } from "./lineage";
 import { RuleCards } from "./rule-cards";
@@ -321,6 +326,29 @@ function Workbench({
             busy={lineage.isFetching}
             onPage={setLineageOffset}
             onOpen={openSource}
+            onCompareParent={() => {
+              const parent = lineage.data?.parent;
+              if (!parent) return;
+              update({
+                ...clearComparisonSide("left"),
+                ...clearComparisonSide("right"),
+                ...clearComparisonResult(),
+                tab: "comparison",
+                ...comparisonSidePatch("left", {
+                  source_kind: parent.resource_kind,
+                  source_id: parent.id,
+                  strategy_version_id: parent.strategy_version_id,
+                  code_sha256: parent.code_sha256,
+                }),
+                ...comparisonSidePatch(
+                  "right",
+                  sideFromEvidence(
+                    spec.data!,
+                    leafVerified ? leaf.data : undefined,
+                  ),
+                ),
+              });
+            }}
           />
         )
       )}
@@ -589,14 +617,21 @@ function Workbench({
             code={currentSource}
             codeSha256={currentHash}
           />
+        ) : activeTab === "comparison" ? (
+          <MechanismComparison
+            owner={owner}
+            selection={selection}
+            update={update}
+            currentSpec={spec.data}
+            currentLeaf={leaf.data}
+            currentVerified={leafVerified}
+          />
         ) : (
           <Panel title={labels[activeTab]}>
             <p className="notice">
-              {activeTab === "comparison"
-                ? "I4 immutable version comparison"
-                : activeTab === "verification"
-                  ? "I5 diagnostic and controlled verification"
-                  : "I6 versioned evidence notes"}{" "}
+              {activeTab === "verification"
+                ? "I5 diagnostic and controlled verification"
+                : "I6 versioned evidence notes"}{" "}
               is pending: not implemented in this phase. Your exact selection is
               preserved. No replay, comparison, validation result or note has
               been fabricated.

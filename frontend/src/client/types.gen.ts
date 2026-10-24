@@ -165,7 +165,7 @@ export type BackupReceipt = {
     /**
      * Schema Revision
      */
-    schema_revision: '003_m3' | '004_m5' | '005_settings' | '006_provider_connections';
+    schema_revision: '003_m3' | '004_m5' | '005_settings' | '006_provider_connections' | '007_research_specs' | '008_comparisons';
 };
 
 /**
@@ -756,6 +756,174 @@ export type CheckpointPublic = {
 };
 
 /**
+ * ComparisonArtifactRef
+ */
+export type ComparisonArtifactRef = {
+    /**
+     * Event Pair Ids
+     */
+    event_pair_ids?: Array<string>;
+    /**
+     * First Row
+     */
+    first_row: number;
+    /**
+     * Last Row
+     */
+    last_row: number;
+    /**
+     * Media Type
+     */
+    media_type?: 'application/vnd.apache.parquet';
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Rows
+     */
+    rows: number;
+    /**
+     * Section
+     */
+    section: string;
+    /**
+     * Sha256
+     */
+    sha256: string;
+    /**
+     * Size Bytes
+     */
+    size_bytes: number;
+};
+
+/**
+ * ComparisonAssociation
+ */
+export type ComparisonAssociation = {
+    /**
+     * Child Order Ids
+     */
+    child_order_ids: Array<string>;
+    /**
+     * Decision Id
+     */
+    decision_id: string;
+    /**
+     * Event Pair Id
+     */
+    event_pair_id: string;
+    /**
+     * Fill Ids
+     */
+    fill_ids: Array<string>;
+    /**
+     * Instrument Id
+     */
+    instrument_id: string;
+    /**
+     * Link Ordinal
+     */
+    link_ordinal: number;
+    /**
+     * Logical Order Id
+     */
+    logical_order_id: string;
+    /**
+     * Side
+     */
+    side: 'left' | 'right';
+    /**
+     * Source Event Paired
+     */
+    source_event_paired: boolean;
+    /**
+     * Stage Id
+     */
+    stage_id: string;
+};
+
+/**
+ * ComparisonCreate
+ */
+export type ComparisonCreate = {
+    left: ComparisonSideCreate;
+    options?: ComparisonOptions;
+    right: ComparisonSideCreate;
+};
+
+/**
+ * ComparisonDetail
+ */
+export type ComparisonDetail = {
+    /**
+     * Active Attempt Id
+     */
+    active_attempt_id: string | null;
+    /**
+     * Artifact Ready
+     */
+    artifact_ready: boolean;
+    /**
+     * Attempts
+     */
+    attempts: Array<AttemptPublic>;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Engine Input Sha256
+     */
+    engine_input_sha256: string;
+    /**
+     * Error Code
+     */
+    error_code: string | null;
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'comparison';
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Input Sha256
+     */
+    input_sha256: string;
+    /**
+     * Manifest Artifact Id
+     */
+    manifest_artifact_id: string | null;
+    /**
+     * Manifest Sha256
+     */
+    manifest_sha256: string | null;
+    /**
+     * Next Event Seq
+     */
+    next_event_seq: number;
+    request: ComparisonCreate;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Status
+     */
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
  * ComparisonDifference
  */
 export type ComparisonDifference = {
@@ -771,6 +939,652 @@ export type ComparisonDifference = {
      * Values
      */
     values: Array<DifferenceValue>;
+};
+
+/**
+ * ComparisonLimits
+ */
+export type ComparisonLimits = {
+    /**
+     * Block Bytes
+     */
+    block_bytes?: number;
+    /**
+     * Block Rows
+     */
+    block_rows?: number;
+    /**
+     * Duckdb Memory Bytes
+     */
+    duckdb_memory_bytes?: 268435456;
+    /**
+     * Duckdb Threads
+     */
+    duckdb_threads?: 1;
+    /**
+     * Max Bundle Bytes
+     */
+    max_bundle_bytes?: number;
+    /**
+     * Max Event Bytes
+     */
+    max_event_bytes?: number;
+    /**
+     * Max Event Index Bytes
+     */
+    max_event_index_bytes?: number;
+    /**
+     * Max Event Rows
+     */
+    max_event_rows?: number;
+    /**
+     * Max Events
+     */
+    max_events?: number;
+    /**
+     * Max Files
+     */
+    max_files?: number;
+    /**
+     * Max Graph Bytes
+     */
+    max_graph_bytes?: number;
+    /**
+     * Max Graph Edges
+     */
+    max_graph_edges?: number;
+    /**
+     * Max Input Bytes
+     */
+    max_input_bytes?: number;
+    /**
+     * Max Input Rows
+     */
+    max_input_rows?: number;
+    /**
+     * Max Manifest Bytes
+     */
+    max_manifest_bytes?: number;
+    /**
+     * Max Output Bytes
+     */
+    max_output_bytes?: number;
+    /**
+     * Max Output Rows
+     */
+    max_output_rows?: number;
+    /**
+     * Max Record Bytes
+     */
+    max_record_bytes?: number;
+    /**
+     * Semantic Matching Bytes
+     */
+    semantic_matching_bytes?: 67108864;
+    /**
+     * Semantic Matching Nodes
+     */
+    semantic_matching_nodes?: 65536;
+    /**
+     * Spill Bytes
+     */
+    spill_bytes?: 0;
+    /**
+     * Tolerant Multiset Max Size
+     */
+    tolerant_multiset_max_size?: 64;
+};
+
+/**
+ * ComparisonManifest
+ */
+export type ComparisonManifest = {
+    /**
+     * Algorithm Version
+     */
+    algorithm_version?: 'tradegrad.observed-comparison.v1';
+    /**
+     * Artifacts
+     */
+    artifacts: Array<ComparisonArtifactRef>;
+    /**
+     * Causal Claim
+     */
+    causal_claim?: false;
+    /**
+     * Code Changed
+     */
+    code_changed: boolean;
+    /**
+     * Configuration Differences
+     */
+    configuration_differences: Array<ConfigurationDifference>;
+    /**
+     * Diagnostic Parity Certified
+     */
+    diagnostic_parity_certified?: false;
+    /**
+     * Field Tolerances
+     */
+    field_tolerances: {
+        [key: string]: {
+            [key: string]: number;
+        };
+    };
+    /**
+     * Input Hash
+     */
+    input_hash: string;
+    left: ComparisonSidePins;
+    limits: ComparisonLimits;
+    /**
+     * Local Counterfactual
+     */
+    local_counterfactual?: false;
+    /**
+     * Mechanism Changes
+     */
+    mechanism_changes: Array<MechanismChange>;
+    /**
+     * Namespace Reason
+     */
+    namespace_reason: string;
+    /**
+     * Namespace Status
+     */
+    namespace_status: 'common' | 'different' | 'unknown';
+    /**
+     * Observed Behavior
+     */
+    observed_behavior: 'changed' | 'unchanged_observed' | 'insufficient_coverage';
+    /**
+     * Observed Equal Sections
+     */
+    observed_equal_sections: Array<string>;
+    /**
+     * Pairing Fields
+     */
+    pairing_fields: Array<string>;
+    publication: ComparisonPublication;
+    right: ComparisonSidePins;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.comparison.v1';
+    /**
+     * Sections
+     */
+    sections: {
+        [key: string]: ComparisonSectionSummary;
+    };
+    /**
+     * Tolerance Version
+     */
+    tolerance_version?: 'tradegrad.comparison-tolerances.v1';
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+};
+
+/**
+ * ComparisonOptions
+ */
+export type ComparisonOptions = {
+    /**
+     * Max Runtime Seconds
+     */
+    max_runtime_seconds?: number;
+};
+
+/**
+ * ComparisonPublic
+ */
+export type ComparisonPublic = {
+    /**
+     * Active Attempt Id
+     */
+    active_attempt_id: string | null;
+    /**
+     * Artifact Ready
+     */
+    artifact_ready: boolean;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Engine Input Sha256
+     */
+    engine_input_sha256: string;
+    /**
+     * Error Code
+     */
+    error_code: string | null;
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'comparison';
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Input Sha256
+     */
+    input_sha256: string;
+    /**
+     * Manifest Artifact Id
+     */
+    manifest_artifact_id: string | null;
+    /**
+     * Manifest Sha256
+     */
+    manifest_sha256: string | null;
+    /**
+     * Next Event Seq
+     */
+    next_event_seq: number;
+    request: ComparisonCreate;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Status
+     */
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * ComparisonPublication
+ */
+export type ComparisonPublication = {
+    /**
+     * Comparison Id
+     */
+    comparison_id: string;
+    /**
+     * Execution Attempt Id
+     */
+    execution_attempt_id: string;
+    /**
+     * Run Id
+     */
+    run_id: string;
+};
+
+/**
+ * ComparisonRecord
+ */
+export type ComparisonRecord = {
+    /**
+     * Ambiguous
+     */
+    ambiguous?: boolean;
+    /**
+     * Associations
+     */
+    associations?: Array<ComparisonAssociation>;
+    /**
+     * Event Pair Id
+     */
+    event_pair_id?: string | null;
+    /**
+     * Instrument Id
+     */
+    instrument_id?: string | null;
+    /**
+     * Left
+     */
+    left: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Left State
+     */
+    left_state: 'observed' | 'observed_absence' | 'incomplete_coverage' | 'not_collected' | 'unpaired';
+    /**
+     * Match Basis
+     */
+    match_basis: 'source_event' | 'semantic_multiset' | 'observed_timestamp' | 'window_metric' | 'none';
+    /**
+     * Missing Reason
+     */
+    missing_reason?: string | null;
+    /**
+     * Right
+     */
+    right: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Right State
+     */
+    right_state: 'observed' | 'observed_absence' | 'incomplete_coverage' | 'not_collected' | 'unpaired';
+    /**
+     * Row Id
+     */
+    row_id: string;
+    /**
+     * Section
+     */
+    section: string;
+    /**
+     * Session Date
+     */
+    session_date?: string | null;
+    /**
+     * Stage Id
+     */
+    stage_id?: string | null;
+    /**
+     * Status
+     */
+    status: 'equal' | 'changed' | 'left_only' | 'right_only' | 'ambiguous' | 'unavailable';
+};
+
+/**
+ * ComparisonResult
+ */
+export type ComparisonResult = {
+    /**
+     * Comparison Id
+     */
+    comparison_id: string;
+    /**
+     * Input Sha256
+     */
+    input_sha256: string;
+    left_source: ComparisonSource;
+    manifest: ComparisonManifest;
+    /**
+     * Manifest Artifact Id
+     */
+    manifest_artifact_id: string;
+    /**
+     * Manifest Sha256
+     */
+    manifest_sha256: string;
+    right_source: ComparisonSource;
+};
+
+/**
+ * ComparisonSectionPage
+ */
+export type ComparisonSectionPage = {
+    availability: ComparisonSectionSummary;
+    /**
+     * Comparison Id
+     */
+    comparison_id: string;
+    /**
+     * Input Sha256
+     */
+    input_sha256: string;
+    /**
+     * Items
+     */
+    items: Array<ComparisonRecord>;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Manifest Sha256
+     */
+    manifest_sha256: string;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Section
+     */
+    section: string;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * ComparisonSectionSummary
+ */
+export type ComparisonSectionSummary = {
+    /**
+     * Ambiguous
+     */
+    ambiguous?: number;
+    /**
+     * Changed
+     */
+    changed?: number;
+    /**
+     * Definition
+     */
+    definition: string;
+    /**
+     * Equal
+     */
+    equal?: number;
+    /**
+     * Equality Scope
+     */
+    equality_scope?: 'named_observations_only';
+    /**
+     * Left Availability
+     */
+    left_availability: 'available' | 'partial' | 'not_collected' | 'unsupported';
+    /**
+     * Left Only
+     */
+    left_only?: number;
+    /**
+     * Left Reason
+     */
+    left_reason?: string | null;
+    /**
+     * Left Scope
+     */
+    left_scope?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Observed Equality
+     */
+    observed_equality?: 'equal' | 'different' | 'unknown';
+    /**
+     * Right Availability
+     */
+    right_availability: 'available' | 'partial' | 'not_collected' | 'unsupported';
+    /**
+     * Right Only
+     */
+    right_only?: number;
+    /**
+     * Right Reason
+     */
+    right_reason?: string | null;
+    /**
+     * Right Scope
+     */
+    right_scope?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Rows
+     */
+    rows?: number;
+    /**
+     * Unavailable
+     */
+    unavailable?: number;
+};
+
+/**
+ * ComparisonSideCreate
+ */
+export type ComparisonSideCreate = {
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    /**
+     * Execution Attempt Id
+     */
+    execution_attempt_id: string;
+    /**
+     * Result Manifest Sha256
+     */
+    result_manifest_sha256: string;
+    /**
+     * Source Id
+     */
+    source_id: string;
+    /**
+     * Source Kind
+     */
+    source_kind: 'strategy_version' | 'candidate';
+    /**
+     * Spec Revision
+     */
+    spec_revision?: number | null;
+    /**
+     * Spec Sha256
+     */
+    spec_sha256?: string | null;
+    /**
+     * Trace Manifest Sha256
+     */
+    trace_manifest_sha256: string | null;
+};
+
+/**
+ * ComparisonSidePins
+ */
+export type ComparisonSidePins = {
+    binding: EvaluationBinding;
+    capture: CaptureConfig | null;
+    /**
+     * Common Config Sha256
+     */
+    common_config_sha256: string;
+    /**
+     * Economic Bundle Sha256
+     */
+    economic_bundle_sha256: string;
+    namespace: EventNamespace | null;
+    /**
+     * Source Id
+     */
+    source_id: string;
+    /**
+     * Source Kind
+     */
+    source_kind: 'strategy_version' | 'candidate';
+    /**
+     * Spec Revision
+     */
+    spec_revision: number | null;
+    /**
+     * Spec Sha256
+     */
+    spec_sha256: string | null;
+    /**
+     * Trace Coverage
+     */
+    trace_coverage: string | null;
+    /**
+     * Trace Manifest Sha256
+     */
+    trace_manifest_sha256: string | null;
+    /**
+     * Trace Missing Reasons
+     */
+    trace_missing_reasons: Array<string>;
+    /**
+     * Trace State
+     */
+    trace_state: 'registered' | 'registered_off' | 'historical_absence';
+    window: DateRange;
+};
+
+/**
+ * ComparisonSource
+ */
+export type ComparisonSource = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Source Id
+     */
+    source_id: string;
+    /**
+     * Source Kind
+     */
+    source_kind: 'strategy_version' | 'candidate';
+    /**
+     * Source Strategy Version Id
+     */
+    source_strategy_version_id: string;
+    spec: StrategySpec | null;
+    /**
+     * Spec Missing Reason
+     */
+    spec_missing_reason: string | null;
+    /**
+     * Spec Sha256
+     */
+    spec_sha256: string | null;
+};
+
+/**
+ * ConfigurationDifference
+ */
+export type ConfigurationDifference = {
+    /**
+     * Field
+     */
+    field: string;
+    /**
+     * Left
+     */
+    left?: unknown;
+    /**
+     * Left Present
+     */
+    left_present: boolean;
+    /**
+     * Right
+     */
+    right?: unknown;
+    /**
+     * Right Present
+     */
+    right_present: boolean;
+    /**
+     * Status
+     */
+    status: 'equal' | 'different' | 'unknown';
 };
 
 /**
@@ -1524,6 +2338,42 @@ export type EvaluationWindow = {
      * Start
      */
     start: string;
+};
+
+/**
+ * EventNamespace
+ *
+ * Backend-derived evidence, not a caller-supplied 'verified' boolean.
+ */
+export type EventNamespace = {
+    /**
+     * Data Event Namespace
+     */
+    data_event_namespace?: 'frozen_source_event.v1';
+    /**
+     * Dataset Sha256
+     */
+    dataset_sha256: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Frozen Universe Sha256
+     */
+    frozen_universe_sha256?: string | null;
+    /**
+     * Instrument Namespace
+     */
+    instrument_namespace: 'native_symbol' | 'portable_listing_id';
+    /**
+     * Universe Sha256
+     */
+    universe_sha256: string | null;
+    /**
+     * Universe Version Id
+     */
+    universe_version_id: string | null;
 };
 
 /**
@@ -3098,6 +3948,46 @@ export type MarketConfig = {
 };
 
 /**
+ * MechanismChange
+ */
+export type MechanismChange = {
+    /**
+     * Category
+     */
+    category: 'input' | 'filter' | 'scoring' | 'portfolio' | 'execution';
+    /**
+     * Left
+     */
+    left: {
+        [key: string]: unknown;
+    } | null;
+    left_source_ref: SourceRef | null;
+    /**
+     * Mapping
+     */
+    mapping: 'controlled' | 'human_confirmed' | 'inferred' | 'unmapped';
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    /**
+     * Right
+     */
+    right: {
+        [key: string]: unknown;
+    } | null;
+    right_source_ref: SourceRef | null;
+    /**
+     * Rule Id
+     */
+    rule_id: string | null;
+    /**
+     * Status
+     */
+    status: 'equal' | 'changed' | 'left_only' | 'right_only' | 'unmapped';
+};
+
+/**
  * ModelCallDetail
  */
 export type ModelCallDetail = {
@@ -3717,6 +4607,20 @@ export type PageCheckpointPublic = {
      * Data
      */
     data: Array<CheckpointPublic>;
+};
+
+/**
+ * Page[ComparisonPublic]
+ */
+export type PageComparisonPublic = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Data
+     */
+    data: Array<ComparisonPublic>;
 };
 
 /**
@@ -9718,6 +10622,381 @@ export type CreateCandidateSpecRevisionResponses = {
 };
 
 export type CreateCandidateSpecRevisionResponse = CreateCandidateSpecRevisionResponses[keyof CreateCandidateSpecRevisionResponses];
+
+export type ListComparisonsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/comparisons';
+};
+
+export type ListComparisonsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ListComparisonsError = ListComparisonsErrors[keyof ListComparisonsErrors];
+
+export type ListComparisonsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PageComparisonPublic;
+};
+
+export type ListComparisonsResponse = ListComparisonsResponses[keyof ListComparisonsResponses];
+
+export type CreateComparisonData = {
+    body: ComparisonCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/comparisons';
+};
+
+export type CreateComparisonErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateComparisonError = CreateComparisonErrors[keyof CreateComparisonErrors];
+
+export type CreateComparisonResponses = {
+    /**
+     * Successful Response
+     */
+    202: ComparisonPublic;
+};
+
+export type CreateComparisonResponse = CreateComparisonResponses[keyof CreateComparisonResponses];
+
+export type ReadComparisonData = {
+    body?: never;
+    path: {
+        /**
+         * Comparison Id
+         */
+        comparison_id: string;
+    };
+    query?: never;
+    url: '/api/v1/comparisons/{comparison_id}';
+};
+
+export type ReadComparisonErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadComparisonError = ReadComparisonErrors[keyof ReadComparisonErrors];
+
+export type ReadComparisonResponses = {
+    /**
+     * Successful Response
+     */
+    200: ComparisonDetail;
+};
+
+export type ReadComparisonResponse = ReadComparisonResponses[keyof ReadComparisonResponses];
+
+export type CancelComparisonData = {
+    body?: never;
+    path: {
+        /**
+         * Comparison Id
+         */
+        comparison_id: string;
+    };
+    query?: never;
+    url: '/api/v1/comparisons/{comparison_id}/cancel';
+};
+
+export type CancelComparisonErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CancelComparisonError = CancelComparisonErrors[keyof CancelComparisonErrors];
+
+export type CancelComparisonResponses = {
+    /**
+     * Successful Response
+     */
+    202: ComparisonPublic;
+};
+
+export type CancelComparisonResponse = CancelComparisonResponses[keyof CancelComparisonResponses];
+
+export type PauseComparisonUnsupportedData = {
+    body?: never;
+    path: {
+        /**
+         * Comparison Id
+         */
+        comparison_id: string;
+    };
+    query?: never;
+    url: '/api/v1/comparisons/{comparison_id}/pause';
+};
+
+export type PauseComparisonUnsupportedErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PauseComparisonUnsupportedError = PauseComparisonUnsupportedErrors[keyof PauseComparisonUnsupportedErrors];
+
+export type PauseComparisonUnsupportedResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type ReadComparisonResultData = {
+    body?: never;
+    path: {
+        /**
+         * Comparison Id
+         */
+        comparison_id: string;
+    };
+    query?: {
+        /**
+         * Manifest Sha256
+         */
+        manifest_sha256?: string | null;
+    };
+    url: '/api/v1/comparisons/{comparison_id}/result';
+};
+
+export type ReadComparisonResultErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadComparisonResultError = ReadComparisonResultErrors[keyof ReadComparisonResultErrors];
+
+export type ReadComparisonResultResponses = {
+    /**
+     * Successful Response
+     */
+    200: ComparisonResult;
+};
+
+export type ReadComparisonResultResponse = ReadComparisonResultResponses[keyof ReadComparisonResultResponses];
+
+export type RetryComparisonData = {
+    body?: never;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Comparison Id
+         */
+        comparison_id: string;
+    };
+    query?: never;
+    url: '/api/v1/comparisons/{comparison_id}/retry';
+};
+
+export type RetryComparisonErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type RetryComparisonError = RetryComparisonErrors[keyof RetryComparisonErrors];
+
+export type RetryComparisonResponses = {
+    /**
+     * Successful Response
+     */
+    202: ComparisonPublic;
+};
+
+export type RetryComparisonResponse = RetryComparisonResponses[keyof RetryComparisonResponses];
+
+export type ReadComparisonSectionData = {
+    body?: never;
+    path: {
+        /**
+         * Comparison Id
+         */
+        comparison_id: string;
+        /**
+         * Section
+         */
+        section: 'events' | 'candidates' | 'features' | 'predicates' | 'targets' | 'orders' | 'fills' | 'positions' | 'account' | 'turnover' | 'holding_duration';
+    };
+    query: {
+        /**
+         * Manifest Sha256
+         */
+        manifest_sha256: string;
+        /**
+         * Event Pair Id
+         */
+        event_pair_id?: string | null;
+        /**
+         * Instrument Id
+         */
+        instrument_id?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/comparisons/{comparison_id}/sections/{section}';
+};
+
+export type ReadComparisonSectionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadComparisonSectionError = ReadComparisonSectionErrors[keyof ReadComparisonSectionErrors];
+
+export type ReadComparisonSectionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ComparisonSectionPage;
+};
+
+export type ReadComparisonSectionResponse = ReadComparisonSectionResponses[keyof ReadComparisonSectionResponses];
 
 export type ListDataUsageExposuresData = {
     body?: never;
