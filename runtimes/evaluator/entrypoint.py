@@ -10,7 +10,10 @@ def _evaluation_config(value, start, end):
     from packages.tradegrad_adapter.results import validate_engine_overrides
 
     keys = {"engine_overrides", "window", "warmup", "benchmark", "run_config_sha256"}
-    if not isinstance(value, dict) or set(value) - {"strategy_contract"} != keys:
+    if (
+        not isinstance(value, dict)
+        or set(value) - {"strategy_contract", "research_capture"} != keys
+    ):
         raise ValueError("Invalid evaluation_config schema")
     window = value["window"]
     if not isinstance(window, dict) or set(window) != {"start", "end", "role"}:
@@ -47,6 +50,10 @@ def _evaluation_config(value, start, end):
         from packages.tradegrad_adapter.native_contract import NativeStrategyContract
 
         NativeStrategyContract.model_validate(value["strategy_contract"])
+    if "research_capture" in value:
+        from packages.research_trace.contracts import CaptureConfig
+
+        CaptureConfig.model_validate(value["research_capture"])
     validate_engine_overrides(value["engine_overrides"])
     return value
 
@@ -79,6 +86,7 @@ def main(input_dir=Path("/input"), output_dir=Path("/output")):
         "profile": profile,
     }
     captured = {}
+    recorder = trace_writer = native_capture = None
     if "evaluation_config" in request:
         from packages.tradegrad_adapter.results import (
             artifact_inventory,
@@ -88,6 +96,26 @@ def main(input_dir=Path("/input"), output_dir=Path("/output")):
         )
 
         config = _evaluation_config(request["evaluation_config"], start, end)
+        from packages.research_trace.contracts import CaptureConfig, canonical_bytes
+        from packages.research_trace.native import NativeCapture
+        from packages.research_trace.recorder import Recorder
+        from packages.research_trace.transport import TRACE_PREFIX, CaptureWriter
+
+        capture_config = CaptureConfig.model_validate(
+            config.get("research_capture", {})
+        )
+        trace_writer = CaptureWriter(
+            capture_config,
+            lambda value: print(
+                TRACE_PREFIX + canonical_bytes(value).decode("utf-8"), flush=True
+            ),
+        )
+        recorder = Recorder(
+            code_sha256=sha256_bytes((input_dir / "strategy.py").read_bytes()),
+            config=capture_config,
+        )
+        native_capture = NativeCapture(recorder, trace_writer.append)
+        recorder._on_record = native_capture.append
         inputs = artifact_inventory(input_dir)
         identity = {
             "strategy_sha256": sha256_bytes((input_dir / "strategy.py").read_bytes()),
@@ -106,6 +134,12 @@ def main(input_dir=Path("/input"), output_dir=Path("/output")):
         def capture(result, performance, engine_kwargs):
             from src.market import MARKETS
 
+            native_capture.finalize(
+                result,
+                market_timezone="Asia/Shanghai"
+                if market == "CN"
+                else "America/New_York",
+            )
             captured["bundle"] = export_native_result(
                 result,
                 performance,
@@ -132,22 +166,27 @@ def main(input_dir=Path("/input"), output_dir=Path("/output")):
             )
 
         common["result_callback"] = capture
-    if task.endswith("_time"):
-        from src import evaluate_time as evaluator
+    from packages.research_trace.recorder import recording
 
-        evaluator.run_backtest(
-            **common,
-            data_path=str(input_dir / "data/INDEX.csv"),
-            symbol="target_symbol",
-        )
-    else:
-        from src import evaluate as evaluator
+    with recording(recorder):
+        if task.endswith("_time"):
+            from src import evaluate_time as evaluator
 
-        evaluator.run_backtest(
-            **common,
-            data_dir=str(input_dir / "data"),
-            date2symbol_dir=str(input_dir / "universe"),
-        )
+            evaluator.run_backtest(
+                **common,
+                data_path=str(input_dir / "data/INDEX.csv"),
+                symbol="target_symbol",
+            )
+        else:
+            from src import evaluate as evaluator
+
+            evaluator.run_backtest(
+                **common,
+                data_dir=str(input_dir / "data"),
+                date2symbol_dir=str(input_dir / "universe"),
+            )
+    if trace_writer is not None:
+        trace_writer.finish(recorder.summary())
     result = output_dir / "metrics.json"
     if result.is_symlink() or not result.is_file() or result.stat().st_size > 1_048_576:
         raise ValueError("Invalid result file")

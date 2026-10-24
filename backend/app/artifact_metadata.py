@@ -84,7 +84,7 @@ def _native_request(run, evaluation):
         # Portable engine request artifacts are not published by the worker.
         # Do not grant a speculative exemption for another input format.
         raise ValueError("Request has no proven native input binding")
-    return {
+    request = {
         "task": source.task,
         "market": source.market_profile.market,
         "profile": source.profile,
@@ -105,6 +105,16 @@ def _native_request(run, evaluation):
             "run_config_sha256": config.sha256,
         },
     }
+
+    if source.research_capture is not None:
+        request["evaluation_config"]["research_capture"] = (
+            source.research_capture.model_dump(mode="json")
+        )
+    if source.strategy_contract is not None:
+        request["evaluation_config"]["strategy_contract"] = (
+            source.strategy_contract.model_dump(mode="json")
+        )
+    return request
 
 
 def _provenance_image(session, run, evaluation, artifact):

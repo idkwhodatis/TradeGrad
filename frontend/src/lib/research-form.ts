@@ -30,6 +30,28 @@ const windowSchema = z.strictObject({
   end: z.iso.date("Choose a valid exclusive end date."),
 });
 
+export const researchCaptureSchema = z
+  .strictObject({
+    mode: z.enum(["off", "summary", "research"]),
+    observation_window: windowSchema.nullable().optional(),
+    stage_ids: z.array(z.string().min(1).max(200)).max(100).optional(),
+    instrument_ids: z.array(z.string().min(1).max(200)).max(10000).optional(),
+    max_decisions: integer(1, 1000000).optional(),
+    max_detail_rows: integer(1, 20000000).optional(),
+    max_uncompressed_bytes: integer(1024, 1073741824).optional(),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.observation_window &&
+      value.observation_window.start >= value.observation_window.end
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["observation_window"],
+        message: "Observation window must be nonempty and half-open.",
+      });
+  });
+
 const modelIdentifier = z
   .string()
   .min(1)
@@ -135,6 +157,7 @@ export const researchFormSchema = z
     universe: reference,
     seed_strategy: reference,
     strategy_contract: nativeContractSchema.nullable().optional(),
+    research_capture: researchCaptureSchema.nullable().optional(),
     windows: z.strictObject({
       train: windowSchema,
       validation: windowSchema,

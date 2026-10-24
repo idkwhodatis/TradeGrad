@@ -24,3 +24,10 @@
 !runtimes/portable_policy/*.py
 !runtimes/portable_policy/Dockerfile
 !runtimes/portable_policy/requirements.lock
+!packages/research_trace/
+!packages/research_trace/__init__.py
+!packages/research_trace/contracts.py
+!packages/research_trace/recorder.py
+!packages/research_trace/transport.py
+!packages/research_trace/native.py
+!packages/research_trace/portable.py

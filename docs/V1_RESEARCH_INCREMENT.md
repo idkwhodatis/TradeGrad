@@ -108,3 +108,59 @@ checks. No real provider, model, broker, deployment or external call was needed.
 The first aggregate run found only nonsemantic pandas row-index label differences.
 The parity serializer now removes those labels while preserving every row value
 and row order; the 55-test aggregate above is the subsequent successful rerun.
+
+## Storage dependency and security boundary
+
+The increment pins DuckDB 1.4.5 LTS rather than the initial 1.4.4 development
+candidate. The [official patch release](https://github.com/duckdb/duckdb/releases/tag/v1.4.5)
+includes backported out-of-bounds fixes. Existing runtime package versions remain
+constrained; only DuckDB is newly added to the API and dependent worker locks.
+The [DuckDB security model](https://duckdb.org/security) treats SQL as code and
+file structures as trusted input: this application accepts neither user SQL nor
+candidate Parquet. Candidate JSON is bounded and validated, the trusted worker
+writes Parquet, and reads require immutable manifest/registration/hash agreement.
+Automatic extension installation/loading is disabled. This is not a claim that
+DuckDB itself supplies a sandbox or that hostile arbitrary files are safe.
+
+## I1 checkpoint
+
+Validated locally on 2026-10-23: **1,920 tests passed** in 63.30 seconds across
+research trace, backend, supervisor, operations, immutable window and portable
+configuration suites. The engine selector was required and pointed at the pinned
+AKQuant interpreter. This includes real native/portable trace off/on/scope parity,
+actual native entrypoint and OS-pipe relay checks, genuine partial fills, copied
+pre-state, no repeated predicate evaluation, immutable publication and tamper
+rejection. Separately, the original economic-result protocol's 43 tests passed
+under the native interpreter. Frontend: **501 tests passed**, generated client,
+typecheck, production build and format checks passed. Ruff and diff checks passed.
+The existing Starlette/httpx deprecation and large lazy vendor-chunk build warnings
+remain warnings, not runtime certifications.
+
+Default summary and explicit research/off are staged immutably without changing
+historical omitted-field configuration hashes. Four worker paths publish typed
+leaf-bound traces in their existing lifecycle/retention guards and fenced result
+transaction. Trace transport is separate from the unchanged 8 MiB economic
+result envelope: 48 MiB compressed, 16 MiB per decision and the declared bounded
+uncompressed capacity. The trusted worker writes Parquet date-range row-group
+blocks, not one file per bar. A valid 9 MiB observation survives publication;
+7,000 alternating-month events remain complete in fewer than 30 files. Large
+individual browser details return an explicit bounded-detail error, while their
+immutable artifacts remain available for authorized download.
+
+Owner-scoped APIs and generic downloads enforce the original native/portable
+research/final result admission, exact attempt/result/trace pins, source/config
+bindings and exposure-before-commit. Candidate filtering includes eligibility,
+reason, rank and finite score bounds. Historical absence is null with a reason.
+Generic native execution snapshots retain observed order IDs but do not invent
+market callback identities; intermediate native order transitions are explicitly
+uncollected. Portable internal Python predicates remain unsupported unless its
+actual protocol exposes them; its 100-listing ABI cap is unchanged.
+
+Independent boundary review found and then cleared conflict tombstones, missing
+rejection reasons, scope enforcement, valid oversized rows, out-of-order date
+partitioning and integer/seen-counter limits. The workflow now requires the
+capture engine suite and fail-closed PostgreSQL trace selector on the new feature
+branch. The 16 new PostgreSQL HTTP cases are **not locally executed**; actual
+PostgreSQL, Docker isolation, recovery and browser acceptance remain required at
+the final exact-head hosted gate. Local HTTP-stub projection tests are explicitly
+labelled and are not substituted for that gate.

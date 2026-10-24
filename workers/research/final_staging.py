@@ -60,6 +60,10 @@ def stage_final_input(
             "run_config_sha256": config.sha256,
         },
     }
+    if source.research_capture is not None:
+        request["evaluation_config"]["research_capture"] = (
+            source.research_capture.model_dump(mode="json")
+        )
     if source.strategy_contract is not None:
         request["evaluation_config"]["strategy_contract"] = (
             source.strategy_contract.model_dump(mode="json")

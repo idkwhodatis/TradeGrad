@@ -109,7 +109,7 @@ def validate_inputs(engine_root, policy_root, expected_config_sha256=None):
     request = parse_json((engine_root / "request.json").read_bytes())
     if (
         not isinstance(request, dict)
-        or set(request)
+        or set(request) - {"research_capture"}
         != {
             "schema_version",
             "manifest",
@@ -121,6 +121,10 @@ def validate_inputs(engine_root, policy_root, expected_config_sha256=None):
         or request["schema_version"] != "portable-engine-request.v1"
     ):
         raise ValueError("Invalid portable engine request")
+    if "research_capture" in request:
+        from packages.research_trace.contracts import CaptureConfig
+
+        CaptureConfig.model_validate(request["research_capture"])
     manifest = parse_manifest(canonical_json(request["manifest"]))
     safe_manifest = parse_manifest((policy_root / "manifest.json").read_bytes())
     if safe_manifest.model_dump(mode="json") != safe_policy_manifest(manifest):
@@ -602,6 +606,22 @@ class PortableDockerEvaluator(DockerEvaluator):
         output_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         if any(output_dir.iterdir()):
             raise ValueError("Portable output namespace must be empty")
+        from packages.research_trace.contracts import CaptureConfig
+        from packages.research_trace.transport import (
+            MAX_COMPRESSED_BYTES,
+            CaptureReceiver,
+        )
+
+        capture_receiver = CaptureReceiver(
+            output_dir,
+            CaptureConfig.model_validate(request.get("research_capture", {})),
+            source="engine_observed",
+            compressed_limit=min(
+                MAX_COMPRESSED_BYTES,
+                max(0, self.output_bytes - MAX_RESULT_BYTES - 1_048_576),
+            ),
+        )
+        research_result = {}
         self.bind_environment(manifest.engine_profile.environment_sha256)
         processes = {}
         created_ids = {}
@@ -694,6 +714,7 @@ class PortableDockerEvaluator(DockerEvaluator):
                 deadline,
                 abort,
                 callback_started,
+                capture_receiver,
             )
             for role in ROLES:
                 state = self._inspect_role(evaluation_id, role, attempt_id=attempt_id)
@@ -706,6 +727,7 @@ class PortableDockerEvaluator(DockerEvaluator):
                     raise IsolationUnavailable(
                         f"Portable {role} clean exit unconfirmed"
                     )
+            research_result = capture_receiver.result()
             status = "succeeded"
         except (OSError, ValueError, RuntimeError, EOFError) as exc:
             error = str(exc)
@@ -745,7 +767,10 @@ class PortableDockerEvaluator(DockerEvaluator):
                 stream.write(data)
                 stream.flush()
                 os.fsync(stream.fileno())
+        if status != "succeeded":
+            capture_receiver.abort()
         return {
+            **(research_result if status == "succeeded" else {}),
             "status": status,
             "error": error,
             "bundle": bundle if status == "succeeded" else None,
@@ -779,6 +804,7 @@ class PortableDockerEvaluator(DockerEvaluator):
         deadline,
         abort,
         callback_started,
+        capture_receiver=None,
     ):
         from packages.tradegrad_adapter.portable_results import validate_portable_result
 
@@ -887,11 +913,22 @@ class PortableDockerEvaluator(DockerEvaluator):
                         if bundle is not None:
                             raise ValueError("Trailing trusted result output")
                         if role == "engine":
+                            from packages.research_trace.transport import WIRE_VERSION
+
+                            if value.get("protocol_version") == WIRE_VERSION:
+                                if capture_receiver is None:
+                                    raise ValueError(
+                                        "Unexpected research capture channel"
+                                    )
+                                capture_receiver.accept(value)
+                                continue
                             if outstanding is not None:
                                 raise ValueError(
                                     "Engine sent a second outstanding observation"
                                 )
                             if value.get("kind") == "result":
+                                if capture_receiver is not None:
+                                    capture_receiver.result()
                                 bundle = validate_portable_result(
                                     validate_result_frame(
                                         value, evaluation_id, sequence

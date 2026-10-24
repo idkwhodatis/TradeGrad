@@ -22,6 +22,8 @@ from pydantic import (
     model_validator,
 )
 
+from packages.research_trace.contracts import CaptureConfig
+
 from .native_contract import NativeStrategyContract
 
 Task = Literal["cn_time", "us_time", "cn_cross", "us_cross"]
@@ -323,12 +325,15 @@ class RunConfig(FrozenModel):
     environment_digest: Sha256
     benchmark: BenchmarkConfig | None = None
     strategy_contract: NativeStrategyContract | None = None
+    research_capture: CaptureConfig | None = None
 
     @model_serializer(mode="wrap")
     def historical_native_representation(self, serializer):
         values = serializer(self)
         if self.strategy_contract is None:
             values.pop("strategy_contract", None)
+        if self.research_capture is None:
+            values.pop("research_capture", None)
         return values
 
     @model_validator(mode="after")

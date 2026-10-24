@@ -10,6 +10,7 @@ COPY packages/tradegrad_adapter/results.py ./packages/tradegrad_adapter/results.
 COPY packages/tradegrad_adapter/native_contract.py ./packages/tradegrad_adapter/native_contract.py
 COPY packages/tradegrad_adapter/indicators.py ./packages/tradegrad_adapter/indicators.py
 COPY runtimes/evaluator/entrypoint.py ./entrypoint.py
+COPY packages/research_trace/__init__.py packages/research_trace/contracts.py packages/research_trace/recorder.py packages/research_trace/transport.py packages/research_trace/native.py ./packages/research_trace/
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/opt/tradegrad
 USER 65532:65532
 ENTRYPOINT ["python", "/opt/tradegrad/entrypoint.py"]

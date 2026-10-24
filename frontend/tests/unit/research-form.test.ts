@@ -42,7 +42,10 @@ describe("complete configured research form", () => {
     );
     const pairs = [
       // Optional declaration is absent on historical requests to preserve their hashes.
-      ["ResearchRunCreate", { ...body, strategy_contract: undefined }],
+      [
+        "ResearchRunCreate",
+        { ...body, strategy_contract: undefined, research_capture: undefined },
+      ],
       ["MarketConfig", body.market_profile],
       ["WarmupConfig", body.warmup],
       ["OptimizerConfig", body.optimizer],
@@ -57,6 +60,27 @@ describe("complete configured research form", () => {
       expect(Object.keys(value).sort(), name).toEqual(
         Object.keys(api.components.schemas[name].properties).sort(),
       );
+  });
+  it("preserves optional capture without altering historical requests", () => {
+    const { body } = researchFixture();
+    expect(researchFormSchema.parse(body)).not.toHaveProperty(
+      "research_capture",
+    );
+    const capture = {
+      mode: "research",
+      observation_window: { start: "2024-01-01", end: "2024-02-01" },
+      max_decisions: 1200,
+    };
+    expect(
+      researchFormSchema.parse({ ...body, research_capture: capture })
+        .research_capture,
+    ).toEqual(capture);
+    expect(
+      researchFormSchema.safeParse({
+        ...body,
+        research_capture: { ...capture, max_decisions: 0 },
+      }).success,
+    ).toBe(false);
   });
   it("defaults to corrected configuration and authoritative deployment digest", () => {
     const { catalog } = researchFixture("us_cross");

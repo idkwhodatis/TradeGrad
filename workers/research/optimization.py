@@ -52,6 +52,10 @@ from packages.tradegrad_adapter.config import (
 )
 from packages.tradegrad_adapter.environment import environment_digest
 from packages.tradegrad_adapter.windows import DatasetWindowReport, stage_dataset_window
+from workers.research.trace_publication import (
+    attach_trace_reference,
+    prepare_trace_artifacts,
+)
 
 
 def stage_research_input(
@@ -109,6 +113,10 @@ def stage_research_input(
             "run_config_sha256": config.sha256,
         },
     }
+    if config.research_capture is not None:
+        request["evaluation_config"]["research_capture"] = (
+            config.research_capture.model_dump(mode="json")
+        )
     if config.strategy_contract is not None:
         request["evaluation_config"]["strategy_contract"] = (
             config.strategy_contract.model_dump(mode="json")
@@ -457,6 +465,17 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
                     result,
                     settings.max_artifact_bytes,
                 )
+                records.extend(
+                    prepare_trace_artifacts(
+                        factory=factory,
+                        settings=settings,
+                        config=config,
+                        evaluation_id=evaluation_id,
+                        result=result,
+                        records=records,
+                        root=root,
+                    )
+                )
             except Exception as error:  # noqa: BLE001 - preserve confirmed stop even if artifact disk fails
                 failed = {
                     "status": "failed",
@@ -495,6 +514,7 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
                         **{**record, "name": f"evaluation-{evaluation_id}-{name}"},
                     )
                     session.add(artifact)
+                    attach_trace_reference(small, artifact, name, result)
                     if name == "result-bundle.json":
                         small["result_bundle"] = {
                             "artifact_id": str(artifact.id),

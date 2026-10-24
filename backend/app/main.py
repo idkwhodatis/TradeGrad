@@ -610,6 +610,10 @@ def create_app(settings: Settings | None = None, engine=None) -> FastAPI:
 
     app.include_router(research_router, prefix=PREFIX)
 
+    from backend.app.trace_routes import router as trace_router
+
+    app.include_router(trace_router, prefix=PREFIX)
+
     from backend.app.strategy_routes import router as strategy_router
 
     app.include_router(strategy_router, prefix=PREFIX)

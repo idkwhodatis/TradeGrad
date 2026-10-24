@@ -1,5 +1,8 @@
 import { benchmarkSchema } from "@/lib/benchmarks";
-import { researchModelSchema } from "@/lib/research-form";
+import {
+  researchCaptureSchema,
+  researchModelSchema,
+} from "@/lib/research-form";
 import { z } from "zod";
 import type {
   DatasetPublic,
@@ -56,6 +59,7 @@ export const portableFormSchema = z.strictObject({
   seed_strategy: reference,
   seed_manifest: reference,
   seed_parameters: reference,
+  research_capture: researchCaptureSchema.nullable().optional(),
   windows: z.strictObject({
     train: window,
     validation: window.nullable(),

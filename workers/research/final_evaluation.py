@@ -19,6 +19,10 @@ from workers.research.environment_evidence import publish_native_environment
 from workers.research.final_staging import stage_final_input
 from workers.research.lease import AttemptLease
 from workers.research.optimization import confirm_stop
+from workers.research.trace_publication import (
+    attach_trace_reference,
+    prepare_trace_artifacts,
+)
 
 
 @guarded_worker
@@ -155,6 +159,17 @@ def execute_final(run_id, generation, settings, factory):
                     result,
                     settings.max_artifact_bytes,
                 )
+                records.extend(
+                    prepare_trace_artifacts(
+                        factory=factory,
+                        settings=settings,
+                        config=config,
+                        evaluation_id=evaluation_id,
+                        result=result,
+                        records=records,
+                        root=root,
+                    )
+                )
             except Exception as error:  # noqa: BLE001 - no failure skips containment/fenced completion
                 result = {
                     "status": "failed",
@@ -179,6 +194,7 @@ def execute_final(run_id, generation, settings, factory):
                         **{**record, "name": f"evaluation-{evaluation_id}-{name}"},
                     )
                     session.add(artifact)
+                    attach_trace_reference(outcome, artifact, name, result)
                     if name == "result-bundle.json":
                         outcome["result_bundle"] = {
                             "artifact_id": str(artifact.id),

@@ -242,6 +242,42 @@ def load_result_aware_artifact(session, artifact, owner_id, settings):
             session, result, owner_id, purpose="result_download"
         )
         return result.content
+    if evaluation is not None and suffix.startswith("trace-"):
+        from backend.app.trace_services import load_owned_trace
+
+        trace = load_owned_trace(session, evaluation.id, owner_id, settings)
+        if trace.manifest is None:
+            raise DomainError(
+                "trace_integrity", "Trace artifact is not registered", 409
+            )
+        if suffix == "trace-manifest.json":
+            expected = (evaluation.payload or {}).get("trace_manifest", {})
+            valid = (
+                expected.get("artifact_id") == str(artifact.id)
+                and expected.get("sha256") == artifact.sha256
+                and expected.get("size_bytes") == artifact.size_bytes
+            )
+        else:
+            valid = any(
+                ref.name == artifact.name
+                and (ref.sha256, ref.size_bytes, ref.media_type)
+                == (artifact.sha256, artifact.size_bytes, artifact.media_type)
+                for ref in trace.manifest.artifacts
+            )
+        if not valid:
+            raise DomainError("trace_integrity", "Trace artifact binding differs", 409)
+        content = read_verified(
+            settings.storage_root,
+            artifact.storage_key,
+            artifact.sha256,
+            settings.max_artifact_bytes,
+        )
+        if len(content) != artifact.size_bytes:
+            raise DomainError("trace_integrity", "Trace artifact size differs", 409)
+        record_verified_result_access(
+            session, trace.result, owner_id, purpose="result_download"
+        )
+        return content
     metadata_only = suffix in METADATA_NAMES | SOURCE_NAMES
     diagnostic = suffix in {
         "logs.txt",

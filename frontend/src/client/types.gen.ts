@@ -43,6 +43,33 @@ export type ArtifactPublic = {
 };
 
 /**
+ * ArtifactRef
+ */
+export type ArtifactRef = {
+    date_range?: DateRange | null;
+    /**
+     * Media Type
+     */
+    media_type: 'application/json' | 'application/vnd.apache.parquet';
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Rows
+     */
+    rows: number;
+    /**
+     * Sha256
+     */
+    sha256: string;
+    /**
+     * Size Bytes
+     */
+    size_bytes: number;
+};
+
+/**
  * AttemptPublic
  */
 export type AttemptPublic = {
@@ -333,6 +360,96 @@ export type CandidateDetail = {
 };
 
 /**
+ * CandidateObservation
+ */
+export type CandidateObservation = {
+    /**
+     * Eligibility
+     */
+    eligibility: 'eligible' | 'ineligible' | 'unknown' | 'not_sampled';
+    /**
+     * Elimination Stage
+     */
+    elimination_stage?: string | null;
+    /**
+     * Instrument Id
+     */
+    instrument_id: string;
+    /**
+     * Prior Holding
+     */
+    prior_holding: boolean | null;
+    /**
+     * Rank
+     */
+    rank?: number | null;
+    /**
+     * Ranking Direction
+     */
+    ranking_direction?: 'ascending' | 'descending' | null;
+    /**
+     * Reason
+     */
+    reason: 'outside_universe' | 'feature_unavailable' | 'eligibility_filter' | 'rank_not_selected' | 'holding_retained' | 'position_slots' | 'portfolio_constraint' | 'cash_constraint' | 'timing_not_triggered' | 'order_rejected' | 'order_unfilled' | 'partial_fill' | 'not_evaluated' | 'not_collected' | 'not_sampled' | 'selected' | 'exit';
+    /**
+     * Reason Detail
+     */
+    reason_detail?: string | null;
+    /**
+     * Score
+     */
+    score: number | null;
+    /**
+     * Score Validity
+     */
+    score_validity: 'valid' | 'warmup_insufficient' | 'input_missing' | 'calculation_error' | 'not_collected' | 'not_sampled';
+    /**
+     * Selected
+     */
+    selected: boolean | null;
+    /**
+     * Source
+     */
+    source: 'llm_explanation' | 'static_inference' | 'strategy_emitted' | 'adapter_observed' | 'engine_observed' | 'experiment_result';
+    source_ref?: SourceRef | null;
+    /**
+     * Tie Break
+     */
+    tie_break?: string | null;
+    /**
+     * Universe Member
+     */
+    universe_member: boolean | null;
+};
+
+/**
+ * CandidatePage
+ */
+export type CandidatePage = {
+    context: TraceContext;
+    /**
+     * Decision Id
+     */
+    decision_id: string;
+    /**
+     * Items
+     */
+    items: Array<CandidateRow> | null;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Total
+     */
+    total: number | null;
+};
+
+/**
  * CandidatePublic
  */
 export type CandidatePublic = {
@@ -380,6 +497,17 @@ export type CandidatePublic = {
      * Run Id
      */
     run_id: string;
+};
+
+/**
+ * CandidateRow
+ */
+export type CandidateRow = {
+    observation: CandidateObservation;
+    /**
+     * Stage Id
+     */
+    stage_id: string;
 };
 
 /**
@@ -440,6 +568,37 @@ export type Capability = {
      * Symbols
      */
     symbols?: Array<string>;
+};
+
+/**
+ * CaptureConfig
+ */
+export type CaptureConfig = {
+    /**
+     * Instrument Ids
+     */
+    instrument_ids?: Array<string>;
+    /**
+     * Max Decisions
+     */
+    max_decisions?: number;
+    /**
+     * Max Detail Rows
+     */
+    max_detail_rows?: number;
+    /**
+     * Max Uncompressed Bytes
+     */
+    max_uncompressed_bytes?: number;
+    /**
+     * Mode
+     */
+    mode?: 'off' | 'summary' | 'research';
+    observation_window?: DateRange | null;
+    /**
+     * Stage Ids
+     */
+    stage_ids?: Array<string>;
 };
 
 /**
@@ -805,6 +964,20 @@ export type DatasetPublic = {
 };
 
 /**
+ * DateRange
+ */
+export type DateRange = {
+    /**
+     * End
+     */
+    end: string;
+    /**
+     * Start
+     */
+    start: string;
+};
+
+/**
  * DateWindow
  */
 export type DateWindow = {
@@ -816,6 +989,148 @@ export type DateWindow = {
      * Start
      */
     start: string;
+};
+
+/**
+ * DecisionDetail
+ */
+export type DecisionDetail = {
+    context: TraceContext;
+    decision: DecisionHeader | null;
+    features: FeaturePage;
+    /**
+     * Instrument Id
+     */
+    instrument_id: string | null;
+    predicates: PredicatePage;
+    /**
+     * Stage Id
+     */
+    stage_id: string | null;
+    /**
+     * Stages
+     */
+    stages: Array<TraceStage> | null;
+};
+
+/**
+ * DecisionHeader
+ */
+export type DecisionHeader = {
+    /**
+     * Callback Phase
+     */
+    callback_phase: string;
+    /**
+     * Data Event Id
+     */
+    data_event_id: string;
+    /**
+     * Decision Id
+     */
+    decision_id: string;
+    /**
+     * Decision Time
+     */
+    decision_time: string;
+    /**
+     * Event Seq
+     */
+    event_seq: number;
+    /**
+     * Information Cutoff
+     */
+    information_cutoff: string;
+    /**
+     * Instrument Id
+     */
+    instrument_id: string | null;
+    /**
+     * Market Timezone
+     */
+    market_timezone: string;
+    pre_state: PortfolioState | null;
+    /**
+     * Pre State Missing Reason
+     */
+    pre_state_missing_reason: string | null;
+    /**
+     * Scope
+     */
+    scope: 'portfolio' | 'instrument';
+};
+
+/**
+ * DecisionIndex
+ */
+export type DecisionIndex = {
+    /**
+     * Callback Phase
+     */
+    callback_phase: string;
+    /**
+     * Data Event Id
+     */
+    data_event_id: string;
+    /**
+     * Decision Id
+     */
+    decision_id: string;
+    /**
+     * Decision Time
+     */
+    decision_time: string;
+    /**
+     * Event Seq
+     */
+    event_seq: number;
+    /**
+     * Information Cutoff
+     */
+    information_cutoff: string;
+    /**
+     * Instrument Id
+     */
+    instrument_id: string | null;
+    /**
+     * Market Timezone
+     */
+    market_timezone: string;
+    /**
+     * Scope
+     */
+    scope: 'portfolio' | 'instrument';
+    /**
+     * Session Date
+     */
+    session_date: string;
+    /**
+     * Stage Ids
+     */
+    stage_ids: Array<string>;
+};
+
+/**
+ * DecisionPage
+ */
+export type DecisionPage = {
+    context: TraceContext;
+    /**
+     * Items
+     */
+    items: Array<DecisionIndex> | null;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Total
+     */
+    total: number | null;
 };
 
 /**
@@ -931,6 +1246,64 @@ export type ErrorResponse = {
      * Message
      */
     message: string;
+};
+
+/**
+ * EvaluationBinding
+ */
+export type EvaluationBinding = {
+    /**
+     * Candidate Id
+     */
+    candidate_id: string | null;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Dataset Sha256
+     */
+    dataset_sha256: string;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Engine Dependencies Sha256
+     */
+    engine_dependencies_sha256: string;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    /**
+     * Execution Attempt Id
+     */
+    execution_attempt_id: string;
+    /**
+     * Execution Config Sha256
+     */
+    execution_config_sha256: string;
+    /**
+     * Result Manifest Sha256
+     */
+    result_manifest_sha256: string;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+    /**
+     * Universe Sha256
+     */
+    universe_sha256: string | null;
+    /**
+     * Universe Version Id
+     */
+    universe_version_id: string | null;
 };
 
 /**
@@ -1307,6 +1680,82 @@ export type ExposureSnapshot = {
      * Tracking Coverage
      */
     tracking_coverage?: 'historical tracking incomplete/external use unknown';
+};
+
+/**
+ * Feature
+ */
+export type Feature = {
+    /**
+     * Calculation Window
+     */
+    calculation_window: string;
+    /**
+     * Feature Id
+     */
+    feature_id: string;
+    /**
+     * Information Cutoff
+     */
+    information_cutoff: string;
+    /**
+     * Instrument Id
+     */
+    instrument_id?: string | null;
+    /**
+     * Missing Reason
+     */
+    missing_reason?: string | null;
+    /**
+     * Source
+     */
+    source: 'llm_explanation' | 'static_inference' | 'strategy_emitted' | 'adapter_observed' | 'engine_observed' | 'experiment_result';
+    source_ref?: SourceRef | null;
+    /**
+     * Unit
+     */
+    unit: string;
+    /**
+     * Validity
+     */
+    validity: 'valid' | 'warmup_insufficient' | 'input_missing' | 'calculation_error' | 'not_collected' | 'not_sampled';
+    /**
+     * Value
+     */
+    value: number | number | string | boolean | null;
+};
+
+/**
+ * FeaturePage
+ */
+export type FeaturePage = {
+    /**
+     * Items
+     */
+    items: Array<FeatureRow> | null;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Total
+     */
+    total: number | null;
+};
+
+/**
+ * FeatureRow
+ */
+export type FeatureRow = {
+    observation: Feature;
+    /**
+     * Stage Id
+     */
+    stage_id: string;
 };
 
 /**
@@ -2924,6 +3373,48 @@ export type OrderCapabilities = {
 };
 
 /**
+ * OrderLink
+ */
+export type OrderLink = {
+    /**
+     * Child Order Ids
+     */
+    child_order_ids: Array<string>;
+    /**
+     * Fill Ids
+     */
+    fill_ids: Array<string>;
+    /**
+     * Fill Times
+     */
+    fill_times: Array<string>;
+    /**
+     * Instrument Id
+     */
+    instrument_id: string;
+    /**
+     * Logical Order Id
+     */
+    logical_order_id: string;
+    /**
+     * Rejection Reason
+     */
+    rejection_reason?: string | null;
+    /**
+     * Source
+     */
+    source: 'llm_explanation' | 'static_inference' | 'strategy_emitted' | 'adapter_observed' | 'engine_observed' | 'experiment_result';
+    /**
+     * Status
+     */
+    status: 'intended' | 'accepted' | 'rejected' | 'unfilled' | 'partially_filled' | 'filled' | 'cancelled' | 'unknown';
+    /**
+     * Submitted At
+     */
+    submitted_at: string | null;
+};
+
+/**
  * Page[ArtifactPublic]
  */
 export type PageArtifactPublic = {
@@ -4454,6 +4945,7 @@ export type PortableRunConfig = {
      * Prompt Version
      */
     prompt_version?: 'portable_business_rules.v1';
+    research_capture?: CaptureConfig | null;
     /**
      * Schema Version
      */
@@ -4518,6 +5010,7 @@ export type PortableRunCreate = {
      * Prompt Version
      */
     prompt_version?: 'portable_business_rules.v1';
+    research_capture?: CaptureConfig | null;
     /**
      * Schema Version
      */
@@ -4937,6 +5430,122 @@ export type PortableUploadDeclaration = {
      * Symbol
      */
     symbol: string;
+};
+
+/**
+ * PortfolioState
+ */
+export type PortfolioState = {
+    /**
+     * Cash
+     */
+    cash: number | null;
+    /**
+     * Coverage
+     */
+    coverage: 'complete' | 'partial' | 'not_collected' | 'not_sampled' | 'unsupported';
+    /**
+     * Equity
+     */
+    equity?: number | null;
+    /**
+     * Missing Reason
+     */
+    missing_reason?: string | null;
+    /**
+     * Open Orders
+     */
+    open_orders: Array<{
+        [key: string]: unknown;
+    }> | null;
+    /**
+     * Positions
+     */
+    positions: Array<{
+        [key: string]: unknown;
+    }> | null;
+    /**
+     * Source
+     */
+    source: 'llm_explanation' | 'static_inference' | 'strategy_emitted' | 'adapter_observed' | 'engine_observed' | 'experiment_result';
+    /**
+     * Strategy State
+     */
+    strategy_state?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * Predicate
+ */
+export type Predicate = {
+    /**
+     * Condition Id
+     */
+    condition_id: string;
+    /**
+     * Instrument Id
+     */
+    instrument_id?: string | null;
+    /**
+     * Missing Reason
+     */
+    missing_reason?: string | null;
+    /**
+     * Operands
+     */
+    operands: Array<unknown> | null;
+    /**
+     * Operator
+     */
+    operator: 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'neq' | 'in' | 'and' | 'or' | 'not' | 'custom';
+    /**
+     * Source
+     */
+    source: 'llm_explanation' | 'static_inference' | 'strategy_emitted' | 'adapter_observed' | 'engine_observed' | 'experiment_result';
+    source_ref?: SourceRef | null;
+    /**
+     * State
+     */
+    state: 'true' | 'false' | 'not_evaluated' | 'unknown' | 'not_sampled';
+    /**
+     * Threshold
+     */
+    threshold?: unknown;
+};
+
+/**
+ * PredicatePage
+ */
+export type PredicatePage = {
+    /**
+     * Items
+     */
+    items: Array<PredicateRow> | null;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Total
+     */
+    total: number | null;
+};
+
+/**
+ * PredicateRow
+ */
+export type PredicateRow = {
+    observation: Predicate;
+    /**
+     * Stage Id
+     */
+    stage_id: string;
 };
 
 /**
@@ -5611,6 +6220,7 @@ export type ResearchRunCreate = {
      * Prompt Version
      */
     prompt_version?: 'source_prompts.v1';
+    research_capture?: CaptureConfig | null;
     /**
      * Schema Version
      */
@@ -6551,6 +7161,7 @@ export type RunConfig = {
      * Prompt Version
      */
     prompt_version?: 'source_prompts.v1';
+    research_capture?: CaptureConfig | null;
     /**
      * Schema Version
      */
@@ -6841,6 +7452,32 @@ export type SlippageConfig = {
      * Value
      */
     value?: number;
+};
+
+/**
+ * SourceRef
+ */
+export type SourceRef = {
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * File
+     */
+    file: string;
+    /**
+     * Line End
+     */
+    line_end: number;
+    /**
+     * Line Start
+     */
+    line_start: number;
+    /**
+     * Symbol
+     */
+    symbol: string;
 };
 
 /**
@@ -7228,6 +7865,145 @@ export type Token = {
      * Token Type
      */
     token_type?: 'bearer';
+};
+
+/**
+ * TraceContext
+ */
+export type TraceContext = {
+    binding?: EvaluationBinding | null;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    /**
+     * Execution Attempt Id
+     */
+    execution_attempt_id: string;
+    /**
+     * Missing Reason
+     */
+    missing_reason?: string | null;
+    /**
+     * Result Manifest Sha256
+     */
+    result_manifest_sha256: string;
+    /**
+     * Status
+     */
+    status: 'available' | 'not_collected';
+    /**
+     * Trace Manifest Sha256
+     */
+    trace_manifest_sha256: string | null;
+};
+
+/**
+ * TraceManifest
+ */
+export type TraceManifest = {
+    /**
+     * Artifacts
+     */
+    artifacts: Array<ArtifactRef>;
+    binding: EvaluationBinding;
+    capture: CaptureConfig;
+    /**
+     * Coverage
+     */
+    coverage: 'complete' | 'partial' | 'not_collected' | 'not_sampled' | 'unsupported';
+    /**
+     * Decisions Saved
+     */
+    decisions_saved: number;
+    /**
+     * Decisions Seen
+     */
+    decisions_seen: number;
+    /**
+     * Detail Rows Saved
+     */
+    detail_rows_saved: number;
+    /**
+     * Detail Rows Seen
+     */
+    detail_rows_seen: number;
+    /**
+     * Missing Reasons
+     */
+    missing_reasons: Array<string>;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.decision-trace.v2';
+    /**
+     * Source
+     */
+    source: 'llm_explanation' | 'static_inference' | 'strategy_emitted' | 'adapter_observed' | 'engine_observed' | 'experiment_result';
+    /**
+     * Stage Coverage
+     */
+    stage_coverage: {
+        [key: string]: 'complete' | 'partial' | 'not_collected' | 'not_sampled' | 'unsupported';
+    };
+    /**
+     * Trust Boundary
+     */
+    trust_boundary: string;
+};
+
+/**
+ * TraceManifestPublic
+ */
+export type TraceManifestPublic = {
+    context: TraceContext;
+    manifest: TraceManifest | null;
+};
+
+/**
+ * TraceStage
+ */
+export type TraceStage = {
+    /**
+     * Candidates Saved
+     */
+    candidates_saved: number;
+    /**
+     * Constrained Plan
+     */
+    constrained_plan: Array<{
+        [key: string]: unknown;
+    }> | null;
+    /**
+     * Coverage
+     */
+    coverage: 'complete' | 'partial' | 'not_collected' | 'not_sampled' | 'unsupported';
+    /**
+     * Features Saved
+     */
+    features_saved: number;
+    /**
+     * Missing Reason
+     */
+    missing_reason: string | null;
+    /**
+     * Order Links
+     */
+    order_links: Array<OrderLink>;
+    /**
+     * Predicates Saved
+     */
+    predicates_saved: number;
+    /**
+     * Raw Targets
+     */
+    raw_targets: Array<{
+        [key: string]: unknown;
+    }> | null;
+    /**
+     * Stage Id
+     */
+    stage_id: string;
 };
 
 /**
@@ -8824,6 +9600,314 @@ export type ReadResearchEvaluationResponses = {
 };
 
 export type ReadResearchEvaluationResponse = ReadResearchEvaluationResponses[keyof ReadResearchEvaluationResponses];
+
+export type ReadTraceDecisionsData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: {
+        /**
+         * Start
+         */
+        start?: string | null;
+        /**
+         * End
+         */
+        end?: string | null;
+        /**
+         * Stage Id
+         */
+        stage_id?: string | null;
+        /**
+         * Instrument Id
+         */
+        instrument_id?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Execution Attempt Id
+         */
+        execution_attempt_id?: string | null;
+        /**
+         * Result Manifest Sha256
+         */
+        result_manifest_sha256?: string | null;
+        /**
+         * Trace Manifest Sha256
+         */
+        trace_manifest_sha256?: string | null;
+    };
+    url: '/api/v1/evaluations/{evaluation_id}/decisions';
+};
+
+export type ReadTraceDecisionsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadTraceDecisionsError = ReadTraceDecisionsErrors[keyof ReadTraceDecisionsErrors];
+
+export type ReadTraceDecisionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DecisionPage;
+};
+
+export type ReadTraceDecisionsResponse = ReadTraceDecisionsResponses[keyof ReadTraceDecisionsResponses];
+
+export type ReadTraceDecisionData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+        /**
+         * Decision Id
+         */
+        decision_id: string;
+    };
+    query?: {
+        /**
+         * Stage Id
+         */
+        stage_id?: string | null;
+        /**
+         * Instrument Id
+         */
+        instrument_id?: string | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Execution Attempt Id
+         */
+        execution_attempt_id?: string | null;
+        /**
+         * Result Manifest Sha256
+         */
+        result_manifest_sha256?: string | null;
+        /**
+         * Trace Manifest Sha256
+         */
+        trace_manifest_sha256?: string | null;
+    };
+    url: '/api/v1/evaluations/{evaluation_id}/decisions/{decision_id}';
+};
+
+export type ReadTraceDecisionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadTraceDecisionError = ReadTraceDecisionErrors[keyof ReadTraceDecisionErrors];
+
+export type ReadTraceDecisionResponses = {
+    /**
+     * Successful Response
+     */
+    200: DecisionDetail;
+};
+
+export type ReadTraceDecisionResponse = ReadTraceDecisionResponses[keyof ReadTraceDecisionResponses];
+
+export type ReadTraceCandidatesData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+        /**
+         * Decision Id
+         */
+        decision_id: string;
+    };
+    query?: {
+        /**
+         * Stage Id
+         */
+        stage_id?: string | null;
+        /**
+         * Instrument Id
+         */
+        instrument_id?: string | null;
+        /**
+         * Eligibility
+         */
+        eligibility?: 'eligible' | 'ineligible' | 'unknown' | 'not_sampled' | null;
+        /**
+         * Reason
+         */
+        reason?: 'outside_universe' | 'feature_unavailable' | 'eligibility_filter' | 'rank_not_selected' | 'holding_retained' | 'position_slots' | 'portfolio_constraint' | 'cash_constraint' | 'timing_not_triggered' | 'order_rejected' | 'order_unfilled' | 'partial_fill' | 'not_evaluated' | 'not_collected' | 'not_sampled' | 'selected' | 'exit' | null;
+        /**
+         * Rank Min
+         */
+        rank_min?: number | null;
+        /**
+         * Rank Max
+         */
+        rank_max?: number | null;
+        /**
+         * Score Min
+         */
+        score_min?: number | null;
+        /**
+         * Score Max
+         */
+        score_max?: number | null;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Execution Attempt Id
+         */
+        execution_attempt_id?: string | null;
+        /**
+         * Result Manifest Sha256
+         */
+        result_manifest_sha256?: string | null;
+        /**
+         * Trace Manifest Sha256
+         */
+        trace_manifest_sha256?: string | null;
+    };
+    url: '/api/v1/evaluations/{evaluation_id}/decisions/{decision_id}/candidates';
+};
+
+export type ReadTraceCandidatesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadTraceCandidatesError = ReadTraceCandidatesErrors[keyof ReadTraceCandidatesErrors];
+
+export type ReadTraceCandidatesResponses = {
+    /**
+     * Successful Response
+     */
+    200: CandidatePage;
+};
+
+export type ReadTraceCandidatesResponse = ReadTraceCandidatesResponses[keyof ReadTraceCandidatesResponses];
+
+export type ReadTraceManifestData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: {
+        /**
+         * Execution Attempt Id
+         */
+        execution_attempt_id?: string | null;
+        /**
+         * Result Manifest Sha256
+         */
+        result_manifest_sha256?: string | null;
+        /**
+         * Trace Manifest Sha256
+         */
+        trace_manifest_sha256?: string | null;
+    };
+    url: '/api/v1/evaluations/{evaluation_id}/trace-manifest';
+};
+
+export type ReadTraceManifestErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadTraceManifestError = ReadTraceManifestErrors[keyof ReadTraceManifestErrors];
+
+export type ReadTraceManifestResponses = {
+    /**
+     * Successful Response
+     */
+    200: TraceManifestPublic;
+};
+
+export type ReadTraceManifestResponse = ReadTraceManifestResponses[keyof ReadTraceManifestResponses];
 
 export type ListExperimentsData = {
     body?: never;

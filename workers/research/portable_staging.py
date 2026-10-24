@@ -184,6 +184,8 @@ def _write_portable_inputs(
             "market_data_sha256": staged.report.market_data_sha256,
         },
     }
+    if config.research_capture is not None:
+        request["research_capture"] = config.research_capture.model_dump(mode="json")
     target = Path(target)
     if any(path.is_symlink() for path in (target, *target.parents)):
         raise ValueError("Portable input path cannot traverse a symlink")

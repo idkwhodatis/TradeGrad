@@ -165,7 +165,7 @@ class CandidateObservation(Contract):
     reason_detail: str | None = Field(default=None, max_length=500)
     score: float | None
     score_validity: ValueState
-    rank: int | None = Field(default=None, ge=1)
+    rank: int | None = Field(default=None, ge=1, le=2**63 - 1)
     ranking_direction: Literal["ascending", "descending"] | None = None
     tie_break: str | None = Field(default=None, max_length=200)
     selected: bool | None
@@ -268,7 +268,7 @@ class StageObservation(Contract):
 class DecisionRecord(Contract):
     decision_id: Identifier
     data_event_id: Identifier
-    event_seq: int = Field(ge=0)
+    event_seq: int = Field(ge=0, le=2**63 - 1)
     scope: Literal["portfolio", "instrument"]
     instrument_id: Identifier | None = None
     callback_phase: Identifier

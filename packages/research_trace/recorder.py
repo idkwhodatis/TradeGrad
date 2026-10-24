@@ -86,8 +86,18 @@ class Recorder:
         code_sha256: str,
         config: CaptureConfig | None = None,
         on_record: Callable[[DecisionRecord], None] | None = None,
+        source: str = "strategy_emitted",
+        trust_boundary: str | None = None,
     ):
         self.code_sha256 = code_sha256
+        from .transport import NATIVE_TRUST, PORTABLE_TRUST
+
+        if source not in ("strategy_emitted", "engine_observed"):
+            raise ValueError("Unsupported recorder source")
+        self.source = source
+        self.trust_boundary = trust_boundary or (
+            NATIVE_TRUST if source == "strategy_emitted" else PORTABLE_TRUST
+        )
         self.config = config or CaptureConfig()
         self._on_record = on_record
         self.records: list[DecisionRecord] = []
@@ -351,6 +361,6 @@ class Recorder:
             "detail_rows_seen": self.detail_rows_seen,
             "detail_rows_saved": self.detail_rows_saved,
             "stage_coverage": dict(self.stage_coverage),
-            "source": "strategy_emitted",
-            "trust_boundary": "Native strategy and engine share a process. Emitted observations are not an independently trusted ledger or no-lookahead proof.",
+            "source": self.source,
+            "trust_boundary": self.trust_boundary,
         }

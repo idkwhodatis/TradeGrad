@@ -10,11 +10,13 @@ ROOT = Path(__file__).resolve().parents[2]
 # never caches, secrets, candidate artifacts or untracked deployment data.
 TREES = (
     "packages/strategy_sdk",
+    "packages/research_trace",
     "runtimes/portable_engine",
     "runtimes/portable_policy",
 )
 INPUTS = (
     "workers/research/containment.py",
+    "workers/research/trace_publication.py",
     "backend/app/core/atomic_storage.py",
     "backend/app/services.py",
     "backend/app/experiment_services.py",

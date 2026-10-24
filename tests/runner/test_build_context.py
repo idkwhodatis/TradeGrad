@@ -47,3 +47,36 @@ def test_native_allowlist_does_not_open_operational_data_or_secrets():
         "!.git/",
         "!.venv/",
     }
+
+
+def test_research_capture_runtime_closure_is_explicit_and_minimal():
+    rules = (ROOT / ".dockerignore").read_text().splitlines()
+    assert "!packages/research_trace/" in rules
+    copied = set()
+    for dockerfile in (
+        "runtimes/evaluator/Dockerfile",
+        "runtimes/portable_engine/Dockerfile",
+    ):
+        for line in (ROOT / dockerfile).read_text().splitlines():
+            if line.startswith("COPY "):
+                copied.update(
+                    source
+                    for source in shlex.split(line)[1:-1]
+                    if source.startswith("packages/research_trace/")
+                )
+    assert copied == {
+        f"packages/research_trace/{name}.py"
+        for name in (
+            "__init__",
+            "contracts",
+            "recorder",
+            "transport",
+            "native",
+            "portable",
+        )
+    }
+    for source in copied:
+        assert (ROOT / source).is_file()
+        assert f"!{source}" in rules
+    assert "!packages/research_trace/*.py" not in rules
+    assert "!packages/research_trace/storage.py" not in rules

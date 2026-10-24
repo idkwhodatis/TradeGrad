@@ -47,7 +47,22 @@ def main(input_dir=Path("/input")):
         sequence += 1
         return response["reply"]
 
-    result = execute(inputs, exchange)
+    from packages.research_trace.contracts import CaptureConfig
+    from packages.research_trace.recorder import Recorder
+    from packages.research_trace.transport import MAX_FRAME_BYTES, CaptureWriter
+
+    config = inputs.capture_config or CaptureConfig()
+    capture_writer = CaptureWriter(
+        config, lambda value: write_frame(wire, value, MAX_FRAME_BYTES)
+    )
+    recorder = Recorder(
+        code_sha256=inputs.manifest.code_sha256,
+        config=config,
+        on_record=capture_writer.append,
+        source="engine_observed",
+    )
+    result = execute(inputs, exchange, research_recorder=recorder)
+    capture_writer.finish(recorder.summary())
     write_frame(
         wire, result_envelope(evaluation_id, sequence, result), MAX_RESULT_BYTES
     )

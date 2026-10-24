@@ -108,6 +108,10 @@ def synthetic_result(
         "benchmark": None,
         "run_config_sha256": binding_hash,
     }
+    if config.research_capture is not None:
+        eval_config["research_capture"] = config.research_capture.model_dump(
+            mode="json"
+        )
     if config.strategy_contract is not None:
         eval_config["strategy_contract"] = config.strategy_contract.model_dump(
             mode="json"

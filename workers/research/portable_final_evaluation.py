@@ -23,6 +23,10 @@ from workers.research.portable_optimization import (
     publish_portable_artifacts,
     publish_portable_environment,
 )
+from workers.research.trace_publication import (
+    attach_trace_reference,
+    prepare_trace_artifacts,
+)
 
 
 @guarded_worker
@@ -172,6 +176,19 @@ def execute_portable_final(run_id, generation, settings, factory):
                     max_bytes=settings.max_artifact_bytes,
                     benchmark_input=benchmark_input,
                 )
+                if bundle is not None:
+                    result["bundle"] = bundle
+                records.extend(
+                    prepare_trace_artifacts(
+                        factory=factory,
+                        settings=settings,
+                        config=config,
+                        evaluation_id=evaluation_id,
+                        result=result,
+                        records=records,
+                        root=root,
+                    )
+                )
                 if bundle:
                     outcome.update(
                         metrics=bundle["summary"],
@@ -203,6 +220,7 @@ def execute_portable_final(run_id, generation, settings, factory):
                         },
                     )
                     session.add(artifact)
+                    attach_trace_reference(outcome, artifact, record["name"], result)
                     if record["name"] == "portable-result.json":
                         outcome["portable_result"] = {
                             "artifact_id": str(artifact.id),

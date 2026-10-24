@@ -10,8 +10,9 @@ import hashlib
 from datetime import date
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_serializer, model_validator
 
+from packages.research_trace.contracts import CaptureConfig
 from packages.strategy_sdk import StateSnapshot, canonical_json, parse_json
 from runtimes.portable_engine.runtime import reviewed_profile
 
@@ -144,8 +145,16 @@ class PortableRunConfig(FrozenModel):
     prompt_version: Literal["portable_business_rules.v1"] = "portable_business_rules.v1"
     environment_digest: Sha256
     benchmark: BenchmarkConfig | None = None
+    research_capture: CaptureConfig | None = None
     conformance: Literal["interface_only"] = "interface_only"
     external_framework_equivalence: Literal["not_certified"] = "not_certified"
+
+    @model_serializer(mode="wrap")
+    def historical_capture_representation(self, serializer):
+        values = serializer(self)
+        if self.research_capture is None:
+            values.pop("research_capture", None)
+        return values
 
     @model_validator(mode="after")
     def portable_semantics(self):

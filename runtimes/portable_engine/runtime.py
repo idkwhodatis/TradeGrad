@@ -16,6 +16,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_FLOOR, Decimal
 
+from packages.research_trace.contracts import CaptureConfig
+from packages.research_trace.portable import PortableCapture
 from packages.strategy_sdk import (
     AccountView,
     BarView,
@@ -235,6 +237,7 @@ class Inputs:
     sessions: tuple[Session, ...]
     profile: dict
     by_session: dict = field(default_factory=dict)
+    capture_config: CaptureConfig | None = None
 
     def effective(self, session: Session):
         return tuple(
@@ -259,7 +262,12 @@ def load_inputs(
             "initial_cash",
             "initial_state",
             "input_identity",
-        },
+        }
+        | (
+            {"research_capture"}
+            if type(request) is dict and "research_capture" in request
+            else set()
+        ),
         "engine request",
     )
     if request["schema_version"] != REQUEST_VERSION:
@@ -349,6 +357,11 @@ def load_inputs(
         bars,
         sessions,
         profile,
+        capture_config=(
+            CaptureConfig.model_validate(request["research_capture"])
+            if "research_capture" in request
+            else None
+        ),
     )
     known_sessions = {s.session_date: s for s in sessions}
     for bar in bars:
@@ -511,7 +524,7 @@ def status_name(value) -> str:
 class Controller:
     """Trusted sequencing, account projection, deduplication and order planning."""
 
-    def __init__(self, inputs: Inputs, exchange: Callable):
+    def __init__(self, inputs: Inputs, exchange: Callable, research_recorder=None):
         if inputs.profile != reviewed_profile(
             inputs.manifest.market, inputs.initial_cash
         ):
@@ -524,6 +537,7 @@ class Controller:
         self.order_events = []
         self.current_session = None
         self.native_start_verified = False
+        self.research = PortableCapture(research_recorder)
 
     def verify_native_start(self, broker):
         """Called before the first native bar callback; no seeded inventory.
@@ -742,11 +756,15 @@ class Controller:
             raise ValueError(
                 "SDK projection must preserve independent effective universe"
             )
+        # Copy the exact before-state before calling even the isolated exchange.
+        # Capture is observation-only and cannot alter the validated SDK input.
+        self.research.begin(self, observation, broker)
         raw = self.exchange(observation)
         reply = parse_reply(canonical_json(raw), self.inputs.manifest, observation)
+        self.research.received(observation, reply)
         decision = reply.decision
         before = self.state.payload_sha256
-        outcome, logical_ids = "no_orders", []
+        outcome, logical_ids, plans = "no_orders", [], []
         if isinstance(reply, PortfolioReply):
             intents = (decision,)
         else:
@@ -841,6 +859,7 @@ class Controller:
                     outcome = "submitted"
         else:
             outcome = "warmup_state_only"
+        self.research.planned(self, plans, logical_ids, outcome)
         self.state = reply.next_state
         self.trace.append(
             {
@@ -860,6 +879,7 @@ class Controller:
             }
         )
         self.completed.add(session.session_date)
+        self.research.end()
 
     def _budget_price(self, price):
         return (
@@ -975,7 +995,7 @@ class DailyDecisionBarrier:
         self.controller.on_session(session, broker, aq)
 
 
-def execute(inputs: Inputs, exchange: Callable):
+def execute(inputs: Inputs, exchange: Callable, research_recorder=None):
     """Container-only real native execution. Never called by host fallbacks."""
     if os.environ.get("TRADEGRAD_PORTABLE_ENGINE_CONTAINER") != "1":
         raise RuntimeError(
@@ -987,7 +1007,7 @@ def execute(inputs: Inputs, exchange: Callable):
 
     if importlib.metadata.version("akquant") != "0.3.27":
         raise ValueError("unreviewed AKQuant runtime version")
-    controller = Controller(inputs, exchange)
+    controller = Controller(inputs, exchange, research_recorder=research_recorder)
     start = date.fromisoformat(inputs.window["start"])
     active = [s for s in inputs.sessions if s.session_date >= start]
     # Explicit state-only replay avoids AKQuant's suppressed pre-active callbacks.
@@ -1073,4 +1093,6 @@ def execute(inputs: Inputs, exchange: Callable):
     controller._refresh(broker)
     from .export import export_result
 
-    return export_result(result, controller)
+    bundle = export_result(result, controller)
+    controller.research.finalize(controller, bundle)
+    return bundle

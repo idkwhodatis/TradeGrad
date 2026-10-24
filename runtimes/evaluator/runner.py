@@ -191,7 +191,9 @@ def _without_protocol(value: bytes) -> str:
     return "\n".join(
         line
         for line in value.decode("utf-8", errors="replace").splitlines()
-        if not line.startswith((RESULT_PREFIX, "TRADEGRAD_RESULT_V2:"))
+        if not line.startswith(
+            (RESULT_PREFIX, "TRADEGRAD_RESULT_V2:", "TRADEGRAD_TRACE_V1:")
+        )
     )
 
 
@@ -570,6 +572,7 @@ class DockerEvaluator:
         if any(output_dir.iterdir()):
             raise ValueError("Refusing to reuse a nonempty evaluation output namespace")
         expected_identity = None
+        capture_receiver = capture_demux = None
         capture_allowance = 0
         if expected_config_sha256 is not None:
             from packages.tradegrad_adapter.results import (
@@ -600,7 +603,35 @@ class DockerEvaluator:
                 "profile": request["profile"],
             }
             capture_allowance = 4 * ((MAX_WIRE_BYTES + 2) // 3) + 128
-            self.wire_log_allowance = capture_allowance
+            from packages.research_trace.contracts import CaptureConfig
+            from packages.research_trace.transport import (
+                MAX_COMPRESSED_BYTES,
+                CaptureReceiver,
+                NativeCaptureDemultiplexer,
+            )
+
+            capture_config = CaptureConfig.model_validate(
+                config.get("research_capture", {})
+            )
+            capture_receiver = CaptureReceiver(
+                output_dir,
+                capture_config,
+                source="strategy_emitted",
+                compressed_limit=min(
+                    MAX_COMPRESSED_BYTES,
+                    max(0, self.output_bytes - MAX_WIRE_BYTES - 1_048_576),
+                ),
+            )
+            capture_demux = NativeCaptureDemultiplexer(
+                capture_receiver, other_limit=self.log_bytes + capture_allowance
+            )
+            # Trace has a separate bounded data budget; ordinary logs and the
+            # economic result retain their previous limits. No host mount is added.
+            self.wire_log_allowance = (
+                capture_allowance
+                + 4 * ((MAX_COMPRESSED_BYTES + 2) // 3)
+                + 2 * 1024 * 1024
+            )
         image_id = self._image_id()
         self._preflight()
         # Callbacks can acquire DB row locks. Never call one while holding flock,
@@ -657,6 +688,8 @@ class DockerEvaluator:
                     }
                 raise
         logs = {"stdout": bytearray(), "stderr": bytearray()}
+        capture_errors = []
+        research_result = {}
         exceeded = threading.Event()
         process = None
         threads: list[threading.Thread] = []
@@ -687,6 +720,14 @@ class DockerEvaluator:
         def capture(pipe, name):
             try:
                 while chunk := pipe.read(8192):
+                    if name == "stdout" and capture_demux is not None:
+                        try:
+                            capture_demux.feed(chunk)
+                        except (ValueError, OSError, TypeError) as exc:
+                            capture_errors.append(str(exc))
+                            exceeded.set()
+                            break
+                        continue
                     remaining = (
                         self.log_bytes
                         + (capture_allowance if name == "stdout" else 0)
@@ -694,6 +735,16 @@ class DockerEvaluator:
                     )
                     logs[name].extend(chunk[: max(0, remaining)])
                     if len(chunk) > remaining:
+                        exceeded.set()
+                if (
+                    name == "stdout"
+                    and capture_demux is not None
+                    and not capture_errors
+                ):
+                    try:
+                        logs[name].extend(capture_demux.finish())
+                    except (ValueError, OSError, TypeError) as exc:
+                        capture_errors.append(str(exc))
                         exceeded.set()
             finally:
                 pipe.close()
@@ -762,6 +813,8 @@ class DockerEvaluator:
                         > self.log_bytes
                     ):
                         raise ValueError("Evaluation exceeded its ordinary log budget")
+                    if capture_receiver is not None:
+                        research_result = capture_receiver.result()
                     metrics, bundle = decode_result_protocol(
                         bytes(logs["stdout"]),
                         output_dir,
@@ -798,7 +851,12 @@ class DockerEvaluator:
                     process.wait(timeout=5)
             for thread in threads:
                 thread.join(timeout=5)
+        if status != "succeeded" and capture_receiver is not None:
+            capture_receiver.abort()
+        if capture_errors and status == "failed":
+            error = "Research capture transport rejected: " + capture_errors[0]
         return {
+            **(research_result if status == "succeeded" else {}),
             "status": status,
             "exit_code": exit_code,
             "error": error,

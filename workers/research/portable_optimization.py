@@ -60,6 +60,10 @@ from workers.research.portable_staging import (
     stage_portable_input,
     validate_portable_binding,
 )
+from workers.research.trace_publication import (
+    attach_trace_reference,
+    prepare_trace_artifacts,
+)
 
 LOCKS = (
     "runtimes/evaluator/requirements.lock",
@@ -474,6 +478,19 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
                     max_bytes=settings.max_artifact_bytes,
                     benchmark_input=benchmark_input,
                 )
+                if bundle is not None:
+                    result["bundle"] = bundle
+                records.extend(
+                    prepare_trace_artifacts(
+                        factory=factory,
+                        settings=settings,
+                        config=config,
+                        evaluation_id=evaluation_id,
+                        result=result,
+                        records=records,
+                        root=root,
+                    )
+                )
                 if bundle:
                     small.update(
                         metrics=bundle["summary"],
@@ -495,6 +512,7 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
                             },
                         )
                         session.add(item)
+                        attach_trace_reference(small, item, record["name"], result)
                         if record["name"] == "portable-result.json":
                             small["portable_result"] = {
                                 "artifact_id": str(item.id),
