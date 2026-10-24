@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import sys
 from collections import defaultdict
 from contextlib import ExitStack
 from dataclasses import replace
@@ -34,7 +35,15 @@ from .comparison_contracts import (
     ConfigurationDifference,
     MechanismChange,
 )
-from .comparison_semantics import equal_value, group_record
+from .comparison_semantics import (
+    SourceReuse,
+    TraceInputRow,
+    TraceObservation,
+    equal_value,
+    group_record,
+    release_source_observation,
+    trace_retention_saving,
+)
 from .comparison_storage import (
     ComparisonControl,
     ComparisonReader,
@@ -656,7 +665,9 @@ def _details(connection, scan, event):
     return header, indexed
 
 
-def _observe_section(connection, scan, event, stages, table):
+def _observe_section(
+    connection, scan, event, stages, table, *, make_reuse=False, reuse=None
+):
     if event is None:
         return {}
     rows = list(
@@ -666,6 +677,8 @@ def _observe_section(connection, scan, event, stages, table):
             decision_id=event["decision_id"],
             day=event["session_date"],
             semantic_projection=True,
+            retain_source=make_reuse,
+            reuse=reuse,
         )
     )
     expected = sum(row[f"{table}_saved"] for row in stages.values())
@@ -673,14 +686,28 @@ def _observe_section(connection, scan, event, stages, table):
         raise ComparisonError()
     grouped = defaultdict(list)
     seen = set()
-    for row in rows:
-        stage, payload = row["stage_id"], row["payload"]
-        identity = (stage, row["ordinal"])
+    saved = 0
+    for index, row in enumerate(rows):
+        if isinstance(row, TraceInputRow):
+            stage, ordinal, payload, semantic = (
+                row.stage_id,
+                row.ordinal,
+                row.payload,
+                row.semantic,
+            )
+        else:
+            stage, ordinal, payload, semantic = (
+                row["stage_id"],
+                row["ordinal"],
+                row["payload"],
+                row["_semantic"],
+            )
+        identity = (stage, ordinal)
         if (
             stage not in stages
             or identity in seen
-            or row["ordinal"] < 0
-            or row["ordinal"] >= stages[stage][f"{table}_saved"]
+            or ordinal < 0
+            or ordinal >= stages[stage][f"{table}_saved"]
         ):
             raise ComparisonError()
         seen.add(identity)
@@ -693,14 +720,48 @@ def _observe_section(connection, scan, event, stages, table):
             if table == "predicates"
             else None,
         )
-        grouped[key].append(
-            {
-                "ordinal": row["ordinal"],
-                "record": payload,
-                "semantic": row["_semantic"],
-            }
-        )
+        item = TraceObservation(ordinal, payload, semantic)
+        grouped[key].append(item)
+        if make_reuse:
+            saved += trace_retention_saving(item)
+            # Reuse the already allocated input list, releasing its row metadata.
+            rows[index] = item
+    if make_reuse:
+        for group in grouped.values():
+            if len(group) > 1:
+                for index, item in enumerate(group):
+                    replacement = release_source_observation(item)
+                    saved += trace_retention_saving(
+                        replacement
+                    ) - trace_retention_saving(item)
+                    group[index] = rows[item.ordinal] = replacement
+        # Only singleton groups retain source witnesses. General Counter
+        # matching must not accumulate canonical semantic keys while retaining
+        # another group's worth of original source strings beside them.
+        reuse = SourceReuse(next(iter(stages)), rows)
+        if saved < sys.getsizeof(reuse) + sys.getsizeof(rows):
+            reuse = None
+        return grouped, reuse
     return grouped
+
+
+def _observe_pair(connection, scans, events, stages, table):
+    if (
+        all(events)
+        and len(stages[0]) == len(stages[1]) == 1
+        and stages[0].keys() == stages[1].keys()
+    ):
+        left, reuse = _observe_section(
+            connection, scans[0], events[0], stages[0], table, make_reuse=True
+        )
+        right = _observe_section(
+            connection, scans[1], events[1], stages[1], table, reuse=reuse
+        )
+        return [left, right]
+    return [
+        _observe_section(connection, scan, event, stage, table)
+        for scan, event, stage in zip(scans, events, stages, strict=True)
+    ]
 
 
 def _targets(stages):
@@ -1008,15 +1069,13 @@ def compare_evaluations(
                             paired=bool(le and revent),
                         )
                 for section in ("candidates", "features", "predicates", "targets"):
-                    groups = [
-                        _targets(stages)
+                    groups = (
+                        [_targets(stages) for stages in (lstages, rstages)]
                         if section == "targets"
-                        else _observe_section(connection, scan, event, stages, section)
-                        for scan, event, stages in (
-                            (scans[0], le, lstages),
-                            (scans[1], revent, rstages),
+                        else _observe_pair(
+                            connection, scans, (le, revent), (lstages, rstages), section
                         )
-                    ]
+                    )
                     if section == "targets":
                         for index, stages in enumerate((lstages, rstages)):
                             if any(

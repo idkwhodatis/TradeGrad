@@ -42,8 +42,14 @@ from .comparison_contracts import (
 )
 from .comparison_semantics import (
     CanonicalObservation,
+    SharedJSONRecord,
+    SourceObservation,
+    TraceInputRow,
     observation_payload_size,
     observed_value,
+    source_retention_possible,
+    source_retention_saving,
+    source_semantic_size,
 )
 from .contracts import canonical_bytes, digest
 from .storage import SCHEMAS, TraceReader, TraceStorageError, _table_ref, _verified_file
@@ -229,6 +235,9 @@ def check_file_budget(count, limits):
 
 
 _ROW_SIZE_ENCODER = json.JSONEncoder(separators=(",", ":"), allow_nan=False)
+_SOURCE_ENCODER = json.JSONEncoder(
+    sort_keys=True, separators=(",", ":"), allow_nan=False, ensure_ascii=True
+)
 
 
 def _json_row_size(row):
@@ -295,6 +304,8 @@ class TrustedTraceScan:
         decision_id=None,
         day=None,
         semantic_projection=False,
+        retain_source=False,
+        reuse=None,
     ):
         self.control.check()
         paths = self.source(table, day)
@@ -385,13 +396,30 @@ class TrustedTraceScan:
                         if table == "events"
                         else self.limits.max_event_bytes
                     )
+                    payload_json = row.get("payload")
+                    reused = None
                     if "payload" in row:
                         if len(row["payload"].encode()) > self.limits.max_record_bytes:
                             raise ComparisonError(
                                 "comparison_capacity",
                                 "An exact input observation exceeds the comparison record budget",
                             )
-                        row["payload"] = json.loads(row["payload"])
+                        if (
+                            reuse is not None
+                            and row["stage_id"] == reuse.stage_id
+                            and 0 <= row["ordinal"] < len(reuse.observations)
+                        ):
+                            candidate = reuse.observations[row["ordinal"]].semantic
+                            if (
+                                isinstance(candidate, SourceObservation)
+                                and candidate.raw == payload_json
+                            ):
+                                reused = candidate
+                        row["payload"] = (
+                            reused.record
+                            if reused is not None
+                            else json.loads(payload_json)
+                        )
                     if "stage_ids" in row:
                         row["stage_ids"] = json.loads(row["stage_ids"])
                     if "session_date" in row:
@@ -403,27 +431,51 @@ class TrustedTraceScan:
                         # full source-row size additively, without omitting any
                         # provenance or fixed-column bytes from admission.
                         payload = row["payload"]
-                        semantic = observed_value(payload)
-                        encoded_semantic = CanonicalObservation(
-                            canonical_bytes(semantic), payload
-                        )
-                        payload_size = observation_payload_size(
-                            payload, len(encoded_semantic.raw)
-                        )
+                        if reused is not None:
+                            semantic = reused
+                            payload_size = len(reused.raw)
+                        else:
+                            semantic = observed_value(payload)
+                            source = None
+                            # Release the bounded canonical temporary before
+                            # encoding provenance. Equality proves strict ASCII
+                            # and canonical key order, including nested objects.
+                            if (
+                                retain_source
+                                and source_retention_possible(
+                                    payload_json, semantic, row
+                                )
+                                and _SOURCE_ENCODER.encode(payload) == payload_json
+                            ):
+                                payload_size = len(payload_json)
+                                source = SourceObservation(
+                                    payload_json,
+                                    payload,
+                                    source_semantic_size(payload, payload_size),
+                                )
+                                if source_retention_saving(source, semantic) < 0:
+                                    source = None
+                            if source is not None:
+                                semantic = source
+                            else:
+                                encoded_semantic = CanonicalObservation(
+                                    canonical_bytes(semantic), payload
+                                )
+                                payload_size = observation_payload_size(
+                                    payload, len(encoded_semantic.raw)
+                                )
+                                if sys.getsizeof(encoded_semantic) + sys.getsizeof(
+                                    encoded_semantic.raw
+                                ) <= sys.getsizeof(semantic):
+                                    semantic = encoded_semantic
+                                del encoded_semantic
                         row["payload"] = None
                         row_size = _json_row_size(row) - 4 + payload_size
                         row["payload"] = payload
-                        # The previous representation is a shallow dictionary
-                        # sharing nested objects with the retained source record.
-                        # Only replace it when the complete byte object consumes
-                        # no more memory than that dictionary alone. Large/nested
-                        # observations keep the original shared representation;
-                        # no extra uncharged source payload is retained.
-                        if sys.getsizeof(encoded_semantic) + sys.getsizeof(
-                            encoded_semantic.raw
-                        ) <= sys.getsizeof(semantic):
-                            semantic = encoded_semantic
-                        del encoded_semantic
+                        # CanonicalObservation replaces only the shallow semantic
+                        # dictionary's allocation. SourceObservation also uses
+                        # released row/item-container allocation, checked before
+                        # admission; any retained reuse list is charged separately.
                     else:
                         row_size = _json_row_size(row)
                     size += row_size + 1
@@ -433,8 +485,17 @@ class TrustedTraceScan:
                             "An exact comparison section exceeds its fixed row/byte budget",
                         )
                     if semantic_projection:
-                        row["_semantic"] = semantic
-                    yield row
+                        # All fixed SQL columns were included in the exact size
+                        # check above. Only these fields are used by observation
+                        # grouping; releasing the other row metadata now funds
+                        # source retention immediately, not from future objects.
+                        compact = TraceInputRow(
+                            row["stage_id"], row["ordinal"], row["payload"], semantic
+                        )
+                        del row
+                        yield compact
+                    else:
+                        yield row
         except duckdb.Error:
             self.control.check()
             raise ComparisonError() from None
@@ -469,8 +530,12 @@ class ComparisonWriter:
 
     def append(self, record):
         self.control.check()
+        shared_json_sides = isinstance(record, SharedJSONRecord)
+        shared_source = record.source if shared_json_sides else None
         record = ComparisonRecord.model_validate(record)
-        raw, expanded_bytes = encode_record(record)
+        raw, expanded_bytes = encode_record(
+            record, shared_json_sides=shared_json_sides, shared_source=shared_source
+        )
         if expanded_bytes > self.limits.max_record_bytes:
             raise ComparisonError(
                 "comparison_capacity",

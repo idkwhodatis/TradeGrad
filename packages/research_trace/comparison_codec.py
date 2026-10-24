@@ -13,6 +13,7 @@ import math
 from functools import lru_cache
 
 from .comparison_contracts import ComparisonError, ComparisonRecord
+from .comparison_semantics import SourceObservation
 from .contracts import canonical_bytes
 
 PAYLOAD_CODEC = "tradegrad.comparison-row.v2"
@@ -50,17 +51,85 @@ def _scalar_size(value):
     return len(canonical_bytes(value))
 
 
-def encode_record(record):
+def _canonical_source_side(record, source):
+    # Only the internal producer constructs this witness, after strict canonical
+    # encoding of its JSON-decoded record equals the original ASCII source.
+    # That owned record is not mutated before the synchronous writer consumes it.
+    # A lookalike object or arbitrary Any value never establishes this proof.
+    # Literal structural opens bound source depth well below Pydantic's traversal
+    # guard, including the fixed enclosing wrappers. Opens inside JSON strings
+    # only overcount and decline optimization; deeper evidence keeps its original
+    # normalization and depth/circular-reference errors, not a new depth limit.
+    if (
+        type(source) is not SourceObservation
+        or type(source.raw) is not str
+        or type(source.record) is not dict
+        or not source.raw.isascii()
+        or source.raw.count("{") + source.raw.count("[") > 8
+    ):
+        return None
+    for side in (record.left, record.right):
+        if (
+            type(side) is not dict
+            or side.keys() != {"count", "items"}
+            or type(side["count"]) is not int
+            or side["count"] != 1
+            or type(side["items"]) is not list
+            or len(side["items"]) != 1
+        ):
+            return None
+        item = side["items"][0]
+        if (
+            type(item) is not dict
+            or item.keys() != {"ordinal", "record"}
+            or type(item["ordinal"]) is not int
+            or item["record"] is not source.record
+        ):
+            return None
+    return b"".join(
+        (
+            b'{"count":1,"items":[{"ordinal":',
+            canonical_bytes(item["ordinal"]),
+            b',"record":',
+            source.raw.encode("ascii"),
+            b"}]}",
+        )
+    )
+
+
+def encode_record(record, *, shared_json_sides=False, shared_source=None):
     """Return stored bytes and the exact expanded canonical byte count.
 
     Partitioning top-level fields lets us count the full canonical JSON without
     serializing every nested observation twice. JSON object field ordering has
-    no effect on length. All nested content still uses canonical_bytes, including
-    its rejection of nonfinite values, never a serializer that maps NaN to null.
+    no effect on length. Nested content uses strict canonical encoding, including
+    rejection of nonfinite values, never a serializer that maps NaN to null.
+
+    shared_json_sides is an internal opt-in for already-proven identical,
+    JSON-decoded trace sides. Identity alone cannot authorize this optimization:
+    arbitrary Any values can have stateful serializers. Ordinary callers retain
+    both full normalizations even when their input sides share objects.
+    shared_source additionally reuses a producer-verified canonical source only
+    for the exact singleton wrapper and that same owned decoded record.
     """
+    shared = (
+        shared_json_sides is True
+        and type(record) is ComparisonRecord
+        and record.left is not None
+        and record.right is not None
+        and record.left.keys() == record.right.keys()
+        and all(record.left[key] is record.right[key] for key in record.left)
+    )
+    source_side = _canonical_source_side(record, shared_source) if shared else None
     # ComparisonRecord preserves nonfinite constants inside Any, allowing the
     # strict canonical encoder to reject them instead of silently writing null.
-    body = record.model_dump(mode="json")
+    body = (
+        record.model_dump(mode="json", exclude={"left", "right"})
+        if source_side is not None
+        else record.model_dump(mode="json", exclude={"right"})
+        if shared
+        else record.model_dump(mode="json")
+    )
     omitted_bytes = sum(
         _KEY_BYTES[key] + _scalar_size(body.pop(key)) for key in PROJECTED_FIELDS
     )
@@ -68,6 +137,19 @@ def encode_record(record):
         if body[key] == default:
             body.pop(key)
             omitted_bytes += _DEFAULT_BYTES[key]
+    if shared:
+        side = source_side if source_side is not None else canonical_bytes(body["left"])
+        body["left"] = body["right"] = None
+        core = canonical_bytes(body)
+        # Outside the two sides the exact model has only fixed-schema fields.
+        # Split both top-level null placeholders before inserting any arbitrary
+        # observation bytes, which may themselves contain these marker strings.
+        before, remainder = core.split(b'"left":null', 1)
+        between, after = remainder.split(b'"right":null', 1)
+        raw = b"".join(
+            (_PREFIX, before, b'"left":', side, between, b'"right":', side, after, b"]")
+        )
+        return raw, len(raw) - len(_PREFIX) - 1 + omitted_bytes
     raw = canonical_bytes(body)
     expanded_bytes = len(raw) + omitted_bytes
     return _PREFIX + raw + b"]", expanded_bytes
