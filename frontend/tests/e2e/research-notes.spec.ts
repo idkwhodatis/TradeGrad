@@ -10,6 +10,7 @@ import type {
   WorkbenchSpec,
 } from "../../src/client/types.gen";
 import { account, api, authorization, signIn, token } from "./helpers";
+import { noteHttpDiagnostic } from "./research-note-diagnostics";
 import {
   createActualSource,
   query,
@@ -32,7 +33,15 @@ async function save(page: Page, path = "/research-notes") {
     .getByRole("button", { name: "Save immutable note revision", exact: true })
     .click();
   const saved = await response;
-  expect(saved.status(), await saved.text()).toBe(201);
+  expect(
+    saved.status(),
+    await noteHttpDiagnostic(
+      saved,
+      path === "/research-notes"
+        ? "research_note_create"
+        : "research_note_revision",
+    ),
+  ).toBe(201);
   const note = (await saved.json()) as ResearchNoteRevision;
   await expect(page.getByTestId("saved-research-note")).toContainText(
     note.content.title,

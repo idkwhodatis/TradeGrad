@@ -28,6 +28,8 @@ import {
   type IndependentOwned,
 } from "./independent-helpers";
 import { requiredDiagnosticChecks } from "../../src/lib/diagnostic-parity-evidence";
+import parityWindow from "../fixtures/independent-parity-window.json" with { type: "json" };
+import { noteHttpDiagnostic } from "./research-note-diagnostics";
 
 // I5 REAL-STACK acceptance: PostgreSQL + actual isolated native source and
 // independent evaluators + research/comparison workers + Chromium. No route
@@ -129,7 +131,7 @@ test("actual original-start diagnostic reports complete semantic parity and exac
   owned,
 }) => {
   test.setTimeout(600000);
-  const source = await createActualSource(request, owned),
+  const source = await createActualSource(request, owned, parityWindow),
     pins = sourcePins(source);
   const response = await request.post(
     api("/independent-evaluations/capability"),
@@ -213,10 +215,6 @@ test("actual original-start diagnostic reports complete semantic parity and exac
   expect(result.execution_attempt_id).not.toBe(
     source.leaf.execution_attempt_id,
   );
-  await expect(page.getByTestId("diagnostic-parity-outcome")).toHaveText(
-    "matched",
-    { timeout: 60000 },
-  );
   const report = await read<DiagnosticParityView>(
     request,
     owned.auth,
@@ -227,6 +225,10 @@ test("actual original-start diagnostic reports complete semantic parity and exac
     [...requiredDiagnosticChecks].sort(),
   );
   expect(report.checks.every((check) => check.status === "matched")).toBe(true);
+  await expect(page.getByTestId("diagnostic-parity-outcome")).toHaveText(
+    "matched",
+    { timeout: 60000 },
+  );
   expect(report.source.binding.evaluation_id).toBe(source.leaf.evaluation_id);
   expect(report.replay.binding.evaluation_id).toBe(result.evaluation_id);
   expect(report.replay.binding.execution_config_sha256).toBe(
@@ -525,7 +527,10 @@ test("actual three-arm manual control retains failed outcomes, immutable conditi
     .getByRole("button", { name: "Save immutable note revision", exact: true })
     .click();
   const noteSaved = await noteResponse;
-  expect(noteSaved.status(), await noteSaved.text()).toBe(201);
+  expect(
+    noteSaved.status(),
+    await noteHttpDiagnostic(noteSaved, "controlled_note_create"),
+  ).toBe(201);
   const controlNote = (await noteSaved.json()) as ResearchNoteRevision;
   const controlledReference = controlNote.content.evidence?.find(
     (item) => item.kind === "controlled",
