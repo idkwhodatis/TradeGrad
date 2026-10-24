@@ -810,10 +810,31 @@ def _snapshot_http(h, source, notes, replay, control, arms, comparison, decision
     return values
 
 
-def _artifacts(h):
+def _artifacts(h, replay, control, arms):
+    """Retain every byte while preserving the generic typed-result release fence."""
+    from backend.app.core.config import Settings
+    from backend.app.core.storage_barrier import storage_guard
+    from backend.app.storage import read_verified
+
+    expected = {replay["id"]: {**replay["result_pin"], "status": "succeeded"}}
+    for public, arm in zip(control["arms"], arms, strict=True):
+        require(public["run_id"] == arm["run_id"], "Controlled run identity changed")
+        expected[arm["run_id"]] = {
+            "evaluation_id": public["evaluation_id"],
+            "execution_attempt_id": arm["execution_attempt_id"],
+            "source_id": public["strategy_version_id"],
+            "code_sha256": public["code_sha256"],
+            "status": arm["status"],
+            "result_manifest_sha256": (arm["result"] or {}).get(
+                "result_manifest_sha256"
+            ),
+        }
     with h.connection(private=True) as connection:
         rows = connection.execute(
-            "SELECT id, run_id, attempt_id, storage_key, sha256, size_bytes FROM artifacts ORDER BY id"
+            "SELECT a.id, a.run_id, a.attempt_id, a.storage_key, a.sha256, a.size_bytes, "
+            "a.name, r.config->>'schema_version', r.config->>'execution_mode', "
+            "r.strategy_version_id, r.config->'selected_strategy'->>'sha256', r.status "
+            "FROM artifacts a LEFT JOIN research_runs r ON r.id=a.run_id ORDER BY a.id"
         ).fetchall()
         pins = connection.execute(
             "SELECT revision_id, resource_id, sha256, details FROM research_note_evidence_pins "
@@ -829,16 +850,92 @@ def _artifacts(h):
             and details["size_bytes"] == row[5],
             "Note pin does not retain exact registered physical bytes",
         )
-    for identifier, _, _, _, sha, size in rows:
-        content = h.request(
-            h.clients[0], "GET", f"/artifacts/{identifier}/download"
-        ).content
-        require(
-            hashlib.sha256(content).hexdigest() == sha and len(content) == size,
-            "Registered artifact failed original strict download admission",
+    seen, downloads = {identifier: set() for identifier in expected}, []
+    root = h.root / "storage"
+    max_bytes = int(
+        h.env.get(
+            "MAX_ARTIFACT_BYTES", Settings.model_fields["max_artifact_bytes"].default
         )
-        h.request(h.clients[1], "GET", f"/artifacts/{identifier}/download", status=404)
-    return rows, pins
+    )
+    with storage_guard(root):
+        for (
+            identifier,
+            run,
+            attempt,
+            key,
+            sha,
+            size,
+            name,
+            schema,
+            mode,
+            source,
+            code,
+            status,
+        ) in rows:
+            pin = expected.get(str(run))
+            suffix = name
+            if pin is not None:
+                prefix = f"evaluation-{pin['evaluation_id']}-"
+                require(
+                    schema == "tradegrad.independent-evaluation.v1"
+                    and mode == "independent_evaluation"
+                    and str(attempt) == pin["execution_attempt_id"]
+                    and str(source) == pin["source_id"]
+                    and code == pin["code_sha256"]
+                    and status == pin["status"]
+                    and (
+                        name.startswith(prefix) or name == "execution-environment.json"
+                    ),
+                    "Independent artifact differs from its exact execution identity",
+                )
+                suffix = name.removeprefix(prefix)
+                seen[str(run)].add(suffix)
+                if suffix == "result-bundle.json":
+                    require(
+                        status == "succeeded" and sha == pin["result_manifest_sha256"],
+                        "Independent artifact differs from the admitted result pin",
+                    )
+            # Registration does not authorize generic download. Independent native
+            # publication also stores a legacy metrics sidecar; only the typed
+            # result bundle may release those economics. Verify its physical
+            # bytes as well, never skip it or relax the production loader.
+            stored = read_verified(root, key, sha, max_bytes)
+            require(len(stored) == size, "Registered artifact physical size changed")
+            fenced = (
+                pin is not None and status == "succeeded" and suffix == "metrics.json"
+            )
+            response = h.request(
+                h.clients[0],
+                "GET",
+                f"/artifacts/{identifier}/download",
+                status=409 if fenced else 200,
+            )
+            code = None
+            if fenced:
+                code = response.json().get("code")
+                require(
+                    code == "typed_final_result_required",
+                    "Registered metrics failed for an unexpected admission reason",
+                )
+            else:
+                require(
+                    hashlib.sha256(response.content).hexdigest() == sha
+                    and len(response.content) == size,
+                    "Registered artifact failed original strict download admission",
+                )
+            downloads.append((identifier, response.status_code, code))
+            h.request(
+                h.clients[1], "GET", f"/artifacts/{identifier}/download", status=404
+            )
+    for identifier, pin in expected.items():
+        required = {"execution-environment.json", "provenance.json", "logs.txt"}
+        if pin["status"] == "succeeded":
+            required.update({"metrics.json", "result-bundle.json"})
+        require(
+            required <= seen[identifier],
+            "Independent execution lost required result or failure diagnostic artifacts",
+        )
+    return rows, pins, downloads
 
 
 def _quiesce(h, comparison):
@@ -978,7 +1075,7 @@ def _run_completed_evidence_restore(evidence_restore_harnesses):
         )
     # Generic diagnostic-log downloads conservatively record full-dataset
     # exposure. Perform them before freezing the owner-wide exposure response.
-    inventory = _artifacts(h)
+    inventory = _artifacts(h, replay, control, arms)
     before = _snapshot_http(
         h, source, notes, replay, control, arms, comparison, decision
     )
@@ -1061,7 +1158,7 @@ def _run_completed_evidence_restore(evidence_restore_harnesses):
         "Cold-restored HTTP evidence silently changed physical pins, provenance, or result semantics",
     )
     require(
-        _artifacts(restored) == inventory,
+        _artifacts(restored, replay, control, arms) == inventory,
         "Restored artifact registration/retention pins differ",
     )
     restored_parity = restored.request(
