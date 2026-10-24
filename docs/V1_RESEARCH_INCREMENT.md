@@ -1155,3 +1155,72 @@ the actual native interpreter, in 162.97 seconds. Post-measurement checks passed
 source hashes rather than a clean published commit. Both hosted failures remain
 preserved. A fresh full exact-head hosted run, including real cold restore and
 operator-profile gates, remains mandatory before acceptance or V2.
+
+### Fifth exact-head run: full hosted capacity passed, application defects isolated
+
+Run [40105206931](https://github.com/idkwhodatis/TradeGrad/actions/runs/40105206931)
+executed clean head `346e58a9d3dc0addc5bf8b8075f3cdfb4b24492d`, tree
+`7161890a533597a5c2d06be88c5fd5ce77e0ca25`. Baseline, exact Compose acceptance
+and the **fresh complete hosted capacity gate passed**. The unchanged
+[hosted capacity report](evidence/research-trace-capacity-hosted-20261024.json)
+has SHA-256 `8b8896ec4abb24fd40cba2796d83aa241a21dfa2c57c0a19efd9f21e14c96eaa`.
+On EPYC 7763 hardware, comparisons took **296.632039 / 291.507524 seconds**;
+exhaustive audits took **427.371352 / 428.902602 seconds**. Every
+**2,252,251 / 2,253,751** row round-tripped with complete source-observation
+equivalence. Encoded sizes were **1,870,339,406 / 1,870,688,906 bytes**,
+reconstructed sizes **2,368,825,532 / 2,369,520,032 bytes**, compressed sizes
+**123,028,181 / 123,145,740 bytes**, and peak RSS **185,544,704 / 186,851,328 bytes**.
+The full protocol took 1,704.459 seconds. The first comparison had only **3.368
+seconds of margin** under its unchanged 300-second limit: this is an exact-head
+measured pass, not a stable latency SLA or proof of reference-host equivalence.
+
+Actual application validation passed **665 PostgreSQL cases** (21 separately
+gated skips), **22 real private backup/restore/schema-upgrade cases**, **52 paired
+container isolation cases**, **11 kernel-isolation cases**, **18 native operator
+profile cases** and **nine portable operator cases**. Both cumulative application
+and exact Compose Chromium runs passed **63 scenarios with two expected opt-in
+profile skips** each; the explicit operator groups independently exercised those
+profiles. Native final holdout, actual recovery and the separately frozen daily
+engineering budget also passed. These successful gates are not a claim that the
+overall run passed.
+
+The application job failed **nine cases in three groups**. Native diagnostic
+cancellation exposed a real status-publication bug: its run/attempt were
+cancelled, but the evidence-publication cancellation check could turn the leaf
+into failed evidence. Portable replay exposed a monetary representation bug:
+fresh genuine engine processes could differ at the 28th significant decimal
+digit in audit equity text despite identical exported ledger, orders and fills;
+string comparison bypassed the already-declared cash/equity numeric tolerance.
+Neither case justifies dropping history checks or widening numeric tolerances.
+
+Two further defects were in acceptance helpers, not production admission. The
+exposure-before-execution proof queried nonexistent `execution_attempts.created_at`
+instead of its actual `started_at`, also blocking completed-evidence restoration.
+The portable-final workbench helper expected native `result_bundle` rather than
+the preserved `portable_result` receipt. Corrected helpers retain timestamp,
+generation and owner checks and additionally bind downloaded bytes/size/hash,
+mode-specific receipts and immutable result projections. Their new pure
+regressions are included in the mandatory hosted supervisor collection. Full
+hosted acceptance remains required for the repaired head; V2 remains gated.
+
+The production repairs now normalize pending native cancellation from the freshly
+locked, fenced run in both normal publication and incomplete-publication fallback;
+an already-committed successful leaf stays immutable. The hosted retry assertion
+records the full cancelled leaf/attempt before retry and requires exact equality
+afterward. Monetary projection is limited to schema-declared audit `cash` and
+`equity`, with strict finite decimal syntax and the existing absolute/relative
+tolerances. Integer amounts, event order/multiplicity, IDs, timestamps, margin,
+drawdown, unknown fields and missing states retain their strict behavior; raw
+sidecars and manifest pins are not rewritten.
+
+Independent review passed 125 actual-engine-enabled parity/runtime tests and
+40 worker lifecycle cases. The combined focused suite passed 250 without skips;
+the final aggregate passed **2,843 without skips** in 186.53 seconds. Actual
+fresh-process AKQuant evidence uses explicitly trusted fixture replies, not a
+claim of hosted policy/RNG admission; worker lifecycle tests use real locks and
+DuckDB with explicit persistence/sandbox doubles, not PostgreSQL/Docker proof.
+The portable suite passed **986 with one optional calendar skip**, covered by
+**117 tests in the pinned calendar runtime**. Comparison engine, codec, resource
+limits, protocol, old reports, tolerance constants and migrations are unchanged.
+The next final-head CI must rerun the complete capacity and real application gates;
+the previous head's successes are not reused as acceptance for these repairs.
