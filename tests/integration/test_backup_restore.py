@@ -910,6 +910,73 @@ def _seed_workbench_evidence(engine):
         )
 
 
+def _comparison_boundary_records(source, body, diagnostic_hash, now):
+    """Build inert historical rows, not admitted source evidence or a result.
+
+    Keep the business envelope canonical and pin its historical algorithm
+    explicitly. The diagnostic hash is still synthetic; nothing here invokes
+    source admission, schedules execution, or creates publication pointers.
+    """
+    from backend.app.comparison_schemas import ComparisonConfig
+    from backend.app.models import Comparison, ResearchRun
+    from packages.research_trace.comparison_contracts import (
+        DEFAULT_LIMITS,
+        LEGACY_ALGORITHM_VERSION,
+        TOLERANCE_VERSION,
+    )
+    from packages.research_trace.contracts import digest
+
+    snapshot = {
+        "schema_version": "tradegrad.comparison-input.v1",
+        "owner_id": str(source.owner_id),
+        "request": body.model_dump(mode="json"),
+        "request_sha256": body.sha256,
+        "engine_input_sha256": diagnostic_hash,
+        "algorithm_version": LEGACY_ALGORITHM_VERSION,
+        "tolerance_version": TOLERANCE_VERSION,
+        "limits": DEFAULT_LIMITS.model_dump(mode="json"),
+        "synthetic": True,
+        "engine_executed": False,
+        "result_available": False,
+    }
+    config = ComparisonConfig(
+        comparison_id=uuid4(),
+        input_sha256=digest(snapshot),
+        engine_input_sha256=diagnostic_hash,
+        request=body,
+        algorithm_version=LEGACY_ALGORITHM_VERSION,
+        tolerance_version=TOLERANCE_VERSION,
+        limits=DEFAULT_LIMITS,
+    )
+    run = ResearchRun(
+        id=uuid4(),
+        owner_id=source.owner_id,
+        idempotency_key="restore-comparison-z-submit",
+        request_sha256=config.sha256,
+        config=config.model_dump(mode="json"),
+        dataset_version_id=source.dataset_version_id,
+        strategy_version_id=source.strategy_version_id,
+        status="cancelled",
+        generation=1,
+        next_event_seq=1,
+        error="Synthetic cancelled comparison; no engine result",
+        created_at=now,
+        updated_at=now,
+    )
+    comparison = Comparison(
+        id=config.comparison_id,
+        owner_id=source.owner_id,
+        run_id=run.id,
+        left_evaluation_id=body.left.evaluation_id,
+        right_evaluation_id=body.right.evaluation_id,
+        input_sha256=config.input_sha256,
+        engine_input_sha256=config.engine_input_sha256,
+        input_snapshot=snapshot,
+        created_at=now,
+    )
+    return config, run, comparison
+
+
 def _seed_comparison_boundary(engine: Engine, storage: Path) -> dict[str, bytes]:
     """Synthetic persistence boundary only, never an engine/admission success.
 
@@ -920,13 +987,12 @@ def _seed_comparison_boundary(engine: Engine, storage: Path) -> dict[str, bytes]
     """
     from sqlalchemy.orm import Session
 
-    from backend.app.comparison_schemas import ComparisonConfig, ComparisonCreate
+    from backend.app.comparison_schemas import ComparisonCreate
     from backend.app.comparison_services import comparison_config
     from backend.app.core.atomic_storage import publish_bytes
     from backend.app.models import (
         Artifact,
         Candidate,
-        Comparison,
         ComparisonSubmission,
         Evaluation,
         ExecutionAttempt,
@@ -997,35 +1063,8 @@ def _seed_comparison_boundary(engine: Engine, storage: Path) -> dict[str, bytes]
                 for side, evaluation in zip(("left", "right"), evaluations, strict=True)
             }
         )
-        snapshot = {
-            "schema_version": "tradegrad.synthetic-comparison-backup-boundary.v1",
-            "owner_id": str(source.owner_id),
-            "request": body.model_dump(mode="json"),
-            "request_sha256": body.sha256,
-            "engine_input_sha256": diagnostic_hash,
-            "engine_executed": False,
-            "result_available": False,
-        }
-        config = ComparisonConfig(
-            comparison_id=uuid4(),
-            input_sha256=digest(snapshot),
-            engine_input_sha256=diagnostic_hash,
-            request=body,
-        )
-        run = ResearchRun(
-            id=uuid4(),
-            owner_id=source.owner_id,
-            idempotency_key="restore-comparison-z-submit",
-            request_sha256=config.sha256,
-            config=config.model_dump(mode="json"),
-            dataset_version_id=source.dataset_version_id,
-            strategy_version_id=source.strategy_version_id,
-            status="cancelled",
-            generation=1,
-            next_event_seq=1,
-            error="Synthetic cancelled comparison; no engine result",
-            created_at=now,
-            updated_at=now,
+        config, run, comparison = _comparison_boundary_records(
+            source, body, diagnostic_hash, now
         )
         session.add(run)
         session.flush()
@@ -1073,17 +1112,6 @@ def _seed_comparison_boundary(engine: Engine, storage: Path) -> dict[str, bytes]
                 payload={"synthetic": True, "engine_executed": False},
                 occurred_at=now,
             )
-        )
-        comparison = Comparison(
-            id=config.comparison_id,
-            owner_id=source.owner_id,
-            run_id=run.id,
-            left_evaluation_id=evaluations[0].id,
-            right_evaluation_id=evaluations[1].id,
-            input_sha256=config.input_sha256,
-            engine_input_sha256=config.engine_input_sha256,
-            input_snapshot=snapshot,
-            created_at=now,
         )
         session.add(comparison)
         session.flush()
@@ -1761,6 +1789,21 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             "010_research_notes",
             "011_note_pin_trigger",
         }:
+            from sqlalchemy.orm import Session
+
+            from backend.app.comparison_services import comparison_config
+            from backend.app.models import Comparison, ResearchRun
+            from packages.research_trace.comparison_contracts import (
+                LEGACY_ALGORITHM_VERSION,
+            )
+
+            # Reopen the exact archived legacy business envelope through the
+            # normal integrity guard, without executing/admitting its sources.
+            with Session(restored) as session:
+                comparison = session.scalars(select(Comparison)).one()
+                run = session.get(ResearchRun, comparison.run_id)
+                config = comparison_config(run, comparison)
+                assert config.algorithm_version == LEGACY_ALGORITHM_VERSION
             with restored.connect() as connection:
                 assert connection.execute(
                     text(
