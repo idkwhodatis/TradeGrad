@@ -54,14 +54,14 @@ export function DiagnosticParity({
       );
   }, [trusted, selection.diagnostic_report_sha256, job.config_sha256, update]);
   return (
-    <>
+    <section aria-label="Diagnostic parity admission" className="stack">
       {query.isPending && (
         <Loading text="Admitting original and replay evidence for semantic parity…" />
       )}
       {query.error && (
         <ErrorState error={query.error} retry={() => void query.refetch()} />
       )}
-      {problem && <ErrorState error={new Error(problem)} />}
+      {!query.error && problem && <ErrorState error={new Error(problem)} />}
       {trusted && (
         <>
           <DiagnosticParitySummary report={trusted} />
@@ -74,7 +74,7 @@ export function DiagnosticParity({
           />
         </>
       )}
-    </>
+    </section>
   );
 }
 export function DiagnosticParitySummary({

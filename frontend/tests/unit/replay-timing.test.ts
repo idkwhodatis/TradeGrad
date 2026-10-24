@@ -100,7 +100,12 @@ describe("admitted replay timestamp semantics", () => {
     expect(html).toContain(nativeCaveat);
     expect(html).toContain("saved market-local midnight session labels");
     expect(html).not.toContain("exact saved instants");
-    expect(options.aria.description).toContain(nativeCaveat);
+    expect(html.match(/aria-description="([^"]*)"/)?.[1]).toContain(
+      nativeCaveat,
+    );
+    expect(options.aria.description).toBe(
+      "Retrospective market prices, information cutoff, decision time and actually saved feature points",
+    );
     expect(options.xAxis[0].name).toContain("not availability instants");
     const first = options.series[0];
     expect("markLine" in first ? first.markLine.data : []).toMatchObject([
@@ -133,7 +138,9 @@ describe("admitted replay timestamp semantics", () => {
     expect(options.xAxis[0].name).toBe(
       "UTC timestamp · market zone shown in evidence",
     );
-    expect(options.aria.description).not.toContain("unverified");
+    expect(html.match(/aria-description="([^"]*)"/)?.[1]).not.toContain(
+      "unverified",
+    );
   });
 
   it.each(["native_recorded_unqualified", "unknown", undefined] as const)(

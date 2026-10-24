@@ -37,13 +37,24 @@ export type ReplayChartProps = {
   timezone: string;
   context?: TraceContext;
 };
+const chartAccessibleName =
+  "Retrospective market prices, information cutoff, decision time and actually saved feature points";
+
+function chartDescription({
+  instrument,
+  timezone,
+  context,
+}: Pick<ReplayChartProps, "instrument" | "timezone" | "context">) {
+  const timing = replayTimestampPresentation(context);
+  return `Immutable retrospective OHLC for ${instrument}. ${timing.markerDescription} Market timezone ${timezone}. ${timing.caveat ?? ""} Saved features are separate points in their own units, never recomputed or interpolated.`;
+}
+
 export function replayChartOptions({
   bars,
   features,
   instrument,
   cutoff,
   decisionTime,
-  timezone,
   context,
 }: ReplayChartProps) {
   const timing = replayTimestampPresentation(context);
@@ -63,7 +74,10 @@ export function replayChartOptions({
     animation: false,
     aria: {
       enabled: true,
-      description: `Immutable retrospective OHLC for ${instrument}. ${timing.markerDescription} Market timezone ${timezone}. ${timing.caveat ?? ""} Saved features are separate points in their own units, never recomputed or interpolated.`,
+      // ECharts writes its description into the host's aria-label on every
+      // setOption. Keep that name identical to React's; the full evidence and
+      // timestamp caveat belong in aria-description, not a changing name.
+      description: chartAccessibleName,
     },
     tooltip: { trigger: "item", renderMode: "richText" },
     legend: { type: "scroll", top: 0 },
@@ -195,8 +209,8 @@ export default function ReplayChart({
           width: "100%",
         }}
         role="img"
-        aria-label="Retrospective market prices, information cutoff, decision time and actually saved feature points"
-        aria-description={`${timing.markerDescription} ${timing.caveat ?? ""}`}
+        aria-label={chartAccessibleName}
+        aria-description={chartDescription({ instrument, timezone, context })}
       />
       <figcaption className="text-xs muted">
         Daily OHLC bars use session-date coordinates. {timing.markerDescription}{" "}

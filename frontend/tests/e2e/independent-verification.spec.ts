@@ -327,12 +327,38 @@ test("actual original-start diagnostic reports complete semantic parity and exac
     "matched",
   );
   const stale = new URL(saved);
-  stale.searchParams.set("diagnostic_report_sha256", "f".repeat(64));
+  const staleHash = "f".repeat(64);
+  stale.searchParams.set("diagnostic_report_sha256", staleHash);
+  const rejectedParity = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      response.request().method() === "GET" &&
+      url.pathname === `/api/v1/independent-evaluations/${job.id}/parity` &&
+      url.searchParams.get("report_sha256") === staleHash
+    );
+  });
   await page.goto(stale.toString());
-  await expect(page.getByRole("alert")).toContainText(
-    /hash|pin|differ|mismatch/i,
+  const rejected = await rejectedParity;
+  expect(rejected.status()).toBe(409);
+  expect(await rejected.json()).toMatchObject({
+    code: "diagnostic_parity_pin_mismatch",
+    message: "Requested parity hash differs; evidence was not retargeted",
+  });
+  const admission = page.getByRole("region", {
+    name: "Diagnostic parity admission",
+    exact: true,
+  });
+  await expect(admission.getByRole("alert")).toContainText(
+    "Requested parity hash differs; evidence was not retargeted",
   );
   await expect(page.getByTestId("diagnostic-parity-outcome")).toHaveCount(0);
+  await expect(page.getByTestId("diagnostic-event-mappings")).toHaveCount(0);
+  await pinnedUrl(page, { diagnostic_report_sha256: staleHash });
+  await page.goto(saved);
+  await expect(page.getByTestId("diagnostic-parity-outcome")).toHaveText(
+    "matched",
+  );
+  await pinnedUrl(page, { diagnostic_report_sha256: report.report_sha256 });
   await assertForeignDenied(request, [
     `/independent-evaluations/${job.id}`,
     `/independent-evaluations/${job.id}/parity`,

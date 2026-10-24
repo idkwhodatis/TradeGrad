@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { init } from "echarts/core";
-import { replayChartOptions } from "../../src/features/research-workbench/replay-chart";
+import ReplayChart, {
+  replayChartOptions,
+  type ReplayChartProps,
+} from "../../src/features/research-workbench/replay-chart";
 import { detail, ids } from "./workbench-fixtures";
 const props = {
   bars: [
@@ -83,6 +88,69 @@ describe("saved-evidence chart projection", () => {
       expect(svg).toContain("Decision time");
       expect(svg).toContain("volume");
       expect(svg).not.toContain("NaN");
+    } finally {
+      chart.dispose();
+    }
+  });
+  it("keeps the accessible name and separate evidence description through the real ECharts ARIA pass", () => {
+    const chart = init(null, undefined, {
+      renderer: "svg",
+      ssr: true,
+      width: 900,
+      height: 450,
+    });
+    const expectedName =
+      "Retrospective market prices, information cutoff, decision time and actually saved feature points";
+    const values: ReplayChartProps[] = [
+      {
+        ...props,
+        context: {
+          ...detail().context,
+          timestamp_semantics: "native_daily_session_labels",
+          timestamp_caveat: null,
+        },
+      },
+      {
+        ...props,
+        instrument: "C",
+        context: {
+          ...detail().context,
+          timestamp_semantics: "portable_engine_instants",
+          timestamp_caveat: null,
+        },
+      },
+    ];
+    try {
+      for (const value of values) {
+        const html = renderToStaticMarkup(createElement(ReplayChart, value));
+        const attributes = new Map([
+          ["aria-label", html.match(/aria-label="([^"]*)"/)![1]],
+          ["aria-description", html.match(/aria-description="([^"]*)"/)![1]],
+        ]);
+        const description = attributes.get("aria-description");
+        const writes: [string, string][] = [];
+        // SSR normally has no DOM target, so its ARIA pass returns early.
+        // This attribute sink exercises the real installed ECharts writer;
+        // it is not browser acceptance or a substituted chart implementation.
+        chart.getZr().dom = {
+          setAttribute(name: string, text: string) {
+            writes.push([name, text]);
+            attributes.set(name, text);
+          },
+        } as HTMLElement;
+        chart.setOption(replayChartOptions(value));
+        expect(writes).toContainEqual(["aria-label", expectedName]);
+        expect(attributes.get("aria-label")).toBe(expectedName);
+        expect(attributes.get("aria-description")).toBe(description);
+        expect(description).toContain(`OHLC for ${value.instrument}`);
+        expect(description).toContain(value.timezone);
+        expect(description).toContain(
+          value.context?.timestamp_semantics === "native_daily_session_labels"
+            ? "not observed exchange-close or data-availability instants"
+            : "exact saved instants",
+        );
+        expect(chart.renderToSVGString()).not.toContain("NaN");
+      }
     } finally {
       chart.dispose();
     }

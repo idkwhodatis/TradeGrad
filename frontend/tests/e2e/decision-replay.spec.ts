@@ -742,12 +742,16 @@ test("actual daily decisions retain non-trades, saved operands, pre-state and ex
       original!.slice(1, 6).map(Number),
     );
   }
-  await expect(
-    page.getByRole("img", {
-      name: "Retrospective market prices, information cutoff, decision time and actually saved feature points",
-      exact: true,
-    }),
-  ).toBeVisible();
+  const chart = page.getByRole("img", {
+    name: "Retrospective market prices, information cutoff, decision time and actually saved feature points",
+    exact: true,
+  });
+  await expect(chart).toBeVisible();
+  await expect(chart.locator("svg")).toBeVisible();
+  await expect(chart).toHaveAttribute(
+    "aria-description",
+    /market-local midnight session labels/,
+  );
   await expect(
     page.getByText("user_fixed_assumption", { exact: true }),
   ).toBeVisible();

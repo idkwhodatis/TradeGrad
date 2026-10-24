@@ -19,7 +19,10 @@ import {
   FixedConditionFields,
   IndependentJob,
 } from "../../src/features/research-workbench/verification-panels";
-import { DiagnosticParitySummary } from "../../src/features/research-workbench/diagnostic-parity";
+import {
+  DiagnosticParity,
+  DiagnosticParitySummary,
+} from "../../src/features/research-workbench/diagnostic-parity";
 import { ControlledVerification } from "../../src/features/research-workbench/controlled-verification";
 import { IndependentResults } from "../../src/features/research-workbench/independent-results";
 import {
@@ -48,13 +51,27 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 const render = (element: ReactNode) =>
   renderToString(element).replaceAll("<!-- -->", "");
-async function routed(element: ReactNode, cache: [unknown[], unknown][] = []) {
+async function routed(
+  element: ReactNode,
+  cache: [unknown[], unknown][] = [],
+  errors: [unknown[], Error][] = [],
+) {
   const query = new QueryClient({
     defaultOptions: {
-      queries: { retry: false, staleTime: Infinity, gcTime: Infinity },
+      queries: {
+        retry: false,
+        retryOnMount: false,
+        staleTime: Infinity,
+        gcTime: Infinity,
+      },
     },
   });
   for (const [key, value] of cache) query.setQueryData(key, value);
+  for (const [key, error] of errors)
+    query
+      .getQueryCache()
+      .build(query, { queryKey: key })
+      .setState({ status: "error", error, fetchStatus: "idle" });
   const root = createRootRoute({ component: () => element });
   const route = createRoute({
     getParentRoute: () => root,
@@ -142,6 +159,73 @@ describe("honest frozen capability and replay reporting", () => {
           ? "Verified diagnostic observation within"
           : "Unverified new observation",
       );
+    },
+  );
+  it("scopes stale report rejection and withholds both certification and mappings", async () => {
+    const staleHash = "f".repeat(64);
+    const job = independentJob();
+    const html = await routed(
+      createElement(DiagnosticParity, {
+        owner: "owner",
+        source: independentSource,
+        job,
+        selection: {
+          ...verificationSelection,
+          diagnostic_report_sha256: staleHash,
+        },
+        update: () => {
+          throw new Error("A stale report must not be repinned");
+        },
+      }),
+      [[["diagnostic-parity", "owner", job.id, staleHash], parityReport()]],
+    );
+    expect(html).toContain('aria-label="Diagnostic parity admission"');
+    expect(html).toContain('role="alert"');
+    expect(html).toContain("diagnostic report hash differs");
+    expect(html).toContain("No replacement report was loaded");
+    expect(html).not.toContain('data-testid="diagnostic-parity-outcome"');
+    expect(html).not.toContain('data-testid="diagnostic-event-mappings"');
+    expect(html).not.toContain("Verified diagnostic observation");
+  });
+  it.each([false, true])(
+    "preserves the server's exact pin rejection without duplicate alerts or trusting cached evidence (cache=%s)",
+    async (cached) => {
+      const staleHash = "f".repeat(64);
+      const job = independentJob();
+      const key = ["diagnostic-parity", "owner", job.id, staleHash];
+      const message =
+        "Requested parity hash differs; evidence was not retargeted";
+      const html = await routed(
+        createElement(DiagnosticParity, {
+          owner: "owner",
+          source: independentSource,
+          job,
+          selection: {
+            ...verificationSelection,
+            diagnostic_report_sha256: staleHash,
+          },
+          update: () => {
+            throw new Error("A rejected report must not be repinned");
+          },
+        }),
+        cached ? [[key, parityReport()]] : [],
+        [
+          [
+            key,
+            Object.assign(new Error(message), {
+              code: "diagnostic_parity_pin_mismatch",
+              correlation_id: "diagnostic-rejection",
+            }),
+          ],
+        ],
+      );
+      expect(html).toContain('aria-label="Diagnostic parity admission"');
+      expect(html.match(/role="alert"/g)).toHaveLength(1);
+      expect(html).toContain(message);
+      expect(html).toContain("diagnostic-rejection");
+      expect(html).not.toContain('data-testid="diagnostic-parity-outcome"');
+      expect(html).not.toContain('data-testid="diagnostic-event-mappings"');
+      expect(html).not.toContain("Verified diagnostic observation");
     },
   );
 });

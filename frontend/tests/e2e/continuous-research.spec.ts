@@ -614,6 +614,9 @@ test("continuous frozen four-symbol research restores rule, decision, parent com
       name: "Retrospective market prices, information cutoff, decision time and actually saved feature points",
       exact: true,
     });
+    // The accessible contract must survive the real ECharts render, not only
+    // the React placeholder before the chart's effect has run.
+    await expect(chart.locator("svg")).toBeVisible();
     await expect(chart).toHaveAttribute(
       "aria-description",
       /market-local midnight session labels/,

@@ -1235,7 +1235,9 @@ test("real isolated candidate leaves keep their own immutable pins, survive logi
   ).toBe(false);
 
   const stranger = await token(request, true);
-  const rejected = await request.put(
+  // Exercise the same POST mutation as the real UI. PUT only tests routing's
+  // method-not-allowed response and never reaches owner admission.
+  const rejected = await request.post(
     api(`/candidates/${candidate.id}/bookmark`),
     {
       headers: authorization(stranger),
