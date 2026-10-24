@@ -381,3 +381,108 @@ mandatory saved order-association drilldown, login restoration and cross-owner
 denials. No route stubs or fabricated trace fallback are used. PostgreSQL,
 Docker, Chromium and recovery acceptance remain pending the mandatory exact-head
 hosted gate; the original baseline browser suite is unchanged.
+
+## I5 implementation boundaries
+
+- Diagnostics and each manual control arm are dedicated one-shot native or
+  portable research runs, each with a new physical attempt and Evaluation.
+  They do not imitate an optimizer with zero iterations, call models, download
+  data, or reinterpret an optimizer checkpoint as a complete engine state.
+- Immutable original code, specification, result/trace manifests, data/universe,
+  original execution conditions, runtime images and observed RNG are pinned.
+  Reconstruction always starts at the original full scored window plus warmup;
+  the requested observation window only limits retained detail. Unsupported
+  historical sources expose the reason rather than substituting current inputs.
+- Native observation captures Python and NumPy-legacy RNG immediately before
+  source import. Portable policy captures Python RNG at its pre-import seam;
+  the separate engine provides audit receipts. Original-start replay restores
+  the same state at the same seam. OS entropy, default_rng, self-reseeding and
+  arbitrary unreviewed source remain outside proven randomness coverage.
+- Actual AKQuant public audit events preserve ordered order transitions, explicit
+  fill parents and nanosecond times. Sidecars have separate bounded transports;
+  missing, dropped, errored, malformed or incomplete receipts never establish
+  parity. Native shared-process observations are not an independent ledger or
+  no-lookahead proof. No strategy predicate is reevaluated for explanation.
+- The immutable parity report has 14 mandatory named checks: source, fixed
+  conditions, RNG reconstruction, randomness coverage, audit completeness,
+  submitted intents, ordered statuses, fills, position/account trajectories,
+  metrics, original-event mapping, both pre-states and actual targets/plans.
+  Unknown values never become empty targets or zero state. Cross-run order IDs
+  are removed only after resolving explicit local graph edges. Open-order
+  references additionally anchor the full ID-free observed child graph, not
+  only a potentially nonunique final order row; these anchors are exact while
+  economic fields retain the declared fixed tolerance table.
+- Only a completely matched report marks a new, distinct decision as a verified
+  original-event mapping. Otherwise its own observed evidence is retained with
+  mismatch/not-verifiable status. The report is typed and artifact/hash bound;
+  even generic downloads repeat owner, source and final-admission validation.
+  Native execution-config hashes are distinct from independent wrapper hashes.
+- A trusted independent result policy preserves legitimate successful no-trade
+  and no-closed-trade native outcomes, with unavailable metrics null and optimizer
+  reward explicitly not applicable. Exceptions remain failures. Existing native
+  optimizer reward/positive-trade admission and legacy artifact schemas remain
+  strict and separate. Native metrics retain their own units and definitions.
+- Manual experiments have two or three immutable ordered arms, including the
+  exact baseline. The common protocol excludes only the deliberate code and
+  parameter values, not declaration/state/warmup/data/execution conditions.
+  Their child split preserves the original research family and holdout exposure.
+  Exploration controls cannot use the final holdout. Diagnostics of admitted
+  finals require their own exact new-generation final admission before reading.
+- Admission and retries revalidate frozen input bytes before queue dispatch;
+  cancellation/recovery require both the actual host-query inode lock and
+  confirmed Docker stop. A timed-out lease is not proof of stopped execution.
+  Pause is unsupported explicitly. Independent source chains are prospectively
+  capped at 16 and checked with owner/session-scoped pin memoization.
+
+## I5 checkpoint
+
+Local I5 review and checks were performed on 2026-10-23 before I6. The final
+broad API/runner/operations/trace selection passed **2,203 tests** in 105.93
+seconds; all actual engine checks require the pinned AKQuant interpreter and
+cannot silently opt out. The separate original native large-result protocol passed **43 tests** in 7.29
+seconds in the native interpreter, not the dependency-minimal API environment.
+
+The final focused diagnostic/portable-real-engine/storage/recovery/CI-barrier
+selection passed **87 tests** in 8.42 seconds. The native pair really executes
+both exact maintained-source runs and restores original RNG; all 14 checks
+match and eight genuine portfolio decisions, including a non-trade day, map to
+new IDs. Five real portable-engine scenarios independently test full/partial
+fills, rejection, cancellation and no-trade audit/result edges and account
+coverage; they are not represented as complete portable replay certification.
+Negative cases cover absent targets/pre-states/audits, incorrect RNG restore,
+wrong source events, bogus fill IDs, exact nanosecond mismatch, explicit logical
+parents, selected-stage gaps and ambiguous final-row pre-state references.
+
+The separate locked research-runtime optimizer/provenance/worker selection
+passed **357 tests** in 17.70 seconds. Runtime-owned validation included **104
+focused passes**, **148 legacy-native passes**, and **988 portable passes with
+one existing calendar skip**; focused build/publication closure checks passed
+again after final additions. These overlap broader selections and are not
+additive unique-test totals. Backend-specific final checks passed **412 tests**
+with 39 explicitly unexecuted infrastructure cases. All reported P1/P2 review
+findings were fixed and independently rechecked; no unresolved concrete finding
+remained, conditional on the hosted gates.
+
+Frontend: **932 tests passed** in 58 files, TypeScript, production build,
+formatting and whitespace checks passed. **61 Playwright scenarios were
+collected** across 16 files, including two independent diagnostic/control cases;
+collection is not browser execution. Generated OpenAPI/SDK includes the admitted
+physical execution hash and exact native metrics. Source/spec/code/history
+selections remain hash-bound when returning from new diagnostic observations.
+
+**42 independent PostgreSQL/backup cases and four system scenarios were
+collected, not run locally.** Required CI now executes the original-start native
+and portable diagnostic pipelines, real native sandbox cancellation/retry,
+three-arm no-trade/failure retention and unchanged optimizer rejection, and an
+exact-SHA maintained native template requiring all 14 parity checks. All three
+images are rebuilt from pinned closures; each isolated group must prove fixture
+teardown before the next starts, and prior failures are not suppressed.
+Migration 009 has offline PostgreSQL SQL rendering and a real hosted upgrade/
+restore gate. Its restore fixture covers a cancelled independent persistence
+graph and restored immutability triggers, not successful parity artifact reopen.
+Completed-result reopen remains an I7 integrated recovery acceptance boundary.
+
+Local socket/PostgreSQL/Docker restrictions still prevent the real application
+stack. Chromium's executable is present, but this does not make an actual-stack
+browser run possible by itself. Final exact-head PostgreSQL, Docker, Playwright,
+Compose and recovery checks remain mandatory; no fixture is called live evidence.

@@ -124,7 +124,9 @@ def record_benchmark_admission(session, run, config):
         session, DatasetVersion, source.benchmark.dataset, run.owner_id
     )
     windows = (
-        [("holdout", config.holdout)]
+        [(config.split, config.reconstruction_window)]
+        if getattr(config, "execution_mode", None) == "independent_evaluation"
+        else [("holdout", config.holdout)]
         if hasattr(config, "holdout")
         else source.windows.optimization_windows()
     )

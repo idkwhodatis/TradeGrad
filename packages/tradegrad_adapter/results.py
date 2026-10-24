@@ -337,6 +337,20 @@ def _native_metric_unit(name: str) -> str:
     return "dimensionless_native"
 
 
+def native_result_window(config: dict) -> dict:
+    """Exact daily boundary mapping, derived only from the trusted staged request."""
+    window = config["window"]
+    end = date.fromisoformat(window["end"])
+    return {
+        **window,
+        "interval": "half_open",
+        "warmup": config["warmup"],
+        "engine_start_time": window["start"],
+        "engine_end_time": (end - timedelta(days=1)).isoformat(),
+        "engine_boundary_adapter": "inclusive_daily_end_previous_calendar_date.v1",
+    }
+
+
 def export_native_result(
     result: Any,
     legacy_performance: dict,
@@ -346,6 +360,7 @@ def export_native_result(
     engine_kwargs: dict,
     currency: str,
     reward_parameters: dict | None = None,
+    _independent: bool = False,
 ) -> dict:
     """Snapshot actual pinned object APIs while the native result is still alive."""
     from importlib.metadata import version
@@ -354,7 +369,11 @@ def export_native_result(
         raise ValueError("ResultBundle exporter requires pinned AKQuant 0.3.27")
     native = result.metrics_df["value"]
     duration_days = native["duration"].days
-    frequency = float(native["closed_trade_count"]) / (duration_days / 365 * 243)
+    frequency = (
+        None
+        if _independent and duration_days == 0
+        else float(native["closed_trade_count"]) / (duration_days / 365 * 243)
+    )
     metrics = [
         _metric(
             "sharpe_ratio",
@@ -382,13 +401,17 @@ def export_native_result(
         ),
         _metric(
             "win_rate",
-            native["win_rate"],
+            None
+            if _independent and native["closed_trade_count"] == 0
+            else native["win_rate"],
             "percent",
             "AKQuant 0.3.27 metrics_df.win_rate; before legacy rounding.",
         ),
         _metric(
             "return_per_trade",
-            native["avg_return_pct"],
+            None
+            if _independent and native["closed_trade_count"] == 0
+            else native["avg_return_pct"],
             "percent",
             "AKQuant 0.3.27 metrics_df.avg_return_pct; before legacy rounding.",
         ),
@@ -399,6 +422,24 @@ def export_native_result(
             "Legacy geometric logistic return/drawdown reward with trade-frequency gate. Six inputs rounded to 2 decimal places before reward; score rounded to 2 decimal places. Parameters stored in legacy_performance.reward_parameters.",
         ),
     ]
+    if _independent:
+        for item in metrics:
+            item["definition_version"] = "tradegrad.independent-metrics.v1"
+            if item["name"] == "combined_score":
+                item["value"] = None
+                item["unavailable_reason"] = (
+                    "reward_not_applicable_to_independent_evaluation"
+                )
+                item["calculation_basis"] = (
+                    "Independent observation does not compute or enter the optimization reward."
+                )
+            elif (
+                item["name"] in ("win_rate", "return_per_trade")
+                and native["closed_trade_count"] == 0
+            ):
+                item["unavailable_reason"] = "no_closed_trades"
+            elif item["name"] == "trade_per_day" and duration_days == 0:
+                item["unavailable_reason"] = "zero_duration_days"
     equity = result.equity_curve
     running_max = equity.cummax()
     drawdown = 1 - equity / running_max.where(running_max != 0)
@@ -427,7 +468,9 @@ def export_native_result(
         "dependencies": {
             name: version(name) for name in ("akquant", "numpy", "pandas")
         },
-        "exporter_version": BUNDLE_VERSION,
+        "exporter_version": "tradegrad.result-bundle.v2"
+        if _independent
+        else BUNDLE_VERSION,
         "series_semantics": {
             "equity": "AKQuant BacktestResult.equity_curve including its documented native snapshot/PnL fallback behavior; not a separate ledger.",
             "drawdown": "Positive fraction 1 - equity / cumulative_max(equity); null when the running peak is zero. No synthetic initial bar is inserted.",
@@ -462,7 +505,9 @@ def export_native_result(
             }
         )
     bundle = {
-        "schema_version": BUNDLE_VERSION,
+        "schema_version": "tradegrad.result-bundle.v2"
+        if _independent
+        else BUNDLE_VERSION,
         "evaluation_mode": "native_akquant",
         "result_trust": TRUST,
         "identity": identity,
@@ -481,8 +526,12 @@ def export_native_result(
         ],
         "legacy_performance": {
             "value": legacy_performance,
-            "reward_parameters": reward_parameters or {},
-            "rounding": "Six numeric inputs round(value, 2) before reward; combined_score round(value, 2). Display rounding must not change objective.",
+            "reward_parameters": {} if _independent else (reward_parameters or {}),
+            "rounding": (
+                "Independent numeric display metrics round(value, 2); unavailable values stay null. No optimization reward is calculated."
+                if _independent
+                else "Six numeric inputs round(value, 2) before reward; combined_score round(value, 2). Display rounding must not change objective."
+            ),
         },
         "equity": _series(equity, "equity"),
         "drawdown": _series(drawdown, "drawdown"),
@@ -533,7 +582,7 @@ def export_native_result(
         }
         for name in bundle_sections(bundle)
     ]
-    validate_result_bundle(bundle)
+    _validate_result_bundle(bundle, independent=_independent)
     return bundle
 
 
@@ -559,7 +608,9 @@ def _validate_table(table: Any):
             raise ValueError("Native table cells must be scalar")
 
 
-def _validate_native_observations(bundle: dict, start: date, end: date):
+def _validate_native_observations(
+    bundle: dict, start: date, end: date, *, independent=False
+):
     """Completeness/consistency checks even when an untrusted producer rehashes."""
     from zoneinfo import ZoneInfo
 
@@ -654,7 +705,7 @@ def _validate_native_observations(bundle: dict, start: date, end: date):
         table = bundle[name]
         names = [column["name"] for column in table["columns"]]
         if not table["rows"]:
-            if name != "positions":
+            if name != "positions" and not independent:
                 raise ValueError("Incomplete native order/fill/closed-trade history")
         elif not fields.issubset(names):
             raise ValueError(f"Missing required {name} columns")
@@ -815,6 +866,11 @@ def _validate_native_observations(bundle: dict, start: date, end: date):
 
 
 def validate_result_bundle(bundle: Any) -> dict:
+    """Legacy admission stays strict; child-declared versions cannot weaken it."""
+    return _validate_result_bundle(bundle, independent=False)
+
+
+def _validate_result_bundle(bundle: Any, *, independent: bool) -> dict:
     _keys(
         bundle,
         {
@@ -828,7 +884,8 @@ def validate_result_bundle(bundle: Any) -> dict:
     )
     _json_tree(bundle)
     if (
-        bundle["schema_version"] != BUNDLE_VERSION
+        bundle["schema_version"]
+        != ("tradegrad.result-bundle.v2" if independent else BUNDLE_VERSION)
         or bundle["evaluation_mode"] != "native_akquant"
         or bundle["result_trust"] != TRUST
     ):
@@ -947,9 +1004,12 @@ def validate_result_bundle(bundle: Any) -> dict:
         "combined_score": "score_0_100",
     }
     for item in bundle["metrics"]:
-        if (
-            item["unit"] != expected_units.get(item["name"])
-            or item["definition_version"] != "tradegrad.metrics.v1"
+        if item["unit"] != expected_units.get(item["name"]) or item[
+            "definition_version"
+        ] != (
+            "tradegrad.independent-metrics.v1"
+            if independent
+            else "tradegrad.metrics.v1"
         ):
             raise ValueError("Incorrect objective metric unit or definition version")
     for item in bundle["native_metrics"]:
@@ -961,30 +1021,51 @@ def validate_result_bundle(bundle: Any) -> dict:
     precise = {item["name"]: item["value"] for item in bundle["metrics"]}
     if set(precise) != expected_metrics:
         raise ValueError("Invalid objective metric schema")
-    legacy = bundle["legacy_performance"].get("value")
-    _keys(
-        legacy, {"combined_score", "metrics", "market", "profile"}, "legacy performance"
-    )
-    _keys(legacy["metrics"], expected_metrics - {"combined_score"}, "legacy metrics")
-    if legacy["market"] not in ("CN", "US") or legacy["profile"] not in (
-        "source_compat",
-        "corrected_explicit_config",
-    ):
-        raise ValueError("Invalid legacy engine profile")
-    if (
-        not _finite_number(legacy["combined_score"])
-        or not 0 <= legacy["combined_score"] <= 100
-    ):
-        raise ValueError("Invalid legacy reward")
-    for name, value in legacy["metrics"].items():
-        if (
-            not _finite_number(value)
-            or not _finite_number(precise[name])
-            or value != round(precise[name], 2)
+    if independent:
+        from .independent_results import validate_performance
+
+        legacy = validate_performance(bundle["legacy_performance"].get("value"))
+        for name, value in legacy["metrics"].items():
+            if value != (None if precise[name] is None else round(precise[name], 2)):
+                raise ValueError("Independent precise and display metrics disagree")
+        if precise["combined_score"] is not None:
+            raise ValueError("Independent observation cannot claim optimization reward")
+        native_values = {
+            item["name"]: item["value"] for item in bundle["native_metrics"]
+        }
+        if native_values.get("closed_trade_count") == 0 and any(
+            precise[name] is not None for name in ("win_rate", "return_per_trade")
         ):
-            raise ValueError("Precise and legacy metric rounding disagree")
-    if precise["combined_score"] != legacy["combined_score"]:
-        raise ValueError("Precise and legacy reward disagree")
+            raise ValueError("No-closed-trade metrics must be explicitly unavailable")
+    else:
+        legacy = bundle["legacy_performance"].get("value")
+        _keys(
+            legacy,
+            {"combined_score", "metrics", "market", "profile"},
+            "legacy performance",
+        )
+        _keys(
+            legacy["metrics"], expected_metrics - {"combined_score"}, "legacy metrics"
+        )
+        if legacy["market"] not in ("CN", "US") or legacy["profile"] not in (
+            "source_compat",
+            "corrected_explicit_config",
+        ):
+            raise ValueError("Invalid legacy engine profile")
+        if (
+            not _finite_number(legacy["combined_score"])
+            or not 0 <= legacy["combined_score"] <= 100
+        ):
+            raise ValueError("Invalid legacy reward")
+        for name, value in legacy["metrics"].items():
+            if (
+                not _finite_number(value)
+                or not _finite_number(precise[name])
+                or value != round(precise[name], 2)
+            ):
+                raise ValueError("Precise and legacy metric rounding disagree")
+        if precise["combined_score"] != legacy["combined_score"]:
+            raise ValueError("Precise and legacy reward disagree")
     for name in (
         "equity",
         "drawdown",
@@ -1037,7 +1118,7 @@ def validate_result_bundle(bundle: Any) -> dict:
         for key in ("scores", "signals", "target_portfolio", "state_digest")
     ):
         raise ValueError("Native trace cannot claim unobserved strategy intent")
-    _validate_native_observations(bundle, start, end)
+    _validate_native_observations(bundle, start, end, independent=independent)
     if "indicators" in bundle:
         from .indicators import validate_indicators
 

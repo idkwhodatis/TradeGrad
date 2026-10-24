@@ -174,6 +174,9 @@ jobs:
           TRADEGRAD_LOCAL_ENGINE_BRIDGE: "1"
         run: .venv-data/bin/python -m pytest tests/marketdata -q --ignore=tests/marketdata/test_live_providers.py -k "not optional_live" --junitxml=m2-data-contracts-junit.xml
       - name: Validate portable SDK, actual TradeTGD adapter and frozen final contracts
+        env:
+          TRADEGRAD_NATIVE_TEST_REQUIRED: "1"
+          TRADEGRAD_NATIVE_TEST_PYTHON: ${{ github.workspace }}/.venv/bin/python
         run: .venv-research/bin/python -m pytest tests/portable --ignore=tests/portable/test_isolation.py --ignore=tests/portable/test_upload_admission.py -q --junitxml=m5-portable-contracts-junit.xml
       - name: Validate portable upload admission with the locked data runtime
         run: .venv-data/bin/python -m pytest tests/portable/test_upload_admission.py -q --junitxml=v1-portable-upload-admission-junit.xml
@@ -187,6 +190,7 @@ jobs:
           TRADEGRAD_WORKBENCH_POSTGRES_REQUIRED: "1"
           TRADEGRAD_REPLAY_POSTGRES_REQUIRED: "1"
           TRADEGRAD_COMPARISON_POSTGRES_REQUIRED: "1"
+          TRADEGRAD_INDEPENDENT_POSTGRES_REQUIRED: "1"
         run: .venv-data/bin/python -m pytest tests/integration -q --junitxml=m1-m2-postgres-junit.xml
       - name: Bind streaming PostgreSQL clients to this job's service container
         shell: bash
@@ -363,9 +367,30 @@ jobs:
           python -m script.ci_acceptance_boundary v1-result-exploration-application-junit.xml
           "${{ steps.acceptance_05.outcome }}" "${{ steps.acceptance_05.outputs.exit_code }}"
           "test_real_recorded_indicators_reconstruct_from_artifact_after_worker_completion"
+      - name: Verify original-start diagnostics and manual controlled experiments in real isolated runtimes
+        id: acceptance_05i
+        if: ${{ !cancelled() && steps.acceptance_05_boundary.outcome == 'success' }}
+        env:
+          TRADEGRAD_REQUIRE_INDEPENDENT_INTEGRATION: "1"
+          DATA_PYTHON: ${{ github.workspace }}/.venv-data/bin/python
+          RESEARCH_PYTHON: ${{ github.workspace }}/.venv-research/bin/python
+        run: |
+          export API_PYTHON=$(command -v python)
+          set +e
+          .venv-research/bin/python -m pytest tests/system/test_independent_pipeline.py -q --junitxml=v1-independent-application-junit.xml
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+      - name: Confirm isolated fixture teardown before the next acceptance group
+        id: acceptance_05i_boundary
+        if: ${{ !cancelled() && steps.acceptance_05i.outcome != 'skipped' }}
+        run: >-
+          python -m script.ci_acceptance_boundary v1-independent-application-junit.xml
+          "${{ steps.acceptance_05i.outcome }}" "${{ steps.acceptance_05i.outputs.exit_code }}"
+          "test_real_original_rng_and_audit_survive_independent_replay,test_real_three_arm_no_trade_failure_retry_and_unchanged_optimizer,test_real_exact_maintained_template_diagnostic_verifies_all_semantics"
       - name: Verify synthetic operator SDK application and isolated profile browser
         id: acceptance_06
-        if: ${{ !cancelled() && steps.acceptance_05_boundary.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.acceptance_05i_boundary.outcome == 'success' }}
         env:
           # The harness owns a bounded loopback synthetic endpoint and generated
           # test credentials. No production endpoint/key or paid call is enabled.
@@ -525,7 +550,7 @@ jobs:
         run: docker rm -fv tradegrad-ci-postgres >/dev/null 2>&1 || true
       - name: Export outcome-only evidence without diagnostic payloads
         if: always()
-        run: python script/summarize_ci_junit.py v1-research-trace-contracts-junit.xml m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml m3-research-contracts-junit.xml m3-window-engine-junit.xml m3-configured-application-junit.xml m5-portable-contracts-junit.xml v1-portable-upload-admission-junit.xml m5-portable-calendar-junit.xml m5-portable-isolation-junit.xml m5-native-final-application-junit.xml m5-portable-application-junit.xml m5-portable-final-application-junit.xml m6-backup-upgrade-junit.xml v1-operator-model-application-junit.xml v1-portable-operator-application-junit.xml v1-provider-research-application-junit.xml v1-strategy-authoring-application-junit.xml v1-result-exploration-application-junit.xml v1-operations-application-junit.xml v1-cold-recovery-application-junit.xml frontend/test-results/junit.xml
+        run: python script/summarize_ci_junit.py v1-research-trace-contracts-junit.xml m1-supervisor-junit.xml m1-m2-postgres-junit.xml m2-data-contracts-junit.xml m2-live-provider-junit.xml m1-isolation-junit.xml m1-m2-process-recovery-junit.xml m3-research-contracts-junit.xml m3-window-engine-junit.xml m3-configured-application-junit.xml m5-portable-contracts-junit.xml v1-portable-upload-admission-junit.xml m5-portable-calendar-junit.xml m5-portable-isolation-junit.xml m5-native-final-application-junit.xml m5-portable-application-junit.xml m5-portable-final-application-junit.xml m6-backup-upgrade-junit.xml v1-operator-model-application-junit.xml v1-portable-operator-application-junit.xml v1-provider-research-application-junit.xml v1-strategy-authoring-application-junit.xml v1-result-exploration-application-junit.xml v1-independent-application-junit.xml v1-operations-application-junit.xml v1-cold-recovery-application-junit.xml frontend/test-results/junit.xml
       - name: Preserve bounded test evidence (no traces, credentials or source data)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

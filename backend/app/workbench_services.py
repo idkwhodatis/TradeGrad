@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID, uuid5
 
-from sqlalchemy import delete, exists, func, literal, or_, select, union_all
+from sqlalchemy import String, delete, exists, func, literal, or_, select, union_all
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import aliased
 
@@ -15,6 +15,7 @@ from backend.app.models import (
     CandidateBookmark,
     Evaluation,
     FinalSelection,
+    IndependentEvaluation,
     ModelCall,
     ResearchRun,
     StrategySpecRevision,
@@ -443,10 +444,23 @@ def _strategy_link_clause(strategy):
         )
         .correlate_except(FinalSelection)
     )
+    independent = exists(
+        select(IndependentEvaluation.id)
+        .where(
+            IndependentEvaluation.run_id == ResearchRun.id,
+            IndependentEvaluation.owner_id == ResearchRun.owner_id,
+            ResearchRun.config["selected_strategy"]["id"].astext
+            == strategy.id.cast(String),
+            Evaluation.candidate_id.is_(None),
+            Evaluation.candidate_key
+            == literal("independent:") + IndependentEvaluation.id.cast(String),
+        )
+        .correlate_except(IndependentEvaluation)
+    )
     return (
         (ResearchRun.strategy_version_id == strategy.id)
         & (Evaluation.code_sha256 == strategy.content_sha256)
-        & (saved_seed | selected_final)
+        & (saved_seed | selected_final | independent)
     )
 
 
@@ -511,7 +525,11 @@ def _source_association(session, evaluation, run, owner_id):
         else "unavailable",
         strategy_version_id=strategy.id if strategy else None,
         strategy_basis=(
-            "selected_final" if run.final_selection_id is not None else "saved_seed"
+            "independent_selected"
+            if run.config.get("execution_mode") == "independent_evaluation"
+            else "selected_final"
+            if run.final_selection_id is not None
+            else "saved_seed"
         )
         if strategy
         else "unavailable",
@@ -547,7 +565,13 @@ def _evaluation_public(session, evaluation, owner_id):
     )
     if run is None:
         raise DomainError("not_found", "Evaluation run not found", 404)
-    result = _registered_hash(session, evaluation, "result_bundle")
+    result = _registered_hash(
+        session,
+        evaluation,
+        "portable_result"
+        if run.config.get("schema_version", "").startswith("tradegrad.portable.")
+        else "result_bundle",
+    )
     trace = _registered_hash(session, evaluation, "trace_manifest")
     missing = []
     if result is None:
@@ -575,6 +599,8 @@ def _evaluation_public(session, evaluation, owner_id):
         )
     schema_version = run.config.get("schema_version")
     run_kind = {
+        "tradegrad.independent-evaluation.v1": "native_independent",
+        "tradegrad.portable.independent-evaluation.v1": "portable_independent",
         "tradegrad.run.v1": "native_research",
         "tradegrad.final-evaluation.v1": "native_final",
         "tradegrad.portable.run.v1": "portable_research",

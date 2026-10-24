@@ -41,7 +41,11 @@ def prepare_trace_artifacts(
         raise ValueError("Incomplete research capture publication envelope")
     summary = CaptureSummary.model_validate(result["research_capture"])
     source = getattr(config, "source_config", config)
-    expected_capture = source.research_capture or CaptureConfig()
+    expected_capture = (
+        config.research_capture
+        if getattr(config, "execution_mode", None) == "independent_evaluation"
+        else source.research_capture
+    ) or CaptureConfig()
     portable = config.schema_version.startswith("tradegrad.portable.")
     if summary.capture != expected_capture or summary.source != (
         "engine_observed" if portable else "strategy_emitted"

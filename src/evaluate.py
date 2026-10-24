@@ -206,6 +206,10 @@ def run_backtest(
     engine_overrides: dict | None = None,
     result_callback=None,
     strategy_contract: dict | None = None,
+    runtime_observer=None,
+    rng_restore=None,
+    rng_callback=None,
+    independent_observation: bool = False,
 ):
     date2symbols = Date2Symbols.from_date2symbol_dir(date2symbol_dir)
     all_symbols = set()
@@ -228,6 +232,22 @@ def run_backtest(
 
         context = native_context(context, strategy_contract)
 
+    observer_kwargs = {}
+    if runtime_observer is not None:
+        observer_kwargs = {"on_event": runtime_observer, "stream_mode": "audit"}
+    # This seam is after trusted data/context preparation and immediately before
+    # AKQuant loads candidate source. Ordinary capture never reseeds either RNG.
+    if rng_callback is not None or rng_restore is not None:
+        from packages.tradegrad_adapter.runtime_observation import (
+            capture_rng_state,
+            restore_rng_state,
+        )
+
+        if rng_restore is not None:
+            restore_rng_state(rng_restore, include_numpy=True)
+        rng_state = capture_rng_state(include_numpy=True)
+        if rng_callback is not None:
+            rng_callback(rng_state)
     result = aq.run_backtest(
         data=data_map,
         strategy_source=strategy_path,
@@ -235,7 +255,23 @@ def run_backtest(
         start_time=start_time,
         end_time=end_time,
         **engine_kwargs,
+        **observer_kwargs,
     )
+
+    if independent_observation:
+        from packages.tradegrad_adapter.independent_results import (
+            observation_performance,
+        )
+
+        performance = observation_performance(result, market=market, profile=profile)
+        # Snapshot the genuine successful engine result before legacy reward and
+        # positive-closed-trade admission. Engine exceptions still propagate.
+        if result_callback is not None:
+            result_callback(result, performance, engine_kwargs)
+        os.makedirs(result_dir, exist_ok=True)
+        with open(os.path.join(result_dir, "metrics.json"), "w") as stream:
+            json.dump(performance, stream, indent=4, allow_nan=False)
+        return result
 
     metrics_df = result.metrics_df
 

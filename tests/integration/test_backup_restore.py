@@ -1,4 +1,4 @@
-"""Opt-in, real PostgreSQL cold-restore and genuine M3-through-I4 upgrade drill.
+"""Opt-in, real PostgreSQL cold-restore and genuine M3-through-I5 upgrade drill.
 
 RUN_BACKUP_RESTORE_DRILL=1 is mandatory. TEST_DATABASE_URL is a maintenance
 connection on a dedicated test server; its role must have CREATEDB. Only two
@@ -1090,6 +1090,242 @@ def _seed_comparison_boundary(engine: Engine, storage: Path) -> dict[str, bytes]
     return {storage_key: diagnostic}
 
 
+def _seed_independent_boundary(engine: Engine) -> None:
+    """Cancelled persistence-only I5 graph; no source/result admission is claimed.
+
+    This deliberately unexecutable synthetic source lets cold restore prove new
+    owner/family/source/arm foreign keys and immutable config bytes survive,
+    without inventing a successful engine evaluation or parity report.
+    """
+    from sqlalchemy.orm import Session
+
+    from backend.app.experiment_schemas import (
+        ExperimentCreate,
+        SplitDefinition,
+        SplitVersionCreate,
+    )
+    from backend.app.experiment_services import create_experiment, create_split_version
+    from backend.app.independent_schemas import (
+        ControlledExperimentCreate,
+        DiagnosticReplayCreate,
+    )
+    from backend.app.models import (
+        ControlledArm,
+        ControlledExperiment,
+        Evaluation,
+        ExecutionAttempt,
+        IndependentEvaluation,
+        ResearchRun,
+        StrategyVersion,
+    )
+    from packages.research_trace.contracts import digest
+    from packages.tradegrad_adapter.config import RunConfig, VersionRef
+    from packages.tradegrad_adapter.independent_config import (
+        IndependentEvaluationConfig,
+        IndependentSourcePin,
+    )
+
+    now = datetime(2024, 4, 3, tzinfo=UTC)
+    synthetic = {
+        "schema_version": "tradegrad.synthetic-independent-backup-boundary.v1",
+        "synthetic": True,
+        "engine_executed": False,
+        "result_available": False,
+        "reason": "Cancelled persistence fixture, never a readable independent result",
+    }
+    with Session(engine) as session:
+        historical = session.scalar(
+            select(ResearchRun).where(
+                ResearchRun.idempotency_key == "historical-cold-restore"
+            )
+        )
+        config = RunConfig.model_validate(historical.config)
+        strategy = session.get(StrategyVersion, historical.strategy_version_id)
+        owner = historical.owner_id
+        parent = create_experiment(
+            session,
+            owner,
+            ExperimentCreate(name="Synthetic cancelled I5 backup parent"),
+        )
+        definition = SplitDefinition(
+            dataset=config.dataset, universe=config.universe, windows=config.windows
+        )
+        parent_split = create_split_version(
+            session,
+            owner,
+            SplitVersionCreate(experiment_id=parent.id, definition=definition),
+        )
+        child = create_experiment(
+            session,
+            owner,
+            ExperimentCreate(
+                name="Synthetic cancelled I5 backup child",
+                parent_experiment_id=parent.id,
+            ),
+        )
+        child_split = create_split_version(
+            session,
+            owner,
+            SplitVersionCreate(experiment_id=child.id, definition=definition),
+        )
+
+        def cancelled_leaf(frozen, key, experiment, split):
+            run = ResearchRun(
+                id=uuid4(),
+                owner_id=owner,
+                idempotency_key=key,
+                request_sha256=frozen.sha256,
+                config=frozen.model_dump(mode="json"),
+                dataset_version_id=historical.dataset_version_id,
+                strategy_version_id=strategy.id,
+                experiment_id=experiment.id,
+                split_version_id=split.id,
+                research_image_digest=historical.research_image_digest,
+                status="cancelled",
+                generation=1,
+                next_event_seq=0,
+                error=synthetic["reason"],
+                created_at=now,
+                updated_at=now,
+            )
+            session.add(run)
+            session.flush()
+            attempt = ExecutionAttempt(
+                id=uuid4(),
+                run_id=run.id,
+                generation=1,
+                worker_id="synthetic-not-executed",
+                lease_token=uuid4(),
+                lease_expires_at=now,
+                heartbeat_at=now,
+                status="cancelled",
+                sandbox_id=f"synthetic-not-launched-{uuid4().hex}",
+                sandbox_stopped=True,
+                started_at=now,
+                finished_at=now,
+            )
+            session.add(attempt)
+            session.flush()
+            window = config.windows.train.model_dump(mode="json")
+            evaluation = Evaluation(
+                id=uuid4(),
+                run_id=run.id,
+                attempt_id=attempt.id,
+                generation=1,
+                candidate_key="synthetic-never-executed",
+                code_sha256=strategy.content_sha256,
+                split="train",
+                window=window,
+                window_sha256=digest(window),
+                image_digest=run.research_image_digest,
+                sandbox_id=attempt.sandbox_id,
+                sandbox_stopped=True,
+                status="cancelled",
+                error=synthetic["reason"],
+                created_at=now,
+                finished_at=now,
+            )
+            session.add(evaluation)
+            session.flush()
+            return run, evaluation
+
+        source, source_eval = cancelled_leaf(
+            config, "restore-i5-synthetic-source", parent, parent_split
+        )
+        pin = IndependentSourcePin(
+            evaluation_id=source_eval.id,
+            execution_attempt_id=source_eval.attempt_id,
+            result_manifest_sha256=digest(synthetic),
+            trace_manifest_sha256=None,
+            source_kind="strategy_version",
+            source_id=strategy.id,
+            code_sha256=strategy.content_sha256,
+        )
+        request = DiagnosticReplayCreate(source=pin)
+        controls = ControlledExperimentCreate(
+            source=pin,
+            name="Cancelled manual backup protocol",
+            hypothesis="Synthetic boundary only",
+            planned_change="No executed changes or causal claim",
+            arms=[
+                {"name": "baseline", "code": strategy.code},
+                {"name": "unchanged", "code": strategy.code},
+            ],
+        )
+        control = ControlledExperiment(
+            id=uuid4(),
+            owner_id=owner,
+            idempotency_key="restore-i5-control",
+            experiment_id=child.id,
+            split_version_id=child_split.id,
+            source_evaluation_id=source_eval.id,
+            request_sha256=controls.sha256,
+            request=controls.model_dump(mode="json"),
+            protocol=synthetic,
+            protocol_sha256=digest(synthetic),
+            exposure_snapshot=synthetic,
+            created_at=now,
+        )
+        session.add(control)
+        session.flush()
+        for ordinal, purpose in enumerate(("diagnostic", "controlled", "controlled")):
+            identifier = uuid4()
+            frozen = IndependentEvaluationConfig(
+                independent_id=identifier,
+                purpose=purpose,
+                source=pin,
+                source_run_id=source.id,
+                original_config_sha256=config.sha256,
+                source_config=config,
+                source_config_sha256=config.sha256,
+                selected_strategy=VersionRef(
+                    id=str(strategy.id), sha256=strategy.content_sha256
+                ),
+                split="train",
+                reconstruction_window=config.windows.train,
+                environment_digest=config.environment_digest,
+                research_image_digest=source.research_image_digest,
+                protocol_sha256=digest(synthetic),
+            )
+            run, _ = cancelled_leaf(
+                frozen,
+                f"restore-i5-{ordinal}",
+                parent if ordinal == 0 else child,
+                parent_split if ordinal == 0 else child_split,
+            )
+            item = IndependentEvaluation(
+                id=identifier,
+                owner_id=owner,
+                run_id=run.id,
+                source_evaluation_id=source_eval.id,
+                purpose=purpose,
+                request_sha256=request.sha256,
+                request=request.model_dump(mode="json"),
+                source_snapshot=synthetic,
+                source_snapshot_sha256=digest(synthetic),
+                protocol=synthetic,
+                protocol_sha256=digest(synthetic),
+                created_at=now,
+            )
+            session.add(item)
+            session.flush()
+            if ordinal:
+                arm = controls.arms[ordinal - 1]
+                session.add(
+                    ControlledArm(
+                        id=uuid4(),
+                        controlled_experiment_id=control.id,
+                        independent_id=item.id,
+                        ordinal=ordinal - 1,
+                        name=arm.name,
+                        changed_fields=[],
+                        interpretation="baseline" if ordinal == 1 else "unchanged",
+                    )
+                )
+                session.flush()
+        session.commit()
+
+
 @pytest.mark.parametrize(
     "revision",
     [
@@ -1097,6 +1333,7 @@ def _seed_comparison_boundary(engine: Engine, storage: Path) -> dict[str, bytes]
         "006_provider_connections",
         "007_research_specs",
         "008_comparisons",
+        "009_independent_evaluations",
     ],
 )
 def test_real_settings_backup_restores_management_and_immutable_history(
@@ -1137,6 +1374,7 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             "006_provider_connections",
             "007_research_specs",
             "008_comparisons",
+            "009_independent_evaluations",
         }:
             from sqlalchemy.orm import Session
 
@@ -1170,15 +1408,27 @@ def test_real_settings_backup_restores_management_and_immutable_history(
                     ),
                 )
                 session.commit()
-        if revision in {"007_research_specs", "008_comparisons"}:
+        if revision in {
+            "007_research_specs",
+            "008_comparisons",
+            "009_independent_evaluations",
+        }:
             _seed_workbench_evidence(source)
-        if revision == "008_comparisons":
+        if revision in {"008_comparisons", "009_independent_evaluations"}:
             files.update(_seed_comparison_boundary(source, storage))
+        if revision == "009_independent_evaluations":
+            _seed_independent_boundary(source)
         expected = _historical_snapshot(source)
-        if revision == "008_comparisons":
+        if revision in {"008_comparisons", "009_independent_evaluations"}:
             assert len(expected["comparisons"][1]) == 1
             assert len(expected["comparison_submissions"][1]) == 2
-            assert len(expected["research_evaluations"][1]) == 2
+            assert len(expected["research_evaluations"][1]) == (
+                6 if revision == "009_independent_evaluations" else 2
+            )
+        if revision == "009_independent_evaluations":
+            assert len(expected["independent_evaluations"][1]) == 3
+            assert len(expected["controlled_experiments"][1]) == 1
+            assert len(expected["controlled_arms"][1]) == 2
         manifest = create_backup(
             database=PostgresDatabase(
                 drill_databases.source.render_as_string(hide_password=False)
@@ -1214,7 +1464,7 @@ def test_real_settings_backup_restores_management_and_immutable_history(
             == manifest
         )
         _assert_historical_snapshot(restored, expected)
-        if revision == "008_comparisons":
+        if revision in {"008_comparisons", "009_independent_evaluations"}:
             with restored.connect() as connection:
                 assert connection.execute(
                     text(
@@ -1234,6 +1484,24 @@ def test_real_settings_backup_restores_management_and_immutable_history(
                     "DELETE FROM comparison_submissions",
                     "Comparison submissions are append-only",
                 ),
+            ):
+                with (
+                    pytest.raises(DBAPIError, match=error),
+                    restored.begin() as connection,
+                ):
+                    connection.execute(text(statement))
+            _assert_historical_snapshot(restored, expected)
+        if revision == "009_independent_evaluations":
+            for statement, error in (
+                (
+                    "UPDATE independent_evaluations SET source_snapshot = '{}'::jsonb",
+                    "Independent inputs are append-only",
+                ),
+                (
+                    "UPDATE controlled_experiments SET protocol = '{}'::jsonb",
+                    "Controlled experiment inputs are append-only",
+                ),
+                ("DELETE FROM controlled_arms", "Controlled arms are append-only"),
             ):
                 with (
                     pytest.raises(DBAPIError, match=error),

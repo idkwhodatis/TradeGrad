@@ -42,6 +42,7 @@ import {
 import { AnchoredSource } from "./anchored-source";
 import { DecisionReplay } from "./decision-replay";
 import { MechanismComparison } from "./comparison";
+import { StrategyVerification } from "./verification";
 import { sideFromEvidence } from "@/lib/comparison-evidence";
 import { DescriptionRevisions } from "./description-revisions";
 import { LineageSidebar } from "./lineage";
@@ -626,15 +627,22 @@ function Workbench({
             currentLeaf={leaf.data}
             currentVerified={leafVerified}
           />
+        ) : activeTab === "verification" ? (
+          <StrategyVerification
+            owner={owner}
+            selection={selection}
+            update={update}
+            currentSpec={spec.data}
+            currentLeaf={leaf.data}
+            currentVerified={leafVerified}
+            currentCode={currentSource}
+          />
         ) : (
           <Panel title={labels[activeTab]}>
             <p className="notice">
-              {activeTab === "verification"
-                ? "I5 diagnostic and controlled verification"
-                : "I6 versioned evidence notes"}{" "}
-              is pending: not implemented in this phase. Your exact selection is
-              preserved. No replay, comparison, validation result or note has
-              been fabricated.
+              I6 versioned evidence notes is pending: not implemented in this
+              phase. Your exact selection is preserved. No replay, comparison,
+              validation result or note has been fabricated.
             </p>
           </Panel>
         )}

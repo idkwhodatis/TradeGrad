@@ -116,8 +116,14 @@ def decode_result_protocol(
     *,
     expected_config_sha256: str | None = None,
     expected_identity: dict | None = None,
+    expected_result_policy: str | None = None,
+    expected_window: dict | None = None,
 ) -> tuple[dict, dict | None]:
     """Validate a bounded data-only wire record; never deserialize engine objects."""
+    from packages.tradegrad_adapter.independent_results import (
+        RESULT_POLICY,
+        RESULT_PREFIX_V3,
+    )
     from packages.tradegrad_adapter.results import (
         MAX_WIRE_BYTES,
         RESULT_PREFIX_V2,
@@ -125,9 +131,11 @@ def decode_result_protocol(
         validate_envelope,
     )
 
+    if expected_result_policy not in (None, RESULT_POLICY):
+        raise ValueError("Unsupported trusted result policy")
     records = []
     for line in stdout.decode("utf-8", errors="strict").splitlines():
-        for prefix in (RESULT_PREFIX, RESULT_PREFIX_V2):
+        for prefix in (RESULT_PREFIX, RESULT_PREFIX_V2, RESULT_PREFIX_V3):
             if line.startswith(prefix):
                 records.append((prefix, line[len(prefix) :]))
     if len(records) != 1 or len(records[0][1]) > 4 * ((MAX_WIRE_BYTES + 2) // 3):
@@ -137,7 +145,16 @@ def decode_result_protocol(
     if len(data) > MAX_WIRE_BYTES:
         raise ValueError("Result protocol exceeded its byte budget")
     bundle = None
-    if prefix == RESULT_PREFIX_V2:
+    if expected_result_policy == RESULT_POLICY:
+        if prefix != RESULT_PREFIX_V3:
+            raise ValueError("Independent request requires the V3 observation envelope")
+        from packages.tradegrad_adapter.independent_results import (
+            validate_envelope,
+            validate_performance,
+        )
+    elif prefix == RESULT_PREFIX_V3:
+        raise ValueError("Child result cannot select independent admission")
+    if prefix in (RESULT_PREFIX_V2, RESULT_PREFIX_V3):
         envelope = validate_envelope(data)
         bundle = envelope["bundle"]
         if (
@@ -147,12 +164,18 @@ def decode_result_protocol(
             raise ValueError("ResultBundle belongs to a different immutable config")
         if expected_identity is not None and bundle["identity"] != expected_identity:
             raise ValueError("ResultBundle staged-input identity mismatch")
+        if expected_window is not None and bundle["window"] != expected_window:
+            raise ValueError("ResultBundle differs from trusted reconstruction window")
         metrics_bytes = canonical_json_bytes(envelope["metrics"])
     else:
         if expected_config_sha256 is not None:
             raise ValueError("Configured research requires a complete V2 ResultBundle")
         metrics_bytes = data
-    metrics = _validated_metrics_bytes(metrics_bytes)
+    metrics = (
+        validate_performance(json.loads(metrics_bytes))
+        if expected_result_policy == RESULT_POLICY
+        else _validated_metrics_bytes(metrics_bytes)
+    )
     files = {"metrics.json": metrics_bytes}
     if bundle is not None:
         files["result-bundle.json"] = canonical_json_bytes(bundle)
@@ -192,7 +215,13 @@ def _without_protocol(value: bytes) -> str:
         line
         for line in value.decode("utf-8", errors="replace").splitlines()
         if not line.startswith(
-            (RESULT_PREFIX, "TRADEGRAD_RESULT_V2:", "TRADEGRAD_TRACE_V1:")
+            (
+                RESULT_PREFIX,
+                "TRADEGRAD_RESULT_V2:",
+                "TRADEGRAD_RESULT_V3:",
+                "TRADEGRAD_TRACE_V1:",
+                "TRADEGRAD_OBSERVATION_V1:",
+            )
         )
     )
 
@@ -572,6 +601,9 @@ class DockerEvaluator:
         if any(output_dir.iterdir()):
             raise ValueError("Refusing to reuse a nonempty evaluation output namespace")
         expected_identity = None
+        expected_result_policy = None
+        expected_window = None
+        runtime_result = {}
         capture_receiver = capture_demux = None
         capture_allowance = 0
         if expected_config_sha256 is not None:
@@ -579,6 +611,7 @@ class DockerEvaluator:
                 MAX_WIRE_BYTES,
                 artifact_inventory,
                 canonical_json_bytes,
+                native_result_window,
                 sha256_bytes,
             )
 
@@ -587,6 +620,20 @@ class DockerEvaluator:
                 raise ValueError("Oversized configured evaluator request")
             request = json.loads(request_path.read_bytes())
             config = request["evaluation_config"]
+            from datetime import date
+
+            from packages.tradegrad_adapter.runtime_observation import (
+                MAX_OBSERVATION_BYTES,
+            )
+            from runtimes.evaluator.entrypoint import _evaluation_config
+
+            _evaluation_config(
+                config,
+                date.fromisoformat(request["start_date"]),
+                date.fromisoformat(request["end_date"]),
+            )
+            expected_result_policy = config.get("result_policy")
+            expected_window = native_result_window(config)
             if config["run_config_sha256"] != expected_config_sha256:
                 raise ValueError("Configured evaluator input hash mismatch")
             inputs = artifact_inventory(input_dir)
@@ -602,7 +649,9 @@ class DockerEvaluator:
                 "market": request["market"],
                 "profile": request["profile"],
             }
-            capture_allowance = 4 * ((MAX_WIRE_BYTES + 2) // 3) + 128
+            capture_allowance = (
+                4 * ((MAX_WIRE_BYTES + MAX_OBSERVATION_BYTES + 256 + 2) // 3) + 256
+            )
             from packages.research_trace.contracts import CaptureConfig
             from packages.research_trace.transport import (
                 MAX_COMPRESSED_BYTES,
@@ -619,7 +668,13 @@ class DockerEvaluator:
                 source="strategy_emitted",
                 compressed_limit=min(
                     MAX_COMPRESSED_BYTES,
-                    max(0, self.output_bytes - MAX_WIRE_BYTES - 1_048_576),
+                    max(
+                        0,
+                        self.output_bytes
+                        - MAX_WIRE_BYTES
+                        - MAX_OBSERVATION_BYTES
+                        - 1_048_576,
+                    ),
                 ),
             )
             capture_demux = NativeCaptureDemultiplexer(
@@ -820,7 +875,41 @@ class DockerEvaluator:
                         output_dir,
                         expected_config_sha256=expected_config_sha256,
                         expected_identity=expected_identity,
+                        expected_result_policy=expected_result_policy,
+                        expected_window=expected_window,
                     )
+                    if expected_config_sha256 is not None:
+                        from packages.tradegrad_adapter.runtime_observation import (
+                            decode_runtime_protocol,
+                            write_runtime_observation,
+                        )
+
+                        observation = decode_runtime_protocol(
+                            bytes(logs["stdout"]),
+                            expected_identity=expected_identity,
+                            expected_runtime_kind="native",
+                            expected_initialization={
+                                "policy": "reconstruct_from_original_start.v1",
+                                "window": expected_window,
+                            },
+                        )
+                        expected_rng = request.get("runtime_observation", {}).get(
+                            "rng_restore"
+                        )
+                        from packages.tradegrad_adapter.runtime_observation import (
+                            digest,
+                        )
+
+                        if observation["rng"]["restored_from_sha256"] != (
+                            None if expected_rng is None else digest(expected_rng)
+                        ):
+                            raise ValueError(
+                                "Runtime restored RNG differs from trusted request"
+                            )
+                        runtime_result = write_runtime_observation(
+                            output_dir, observation
+                        )
+                        _regular_tree(output_dir, maximum_bytes=self.output_bytes)
                     status = "succeeded"
         except (
             OSError,
@@ -857,6 +946,7 @@ class DockerEvaluator:
             error = "Research capture transport rejected: " + capture_errors[0]
         return {
             **(research_result if status == "succeeded" else {}),
+            **(runtime_result if status == "succeeded" else {}),
             "status": status,
             "exit_code": exit_code,
             "error": error,

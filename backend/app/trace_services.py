@@ -34,6 +34,14 @@ from packages.research_trace.transport import CaptureSummary
 
 MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 LOADERS = {
+    "tradegrad.independent-evaluation.v1": (
+        "backend.app.independent_views",
+        "load_owned_independent_result",
+    ),
+    "tradegrad.portable.independent-evaluation.v1": (
+        "backend.app.independent_views",
+        "load_owned_independent_result",
+    ),
     "tradegrad.run.v1": ("backend.app.research_views", "load_owned_result"),
     "tradegrad.final-evaluation.v1": (
         "backend.app.final_evaluation_views",
@@ -189,12 +197,18 @@ def load_owned_trace(
         from packages.research_trace.binding import make_binding
         from packages.tradegrad_adapter.config import RunConfig
         from packages.tradegrad_adapter.final_config import FinalEvaluationConfig
+        from packages.tradegrad_adapter.independent_config import (
+            IndependentEvaluationConfig,
+            PortableIndependentEvaluationConfig,
+        )
         from packages.tradegrad_adapter.portable_config import PortableRunConfig
         from packages.tradegrad_adapter.portable_final_config import (
             PortableFinalEvaluationConfig,
         )
 
         config_types = {
+            "tradegrad.independent-evaluation.v1": IndependentEvaluationConfig,
+            "tradegrad.portable.independent-evaluation.v1": PortableIndependentEvaluationConfig,
             "tradegrad.run.v1": RunConfig,
             "tradegrad.final-evaluation.v1": FinalEvaluationConfig,
             "tradegrad.portable.run.v1": PortableRunConfig,
@@ -223,7 +237,12 @@ def load_owned_trace(
             raise _invalid()
         source = getattr(config, "source_config", config)
         if capture.capture != (
-            source.research_capture or CaptureConfig()
+            (
+                config.research_capture
+                if getattr(config, "execution_mode", None) == "independent_evaluation"
+                else source.research_capture
+            )
+            or CaptureConfig()
         ) or capture.source != (
             "engine_observed"
             if config.schema_version.startswith("tradegrad.portable.")

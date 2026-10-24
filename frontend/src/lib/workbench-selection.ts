@@ -91,6 +91,23 @@ export type WorkbenchSelection = ComparisonPins & {
   comparison_instrument_id?: string;
   mechanism_index?: number;
   event_pair_id?: string;
+  diagnostic_run_id?: string;
+  diagnostic_config_sha256?: string;
+  diagnostic_report_sha256?: string;
+  diagnostic_event_offset?: number;
+  diagnostic_evaluation_id?: string;
+  diagnostic_execution_attempt_id?: string;
+  diagnostic_result_manifest_sha256?: string;
+  diagnostic_trace_manifest_sha256?: string;
+  controlled_experiment_id?: string;
+  controlled_request_sha256?: string;
+  controlled_protocol_sha256?: string;
+  controlled_arm?: number;
+  controlled_arm_run_id?: string;
+  controlled_arm_evaluation_id?: string;
+  controlled_arm_execution_attempt_id?: string;
+  controlled_arm_result_manifest_sha256?: string;
+  controlled_arm_trace_manifest_sha256?: string;
 };
 const textKeys = [
   "candidate_id",
@@ -113,6 +130,21 @@ const textKeys = [
   "comparison_manifest_sha256",
   "comparison_instrument_id",
   "event_pair_id",
+  "diagnostic_run_id",
+  "diagnostic_config_sha256",
+  "diagnostic_report_sha256",
+  "diagnostic_evaluation_id",
+  "diagnostic_execution_attempt_id",
+  "diagnostic_result_manifest_sha256",
+  "diagnostic_trace_manifest_sha256",
+  "controlled_experiment_id",
+  "controlled_request_sha256",
+  "controlled_protocol_sha256",
+  "controlled_arm_run_id",
+  "controlled_arm_evaluation_id",
+  "controlled_arm_execution_attempt_id",
+  "controlled_arm_result_manifest_sha256",
+  "controlled_arm_trace_manifest_sha256",
 ] as const;
 /** Reject malformed pins rather than discarding them and loading newer evidence. */
 export function workbenchSearch(
@@ -194,6 +226,18 @@ export function workbenchSearch(
       );
     result[key] = value;
   }
+  if (search.controlled_arm !== undefined) {
+    const raw = search.controlled_arm;
+    const value =
+      typeof raw === "number" || (typeof raw === "string" && raw.trim())
+        ? Number(raw)
+        : NaN;
+    if (!Number.isSafeInteger(value) || value < 0 || value > 2)
+      throw new Error(
+        "Invalid controlled arm ordinal. No different arm was selected.",
+      );
+    result.controlled_arm = value;
+  }
   if (search.trace_status !== undefined) {
     if (
       search.trace_status !== "available" &&
@@ -236,6 +280,7 @@ export function workbenchSearch(
       );
   }
   for (const key of [
+    "diagnostic_event_offset",
     "record_ordinal",
     "mechanism_index",
     "comparison_offset",
@@ -315,6 +360,8 @@ export const candidateReasons = [
   "exit",
 ] as const;
 export function selectionProblem(value: WorkbenchSelection): string | null {
+  const verificationProblem = verificationSelectionProblem(value);
+  if (verificationProblem) return verificationProblem;
   if (
     value.record_ordinal !== undefined &&
     (!value.stage_id ||
@@ -485,4 +532,87 @@ export function clearComparisonSide(
     trace_manifest_sha256: undefined,
     trace_status: undefined,
   });
+}
+
+/** Verification jobs and physical results never borrow replay/comparison identities. */
+export function verificationSelectionProblem(
+  value: WorkbenchSelection,
+): string | null {
+  if (
+    (value.diagnostic_config_sha256 ||
+      value.diagnostic_event_offset !== undefined ||
+      value.diagnostic_report_sha256 ||
+      value.diagnostic_evaluation_id) &&
+    !value.diagnostic_run_id
+  )
+    return "Diagnostic evidence requires its own immutable run ID.";
+  if (value.diagnostic_report_sha256 && !value.diagnostic_config_sha256)
+    return "A diagnostic report requires the exact diagnostic configuration hash.";
+  if (
+    (value.controlled_request_sha256 ||
+      value.controlled_protocol_sha256 ||
+      value.controlled_arm !== undefined ||
+      value.controlled_arm_run_id) &&
+    !value.controlled_experiment_id
+  )
+    return "Controlled evidence requires its own immutable experiment ID.";
+  if (
+    value.controlled_arm !== undefined &&
+    !(
+      value.controlled_arm_run_id &&
+      value.controlled_protocol_sha256 &&
+      value.controlled_request_sha256
+    )
+  )
+    return "A controlled arm requires its ordered run, request and protocol hashes. No other arm was substituted.";
+  if (value.controlled_arm_run_id && value.controlled_arm === undefined)
+    return "A controlled arm run requires its immutable ordinal.";
+  for (const prefix of ["diagnostic", "controlled_arm"] as const) {
+    const evaluation = value[`${prefix}_evaluation_id`];
+    const attempt = value[`${prefix}_execution_attempt_id`];
+    const result = value[`${prefix}_result_manifest_sha256`];
+    const trace = value[`${prefix}_trace_manifest_sha256`];
+    if (
+      (evaluation || attempt || result || trace) &&
+      !(evaluation && attempt && result)
+    )
+      return "Independent result evidence requires its exact Evaluation, physical attempt and result hash together.";
+    if (
+      prefix === "controlled_arm" &&
+      evaluation &&
+      value.controlled_arm === undefined
+    )
+      return "A controlled leaf requires its selected immutable arm.";
+  }
+  return null;
+}
+export function clearedDiagnosticSelection(): Partial<WorkbenchSelection> {
+  return {
+    diagnostic_run_id: undefined,
+    diagnostic_config_sha256: undefined,
+    diagnostic_report_sha256: undefined,
+    diagnostic_event_offset: undefined,
+    diagnostic_evaluation_id: undefined,
+    diagnostic_execution_attempt_id: undefined,
+    diagnostic_result_manifest_sha256: undefined,
+    diagnostic_trace_manifest_sha256: undefined,
+  };
+}
+export function clearedControlledArmSelection(): Partial<WorkbenchSelection> {
+  return {
+    controlled_arm: undefined,
+    controlled_arm_run_id: undefined,
+    controlled_arm_evaluation_id: undefined,
+    controlled_arm_execution_attempt_id: undefined,
+    controlled_arm_result_manifest_sha256: undefined,
+    controlled_arm_trace_manifest_sha256: undefined,
+  };
+}
+export function clearedControlledSelection(): Partial<WorkbenchSelection> {
+  return {
+    ...clearedControlledArmSelection(),
+    controlled_experiment_id: undefined,
+    controlled_request_sha256: undefined,
+    controlled_protocol_sha256: undefined,
+  };
 }

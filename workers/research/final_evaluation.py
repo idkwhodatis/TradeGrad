@@ -19,6 +19,10 @@ from workers.research.environment_evidence import publish_native_environment
 from workers.research.final_staging import stage_final_input
 from workers.research.lease import AttemptLease
 from workers.research.optimization import confirm_stop
+from workers.research.runtime_publication import (
+    attach_runtime_reference,
+    prepare_runtime_artifacts,
+)
 from workers.research.trace_publication import (
     attach_trace_reference,
     prepare_trace_artifacts,
@@ -160,6 +164,15 @@ def execute_final(run_id, generation, settings, factory):
                     settings.max_artifact_bytes,
                 )
                 records.extend(
+                    prepare_runtime_artifacts(
+                        config=config,
+                        result=result,
+                        records=records,
+                        root=root,
+                        settings=settings,
+                    )
+                )
+                records.extend(
                     prepare_trace_artifacts(
                         factory=factory,
                         settings=settings,
@@ -195,6 +208,7 @@ def execute_final(run_id, generation, settings, factory):
                     )
                     session.add(artifact)
                     attach_trace_reference(outcome, artifact, name, result)
+                    attach_runtime_reference(outcome, artifact, name, result)
                     if name == "result-bundle.json":
                         outcome["result_bundle"] = {
                             "artifact_id": str(artifact.id),

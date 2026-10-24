@@ -63,13 +63,17 @@ class WorkbenchSourceAssociation(BaseModel):
     candidate_id: UUID | None
     candidate_basis: Literal["registered_fk", "same_run_key_hash", "unavailable"]
     strategy_version_id: UUID | None
-    strategy_basis: Literal["saved_seed", "selected_final", "unavailable"]
+    strategy_basis: Literal[
+        "saved_seed", "selected_final", "independent_selected", "unavailable"
+    ]
     missing_reasons: list[str]
 
 
 class WorkbenchEvaluation(BaseModel):
     source_association: WorkbenchSourceAssociation
     run_kind: Literal[
+        "native_independent",
+        "portable_independent",
         "native_research",
         "native_final",
         "portable_research",

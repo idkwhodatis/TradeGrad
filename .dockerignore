@@ -9,6 +9,8 @@
 !packages/
 !packages/tradegrad_adapter/
 !packages/tradegrad_adapter/results.py
+!packages/tradegrad_adapter/independent_results.py
+!packages/tradegrad_adapter/runtime_observation.py
 !packages/tradegrad_adapter/portable_results.py
 !packages/tradegrad_adapter/native_contract.py
 !packages/tradegrad_adapter/indicators.py

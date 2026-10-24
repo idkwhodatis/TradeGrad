@@ -585,6 +585,27 @@ def reconcile_attempt(
             attempt.id,
         )
         return True
+    if run.config.get("schema_version") in {
+        "tradegrad.independent-evaluation.v1",
+        "tradegrad.portable.independent-evaluation.v1",
+    }:
+        from backend.app.comparison_guard import comparison_query_confirmed_stopped
+
+        # Independent jobs own both engine sandboxes AND host trace/parity SQL.
+        # Neither Docker stop nor a lease timeout proves host-query closure. The
+        # row locks fence any delayed worker after this nonblocking inode probe.
+        if settings is None or not comparison_query_confirmed_stopped(
+            settings.storage_root, run.id, attempt.id
+        ):
+            message = (
+                "Recovery blocked: independent host-query termination is unconfirmed"
+            )
+            if run.error != message:
+                run.error = message
+                append_event(
+                    session, run, "recovery_blocked", {"message": message}, attempt.id
+                )
+            return False
     # Holding the Run lock prevents cancellation/resume/old completion racing stop.
     # Stop is bounded by runner timeout. On False, absolutely no retry is released.
     # A research attempt owns many distinct evaluator sandboxes. Registering them

@@ -3,6 +3,8 @@
 import shlex
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -47,6 +49,36 @@ def test_native_allowlist_does_not_open_operational_data_or_secrets():
         "!.git/",
         "!.venv/",
     }
+
+
+@pytest.mark.parametrize(
+    "dockerfile",
+    (
+        "runtimes/evaluator/Dockerfile",
+        "runtimes/portable_engine/Dockerfile",
+        "runtimes/portable_policy/Dockerfile",
+    ),
+)
+def test_observation_runtime_copy_closure_has_explicit_allowlist(dockerfile):
+    rules = (ROOT / ".dockerignore").read_text().splitlines()
+    sources = {
+        source
+        for line in (ROOT / dockerfile).read_text().splitlines()
+        if line.startswith("COPY ")
+        for source in shlex.split(line)[1:-1]
+        if source.startswith("packages/tradegrad_adapter/")
+    }
+    assert "packages/tradegrad_adapter/runtime_observation.py" in sources
+    if dockerfile == "runtimes/evaluator/Dockerfile":
+        assert "packages/tradegrad_adapter/independent_results.py" in sources
+    elif dockerfile == "runtimes/portable_policy/Dockerfile":
+        # The isolated policy receives only the stdlib RNG observation helper,
+        # never native result/engine or backend modules.
+        assert sources == {"packages/tradegrad_adapter/runtime_observation.py"}
+    for source in sources:
+        assert (ROOT / source).is_file()
+        assert f"!{source}" in rules, f"Docker COPY input is excluded: {source}"
+    assert "!packages/tradegrad_adapter/*.py" not in rules
 
 
 def test_research_capture_runtime_closure_is_explicit_and_minimal():

@@ -8,6 +8,7 @@ COPY runtimes/portable_engine/calendar-requirements.lock /tmp/calendar.lock
 RUN pip install --no-cache-dir --require-hashes -r /tmp/evaluator.lock -r /tmp/calendar.lock && rm /tmp/evaluator.lock /tmp/calendar.lock
 COPY packages/strategy_sdk ./packages/strategy_sdk
 COPY packages/tradegrad_adapter/portable_results.py ./packages/tradegrad_adapter/portable_results.py
+COPY packages/tradegrad_adapter/runtime_observation.py ./packages/tradegrad_adapter/runtime_observation.py
 COPY runtimes/portable_policy/protocol.py ./runtimes/portable_policy/protocol.py
 COPY runtimes/portable_engine ./runtimes/portable_engine
 COPY packages/research_trace/__init__.py packages/research_trace/contracts.py packages/research_trace/recorder.py packages/research_trace/transport.py packages/research_trace/portable.py ./packages/research_trace/

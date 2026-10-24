@@ -60,6 +60,10 @@ from workers.research.portable_staging import (
     stage_portable_input,
     validate_portable_binding,
 )
+from workers.research.runtime_publication import (
+    attach_runtime_reference,
+    prepare_runtime_artifacts,
+)
 from workers.research.trace_publication import (
     attach_trace_reference,
     prepare_trace_artifacts,
@@ -481,6 +485,15 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
                 if bundle is not None:
                     result["bundle"] = bundle
                 records.extend(
+                    prepare_runtime_artifacts(
+                        config=config,
+                        result=result,
+                        records=records,
+                        root=root,
+                        settings=settings,
+                    )
+                )
+                records.extend(
                     prepare_trace_artifacts(
                         factory=factory,
                         settings=settings,
@@ -513,6 +526,7 @@ def execute_portable_configured(run_id: str, generation: int, settings, factory)
                         )
                         session.add(item)
                         attach_trace_reference(small, item, record["name"], result)
+                        attach_runtime_reference(small, item, record["name"], result)
                         if record["name"] == "portable-result.json":
                             small["portable_result"] = {
                                 "artifact_id": str(item.id),

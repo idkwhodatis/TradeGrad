@@ -237,6 +237,7 @@ def _validate_native_persisted_result(
     strategy_version_id,
     allowed_windows,
     selected_code_sha256=None,
+    independent_config=None,
 ):
     """Shared native bytes checks, after a schema-specific binding was validated.
 
@@ -293,7 +294,14 @@ def _validate_native_persisted_result(
         bundle = json.loads(
             content, object_pairs_hook=_unique_pairs, parse_constant=_reject_constant
         )
-        validate_result_bundle(bundle)
+        if independent_config is None:
+            validate_result_bundle(bundle)
+        else:
+            from packages.tradegrad_adapter.independent_results import (
+                validate_result_bundle as validate_independent_bundle,
+            )
+
+            validate_independent_bundle(bundle)
         from packages.tradegrad_adapter.benchmarks import require_comparison_binding
 
         require_comparison_binding(bundle, config)
@@ -332,6 +340,12 @@ def _validate_native_persisted_result(
             "end_date": window["end"],
             "evaluation_config": eval_config,
         }
+        if independent_config is not None:
+            eval_config["result_policy"] = "independent_observation.v1"
+            request["runtime_observation"] = {
+                "schema_version": "tradegrad.runtime-observation-request.v1",
+                "rng_restore": independent_config.rng_restore,
+            }
         identity = bundle["identity"]
         expected_identity = {
             "strategy_sha256": evaluation.code_sha256,

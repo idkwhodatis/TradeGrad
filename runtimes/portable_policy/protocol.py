@@ -6,6 +6,9 @@ The blocking helpers are for resource-limited containers only.
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import json
 import struct
 from uuid import UUID
 
@@ -14,8 +17,11 @@ from packages.strategy_sdk.json import JsonLimits, canonical_json, parse_json
 PROTOCOL_VERSION = "tradegrad.portable-wire.v1"
 MAX_OBSERVATION_BYTES = 4 * 1024 * 1024
 MAX_REPLY_BYTES = 256 * 1024
+MAX_STARTUP_BYTES = 32 * 1024
 MAX_RESULT_BYTES = 8 * 1024 * 1024
 MAX_DECISIONS = 100_000
+MAX_ENGINE_AUDIT_BYTES = 4 * 1024 * 1024 + 64 * 1024
+AUDIT_CHUNK_BYTES = 36 * 1024
 
 
 def limits(max_bytes):
@@ -72,6 +78,134 @@ def _identity(evaluation_id):
 def _sequence(sequence):
     if type(sequence) is not int or not 0 <= sequence <= MAX_DECISIONS:
         raise ValueError("Invalid portable decision sequence")
+
+
+def policy_startup_envelope(evaluation_id, rng_state, *, restored_from_sha256=None):
+    """The reviewed bootstrap emits this before importing candidate code.
+
+    This records only the declared RNG seam, not a general checkpoint or an
+    independent proof about randomness used later by the untrusted policy.
+    """
+    from packages.tradegrad_adapter.runtime_observation import validate_rng_state
+
+    _identity(evaluation_id)
+    validate_rng_state(rng_state, include_numpy=False)
+    if restored_from_sha256 is not None and (
+        type(restored_from_sha256) is not str
+        or len(restored_from_sha256) != 64
+        or any(c not in "0123456789abcdef" for c in restored_from_sha256)
+    ):
+        raise ValueError("Invalid portable restored RNG digest")
+    return {
+        "protocol_version": PROTOCOL_VERSION,
+        "kind": "policy_startup",
+        "evaluation_id": evaluation_id,
+        "rng_state": rng_state,
+        "restored_from_sha256": restored_from_sha256,
+    }
+
+
+def validate_policy_startup(value, evaluation_id):
+    if not isinstance(value, dict) or set(value) != {
+        "protocol_version",
+        "kind",
+        "evaluation_id",
+        "rng_state",
+        "restored_from_sha256",
+    }:
+        raise ValueError("Invalid portable policy startup schema")
+    expected = policy_startup_envelope(
+        evaluation_id,
+        value["rng_state"],
+        restored_from_sha256=value["restored_from_sha256"],
+    )
+    if value != expected:
+        raise ValueError("Portable policy startup identity mismatch")
+    # Also enforce the startup-specific budget for callers not using framing.
+    canonical_json(value, limits=limits(MAX_STARTUP_BYTES))
+    return value["rng_state"]
+
+
+def engine_audit_envelope(evaluation_id, sequence, audit):
+    """Keep exact native int64 timestamps outside the interoperable JSON ABI."""
+    from packages.tradegrad_adapter.runtime_observation import canonical, validate_audit
+
+    _identity(evaluation_id)
+    _sequence(sequence)
+    validate_audit(audit)
+    data = canonical(audit)
+    if len(data) > MAX_ENGINE_AUDIT_BYTES:
+        raise ValueError("Portable engine audit exceeds its byte budget")
+    return {
+        "protocol_version": PROTOCOL_VERSION,
+        "kind": "engine_audit",
+        "evaluation_id": evaluation_id,
+        "sequence": sequence,
+        "encoding": "base64-json.v1",
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "chunks": [
+            base64.b64encode(data[offset : offset + AUDIT_CHUNK_BYTES]).decode("ascii")
+            for offset in range(0, len(data), AUDIT_CHUNK_BYTES)
+        ],
+    }
+
+
+def validate_engine_audit(value, evaluation_id, sequence):
+    from packages.tradegrad_adapter.runtime_observation import canonical, validate_audit
+
+    _identity(evaluation_id)
+    _sequence(sequence)
+    if (
+        not isinstance(value, dict)
+        or set(value)
+        != {
+            "protocol_version",
+            "kind",
+            "evaluation_id",
+            "sequence",
+            "encoding",
+            "sha256",
+            "chunks",
+        }
+        or (
+            value["protocol_version"],
+            value["kind"],
+            value["evaluation_id"],
+            value["sequence"],
+            value["encoding"],
+        )
+        != (PROTOCOL_VERSION, "engine_audit", evaluation_id, sequence, "base64-json.v1")
+        or type(value["sequence"]) is not int
+    ):
+        raise ValueError("Invalid portable engine audit envelope")
+    chunks = value["chunks"]
+    if (
+        not isinstance(chunks, list)
+        or not 1 <= len(chunks) <= 120
+        or any(
+            type(chunk) is not str
+            or not chunk
+            or len(chunk) > 4 * ((AUDIT_CHUNK_BYTES + 2) // 3)
+            for chunk in chunks
+        )
+    ):
+        raise ValueError("Invalid portable engine audit chunks")
+    data = b"".join(base64.b64decode(chunk, validate=True) for chunk in chunks)
+    if (
+        len(data) > MAX_ENGINE_AUDIT_BYTES
+        or hashlib.sha256(data).hexdigest() != value["sha256"]
+    ):
+        raise ValueError("Portable engine audit bytes or checksum mismatch")
+    try:
+        audit = json.loads(data)
+        # Canonical equality also rejects duplicate keys, nonfinite numbers,
+        # whitespace/trailing bytes and alternate encodings before validation.
+        if canonical(audit) != data:
+            raise ValueError("Noncanonical portable engine audit")
+        validate_audit(audit)
+    except (RecursionError, OverflowError) as exc:
+        raise ValueError("Invalid portable engine audit complexity") from exc
+    return audit
 
 
 def observation_envelope(evaluation_id, sequence, observation):

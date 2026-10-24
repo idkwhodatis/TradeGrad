@@ -10,6 +10,7 @@ from runtimes.portable_policy.protocol import (
     MAX_OBSERVATION_BYTES,
     MAX_REPLY_BYTES,
     MAX_RESULT_BYTES,
+    engine_audit_envelope,
     observation_envelope,
     read_frame,
     result_envelope,
@@ -50,6 +51,7 @@ def main(input_dir=Path("/input")):
     from packages.research_trace.contracts import CaptureConfig
     from packages.research_trace.recorder import Recorder
     from packages.research_trace.transport import MAX_FRAME_BYTES, CaptureWriter
+    from packages.tradegrad_adapter.runtime_observation import NativeAuditObserver
 
     config = inputs.capture_config or CaptureConfig()
     capture_writer = CaptureWriter(
@@ -61,8 +63,16 @@ def main(input_dir=Path("/input")):
         on_record=capture_writer.append,
         source="engine_observed",
     )
-    result = execute(inputs, exchange, research_recorder=recorder)
+    runtime_observer = NativeAuditObserver()
+    result = execute(
+        inputs, exchange, research_recorder=recorder, runtime_observer=runtime_observer
+    )
     capture_writer.finish(recorder.summary())
+    write_frame(
+        wire,
+        engine_audit_envelope(evaluation_id, sequence, runtime_observer.finish()),
+        MAX_RESULT_BYTES,
+    )
     write_frame(
         wire, result_envelope(evaluation_id, sequence, result), MAX_RESULT_BYTES
     )

@@ -6,7 +6,7 @@ COPY runtimes/evaluator/requirements.lock /tmp/requirements.lock
 RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements.lock && rm /tmp/requirements.lock
 COPY src/evaluate.py src/evaluate_time.py src/market.py src/data_cache.py src/resources.py ./src/
 COPY src/__init__.py ./src/__init__.py
-COPY packages/tradegrad_adapter/results.py ./packages/tradegrad_adapter/results.py
+COPY packages/tradegrad_adapter/results.py packages/tradegrad_adapter/independent_results.py packages/tradegrad_adapter/runtime_observation.py ./packages/tradegrad_adapter/
 COPY packages/tradegrad_adapter/native_contract.py ./packages/tradegrad_adapter/native_contract.py
 COPY packages/tradegrad_adapter/indicators.py ./packages/tradegrad_adapter/indicators.py
 COPY runtimes/evaluator/entrypoint.py ./entrypoint.py

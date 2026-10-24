@@ -267,11 +267,22 @@ def load_inputs(
             {"research_capture"}
             if type(request) is dict and "research_capture" in request
             else set()
+        )
+        | (
+            {"replay_rng_state"}
+            if type(request) is dict and "replay_rng_state" in request
+            else set()
         ),
         "engine request",
     )
     if request["schema_version"] != REQUEST_VERSION:
         raise ValueError("unsupported engine request")
+    if "replay_rng_state" in request:
+        from packages.tradegrad_adapter.runtime_observation import validate_rng_state
+
+        # This state belongs exclusively to the policy process. The trusted
+        # engine validates staging but never consumes or restores policy RNG.
+        validate_rng_state(request["replay_rng_state"], include_numpy=False)
     manifest = parse_manifest(canonical_json(request["manifest"]))
     _keys(request["window"], {"start", "end"}, "window")
     start, end = (date.fromisoformat(request["window"][k]) for k in ("start", "end"))
@@ -995,7 +1006,9 @@ class DailyDecisionBarrier:
         self.controller.on_session(session, broker, aq)
 
 
-def execute(inputs: Inputs, exchange: Callable, research_recorder=None):
+def execute(
+    inputs: Inputs, exchange: Callable, research_recorder=None, *, runtime_observer=None
+):
     """Container-only real native execution. Never called by host fallbacks."""
     if os.environ.get("TRADEGRAD_PORTABLE_ENGINE_CONTAINER") != "1":
         raise RuntimeError(
@@ -1083,6 +1096,11 @@ def execute(inputs: Inputs, exchange: Callable, research_recorder=None):
         end_time=active[-1].close_time + timedelta(microseconds=1),
         strategy_runtime_config={"error_mode": "raise", "re_raise_on_error": True},
         analyzer_plugins=[native_configuration],
+        **(
+            {"on_event": runtime_observer, "stream_mode": "audit"}
+            if runtime_observer is not None
+            else {}
+        ),
     )
     native_configuration.require_applied()
     if callback_errors:

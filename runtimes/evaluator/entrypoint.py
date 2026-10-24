@@ -12,7 +12,8 @@ def _evaluation_config(value, start, end):
     keys = {"engine_overrides", "window", "warmup", "benchmark", "run_config_sha256"}
     if (
         not isinstance(value, dict)
-        or set(value) - {"strategy_contract", "research_capture"} != keys
+        or set(value) - {"strategy_contract", "research_capture", "result_policy"}
+        != keys
     ):
         raise ValueError("Invalid evaluation_config schema")
     window = value["window"]
@@ -54,6 +55,11 @@ def _evaluation_config(value, start, end):
         from packages.research_trace.contracts import CaptureConfig
 
         CaptureConfig.model_validate(value["research_capture"])
+    if "result_policy" in value:
+        from packages.tradegrad_adapter.independent_results import RESULT_POLICY
+
+        if value["result_policy"] != RESULT_POLICY:
+            raise ValueError("Unsupported trusted result policy")
     validate_engine_overrides(value["engine_overrides"])
     return value
 
@@ -86,16 +92,46 @@ def main(input_dir=Path("/input"), output_dir=Path("/output")):
         "profile": profile,
     }
     captured = {}
-    recorder = trace_writer = native_capture = None
+    recorder = trace_writer = native_capture = audit = None
+    rng_restore = None
+    independent = False
     if "evaluation_config" in request:
         from packages.tradegrad_adapter.results import (
             artifact_inventory,
             canonical_json_bytes,
             export_native_result,
+            native_result_window,
             sha256_bytes,
         )
 
         config = _evaluation_config(request["evaluation_config"], start, end)
+        from packages.tradegrad_adapter.runtime_observation import (
+            NativeAuditObserver,
+            validate_rng_state,
+        )
+
+        observation_request = request.get("runtime_observation")
+        if observation_request is not None:
+            if (
+                not isinstance(observation_request, dict)
+                or set(observation_request) != {"schema_version", "rng_restore"}
+                or observation_request["schema_version"]
+                != "tradegrad.runtime-observation-request.v1"
+            ):
+                raise ValueError("Invalid runtime observation request")
+            rng_restore = observation_request["rng_restore"]
+            if rng_restore is not None:
+                validate_rng_state(rng_restore, include_numpy=True)
+        independent = config.get("result_policy") == "independent_observation.v1"
+        if independent:
+            from packages.tradegrad_adapter.independent_results import (
+                export_native_result,
+            )
+        audit = NativeAuditObserver()
+        common["runtime_observer"] = audit
+        common["rng_restore"] = rng_restore
+        common["rng_callback"] = lambda value: captured.__setitem__("rng_state", value)
+        common["independent_observation"] = independent
         from packages.research_trace.contracts import CaptureConfig, canonical_bytes
         from packages.research_trace.native import NativeCapture
         from packages.research_trace.recorder import Recorder
@@ -144,14 +180,7 @@ def main(input_dir=Path("/input"), output_dir=Path("/output")):
                 result,
                 performance,
                 identity=identity,
-                window={
-                    **config["window"],
-                    "interval": "half_open",
-                    "warmup": config["warmup"],
-                    "engine_start_time": common["start_time"],
-                    "engine_end_time": common["end_time"],
-                    "engine_boundary_adapter": "inclusive_daily_end_previous_calendar_date.v1",
-                },
+                window=native_result_window(config),
                 engine_kwargs=engine_kwargs,
                 currency="CNY" if market == "CN" else "USD",
                 reward_parameters={
@@ -187,11 +216,31 @@ def main(input_dir=Path("/input"), output_dir=Path("/output")):
             )
     if trace_writer is not None:
         trace_writer.finish(recorder.summary())
+        from packages.tradegrad_adapter.runtime_observation import (
+            make_runtime_observation,
+            runtime_wire_record,
+        )
+
+        observation = make_runtime_observation(
+            runtime_kind="native",
+            identity=identity,
+            initialization={
+                "policy": "reconstruct_from_original_start.v1",
+                "window": captured["bundle"]["window"],
+            },
+            rng_state=captured["rng_state"],
+            restored_from=rng_restore,
+            audit=audit.finish(),
+        )
+        print(runtime_wire_record(observation), flush=True)
     result = output_dir / "metrics.json"
     if result.is_symlink() or not result.is_file() or result.stat().st_size > 1_048_576:
         raise ValueError("Invalid result file")
     if "evaluation_config" in request:
-        from packages.tradegrad_adapter.results import wire_record
+        if independent:
+            from packages.tradegrad_adapter.independent_results import wire_record
+        else:
+            from packages.tradegrad_adapter.results import wire_record
 
         # Exact-one bounded envelope. Oversize fails rather than silently dropping
         # orders, fills or equity. The coordinator validates before persistence.

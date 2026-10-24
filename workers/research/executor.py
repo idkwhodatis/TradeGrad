@@ -185,6 +185,13 @@ def execute(
     with factory() as session:
         current = session.get(ResearchRun, UUID(run_id))
         schema = current.config.get("schema_version") if current is not None else None
+    if schema in {
+        "tradegrad.independent-evaluation.v1",
+        "tradegrad.portable.independent-evaluation.v1",
+    }:
+        from workers.research.independent_evaluation import execute_independent
+
+        return execute_independent(run_id, generation, settings, factory)
     if schema == "tradegrad.comparison.v1":
         from workers.research.comparison import execute_comparison
 

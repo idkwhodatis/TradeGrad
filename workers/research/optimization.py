@@ -52,6 +52,10 @@ from packages.tradegrad_adapter.config import (
 )
 from packages.tradegrad_adapter.environment import environment_digest
 from packages.tradegrad_adapter.windows import DatasetWindowReport, stage_dataset_window
+from workers.research.runtime_publication import (
+    attach_runtime_reference,
+    prepare_runtime_artifacts,
+)
 from workers.research.trace_publication import (
     attach_trace_reference,
     prepare_trace_artifacts,
@@ -466,6 +470,15 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
                     settings.max_artifact_bytes,
                 )
                 records.extend(
+                    prepare_runtime_artifacts(
+                        config=config,
+                        result=result,
+                        records=records,
+                        root=root,
+                        settings=settings,
+                    )
+                )
+                records.extend(
                     prepare_trace_artifacts(
                         factory=factory,
                         settings=settings,
@@ -515,6 +528,7 @@ def execute_configured(run_id: str, generation: int, settings: Settings, factory
                     )
                     session.add(artifact)
                     attach_trace_reference(small, artifact, name, result)
+                    attach_runtime_reference(small, artifact, name, result)
                     if name == "result-bundle.json":
                         small["result_bundle"] = {
                             "artifact_id": str(artifact.id),

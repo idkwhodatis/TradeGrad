@@ -271,3 +271,30 @@ def test_workflow_preserves_failed_steps_and_chains_verified_cleanup():
     assert re.findall(r"^        if: (.+)$", browser, flags=re.MULTILINE) == [
         "${{ !cancelled() && steps." + previous + ".outcome == 'success' }}"
     ]
+
+
+def test_independent_runtime_acceptance_is_mandatory_and_keeps_safe_evidence():
+    import re
+    from pathlib import Path
+
+    workflow = (
+        Path(__file__).resolve().parents[2] / ".github/workflows/v1-validation.yml"
+    ).read_text()
+    blocks = re.split(r"(?=^      - name: )", workflow, flags=re.MULTILINE)
+    group = next(block for block in blocks if "id: acceptance_05i\n" in block)
+    assert 'TRADEGRAD_REQUIRE_INDEPENDENT_INTEGRATION: "1"' in group
+    assert "tests/system/test_independent_pipeline.py -q" in group
+    report = "v1-independent-application-junit.xml"
+    assert f"--junitxml={report}" in group
+    assert "continue-on-error" not in group and "|| true" not in group
+    boundary = next(
+        block for block in blocks if "id: acceptance_05i_boundary\n" in block
+    )
+    for name in (
+        "test_real_original_rng_and_audit_survive_independent_replay",
+        "test_real_three_arm_no_trade_failure_retry_and_unchanged_optimizer",
+        "test_real_exact_maintained_template_diagnostic_verifies_all_semantics",
+    ):
+        assert name in boundary
+    exports = [block for block in blocks if "script/summarize_ci_junit.py" in block]
+    assert any(report in block for block in exports)

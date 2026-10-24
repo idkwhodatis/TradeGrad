@@ -37,6 +37,10 @@ from packages.strategy_sdk import (
     canonical_json,
     hash_json,
 )
+from packages.tradegrad_adapter.runtime_observation import (
+    NativeAuditObserver,
+    capture_rng_state,
+)
 from runtimes.evaluator.portable_runner import (
     PortableDockerEvaluator,
     safe_policy_manifest,
@@ -47,8 +51,10 @@ from runtimes.portable_policy.protocol import (
     MAX_REPLY_BYTES,
     decision_envelope,
     decode,
+    engine_audit_envelope,
     frame,
     observation_envelope,
+    policy_startup_envelope,
     read_frame,
     result_envelope,
     validate_request,
@@ -179,6 +185,11 @@ def runner(tmp_path, **kwargs):
         state_dir=tmp_path / "runner",
         **kwargs,
     )
+
+
+def empty_audit():
+    """Explicit incomplete inert audit, never represented as real engine events."""
+    return NativeAuditObserver().finish()
 
 
 def test_safe_manifest_removes_all_future_fingerprints():
@@ -505,10 +516,18 @@ def test_real_pipe_relay_normalizes_and_only_accepts_engine_result(
     def engine():
         write_frame(channels["engine"].writer, observation_envelope(EVALUATION, 0, obs))
         captured.append(read_frame(channels["engine"].reader))
+        write_frame(
+            channels["engine"].writer,
+            engine_audit_envelope(EVALUATION, 1, empty_audit()),
+        )
         write_frame(channels["engine"].writer, result_envelope(EVALUATION, 1, result))
         channels["engine"].finish()
 
     def policy():
+        write_frame(
+            channels["policy"].writer,
+            policy_startup_envelope(EVALUATION, capture_rng_state()),
+        )
         incoming = read_frame(channels["policy"].reader)
         write_frame(channels["policy"].writer, decision_envelope(incoming, reply(obs)))
         assert channels["policy"].reader.read(1) == b""
@@ -570,10 +589,15 @@ def test_relay_hostile_and_stalled_inert_endpoints_fail_bounded(
     inbound = observation_envelope(EVALUATION, 0, obs)
     if failure == "unsolicited":
         write_frame(channels["policy"].writer, {"kind": "result"})
-    elif failure == "stderr_flood":
-        channels["policy"].errors.write(b"x" * 129)
-    elif failure != "blocked_read":
-        write_frame(channels["engine"].writer, inbound)
+    else:
+        write_frame(
+            channels["policy"].writer,
+            policy_startup_envelope(EVALUATION, capture_rng_state()),
+        )
+        if failure == "stderr_flood":
+            channels["policy"].errors.write(b"x" * 129)
+        elif failure != "blocked_read":
+            write_frame(channels["engine"].writer, inbound)
     if failure == "blocked_write":
         original = module.frame
         monkeypatch.setattr(

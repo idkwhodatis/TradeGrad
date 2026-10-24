@@ -165,7 +165,7 @@ export type BackupReceipt = {
     /**
      * Schema Revision
      */
-    schema_revision: '003_m3' | '004_m5' | '005_settings' | '006_provider_connections' | '007_research_specs' | '008_comparisons';
+    schema_revision: '003_m3' | '004_m5' | '005_settings' | '006_provider_connections' | '007_research_specs' | '008_comparisons' | '009_independent_evaluations';
 };
 
 /**
@@ -1630,6 +1630,178 @@ export type ConnectionSnapshot = {
 };
 
 /**
+ * ControlledArmCreate
+ */
+export type ControlledArmCreate = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Parameters
+     */
+    parameters?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Planned Change
+     */
+    planned_change?: string | null;
+};
+
+/**
+ * ControlledArmPublic
+ */
+export type ControlledArmPublic = {
+    /**
+     * Changed Fields
+     */
+    changed_fields: Array<string>;
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string | null;
+    /**
+     * Interpretation
+     */
+    interpretation: 'baseline' | 'single_parameter_change_not_causal_proof' | 'not_individually_validated' | 'unchanged';
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Ordinal
+     */
+    ordinal: number;
+    /**
+     * Parameters
+     */
+    parameters: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Planned Change
+     */
+    planned_change: string | null;
+    result_pin: IndependentResultPin | null;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Status
+     */
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    /**
+     * Strategy Version Id
+     */
+    strategy_version_id: string;
+};
+
+/**
+ * ControlledExperimentCreate
+ */
+export type ControlledExperimentCreate = {
+    /**
+     * Arms
+     */
+    arms: Array<ControlledArmCreate>;
+    /**
+     * Hypothesis
+     */
+    hypothesis: string;
+    /**
+     * Max Runtime Seconds
+     */
+    max_runtime_seconds?: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Planned Change
+     */
+    planned_change: string;
+    research_capture?: CaptureConfig;
+    source: IndependentSourcePin;
+};
+
+/**
+ * ControlledExperimentPublic
+ */
+export type ControlledExperimentPublic = {
+    /**
+     * Arms
+     */
+    arms: Array<ControlledArmPublic>;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Experiment Id
+     */
+    experiment_id: string;
+    exposure_snapshot: ExposureSnapshot;
+    /**
+     * Hypothesis
+     */
+    hypothesis: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Parent Experiment Id
+     */
+    parent_experiment_id: string;
+    /**
+     * Planned Change
+     */
+    planned_change: string;
+    /**
+     * Protocol
+     */
+    protocol: {
+        [key: string]: unknown;
+    };
+    /**
+     * Protocol Sha256
+     */
+    protocol_sha256: string;
+    request: ControlledExperimentCreate;
+    /**
+     * Request Sha256
+     */
+    request_sha256: string;
+    /**
+     * Root Experiment Id
+     */
+    root_experiment_id: string;
+    source: IndependentSourcePin;
+    /**
+     * Split Version Id
+     */
+    split_version_id: string;
+};
+
+/**
  * CoveragePublic
  */
 export type CoveragePublic = {
@@ -1981,6 +2153,231 @@ export type DecisionPage = {
      * Total
      */
     total: number | null;
+};
+
+/**
+ * DiagnosticEventPair
+ */
+export type DiagnosticEventPair = {
+    /**
+     * Mapping
+     */
+    mapping: 'verified_original_event' | 'unverified_observed_pairing' | 'unpaired' | 'ambiguous';
+    /**
+     * Observation Status
+     */
+    observation_status: 'matched' | 'mismatch' | 'not_verifiable';
+    /**
+     * Original Decision Id
+     */
+    original_decision_id: string | null;
+    /**
+     * Original Pre State Sha256
+     */
+    original_pre_state_sha256: string | null;
+    /**
+     * Pairing Key
+     */
+    pairing_key: [
+        string,
+        string,
+        string,
+        number,
+        string | null
+    ];
+    /**
+     * Pre State Status
+     */
+    pre_state_status: 'matched' | 'mismatch' | 'not_verifiable';
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    /**
+     * Replay Decision Id
+     */
+    replay_decision_id: string | null;
+    /**
+     * Replay Pre State Sha256
+     */
+    replay_pre_state_sha256: string | null;
+};
+
+/**
+ * DiagnosticParityCheck
+ */
+export type DiagnosticParityCheck = {
+    /**
+     * Definition
+     */
+    definition: string;
+    /**
+     * Examples
+     */
+    examples?: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Mismatch Count
+     */
+    mismatch_count?: number;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    /**
+     * Replay Count
+     */
+    replay_count?: number | null;
+    /**
+     * Source Count
+     */
+    source_count?: number | null;
+    /**
+     * Status
+     */
+    status: 'matched' | 'mismatch' | 'not_verifiable';
+};
+
+/**
+ * DiagnosticParityEventPage
+ */
+export type DiagnosticParityEventPage = {
+    /**
+     * Items
+     */
+    items: Array<DiagnosticEventPair>;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Report Sha256
+     */
+    report_sha256: string;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * DiagnosticParitySide
+ */
+export type DiagnosticParitySide = {
+    binding: EvaluationBinding;
+    /**
+     * Runtime Observation Sha256
+     */
+    runtime_observation_sha256: string | null;
+    /**
+     * Source Id
+     */
+    source_id: string;
+    /**
+     * Source Kind
+     */
+    source_kind: 'candidate' | 'strategy_version';
+    /**
+     * Spec Revision
+     */
+    spec_revision: number | null;
+    /**
+     * Spec Sha256
+     */
+    spec_sha256: string | null;
+    /**
+     * Trace Manifest Sha256
+     */
+    trace_manifest_sha256: string | null;
+};
+
+/**
+ * DiagnosticParityView
+ */
+export type DiagnosticParityView = {
+    /**
+     * Algorithm Version
+     */
+    algorithm_version: string;
+    /**
+     * Checks
+     */
+    checks: Array<DiagnosticParityCheck>;
+    /**
+     * Claim
+     */
+    claim: string;
+    /**
+     * Field Tolerances
+     */
+    field_tolerances: {
+        [key: string]: {
+            [key: string]: number;
+        };
+    };
+    /**
+     * Limitations
+     */
+    limitations: Array<string>;
+    /**
+     * Mapping Counts
+     */
+    mapping_counts: {
+        [key: string]: number;
+    };
+    /**
+     * Observation Scope
+     */
+    observation_scope: {
+        [key: string]: unknown;
+    };
+    /**
+     * Original Event Count
+     */
+    original_event_count: number;
+    /**
+     * Outcome
+     */
+    outcome: 'matched' | 'mismatch' | 'not_verifiable';
+    replay: DiagnosticParitySide;
+    /**
+     * Replay Event Count
+     */
+    replay_event_count: number;
+    /**
+     * Report Sha256
+     */
+    report_sha256: string;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.diagnostic-parity.v1';
+    source: DiagnosticParitySide;
+    /**
+     * Tolerance Version
+     */
+    tolerance_version: string;
+};
+
+/**
+ * DiagnosticReplayCreate
+ */
+export type DiagnosticReplayCreate = {
+    /**
+     * Max Runtime Seconds
+     */
+    max_runtime_seconds?: number;
+    research_capture?: CaptureConfig;
+    source: IndependentSourcePin;
 };
 
 /**
@@ -3529,6 +3926,468 @@ export type ImportPublic = {
     warnings: Array<{
         [key: string]: unknown;
     }>;
+};
+
+/**
+ * IndependentCapability
+ */
+export type IndependentCapability = {
+    /**
+     * Can Control
+     */
+    can_control: boolean;
+    /**
+     * Can Execute
+     */
+    can_execute: boolean;
+    /**
+     * Control Unavailable Reasons
+     */
+    control_unavailable_reasons: Array<string>;
+    /**
+     * Evaluation Mode
+     */
+    evaluation_mode: 'native_akquant' | 'portable';
+    exposure_snapshot: ExposureSnapshot;
+    /**
+     * Fixed Conditions
+     */
+    fixed_conditions: {
+        [key: string]: unknown;
+    };
+    /**
+     * Original Config
+     */
+    original_config: {
+        [key: string]: unknown;
+    };
+    /**
+     * Original Config Sha256
+     */
+    original_config_sha256: string;
+    /**
+     * Parity Prerequisites
+     */
+    parity_prerequisites: {
+        [key: string]: unknown;
+    };
+    /**
+     * Protocol Sha256
+     */
+    protocol_sha256: string;
+    source: IndependentSourcePin;
+    /**
+     * Source Code
+     */
+    source_code: string;
+    /**
+     * Source Parameters
+     */
+    source_parameters: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Source Run Id
+     */
+    source_run_id: string;
+    /**
+     * Unavailable Reasons
+     */
+    unavailable_reasons: Array<string>;
+};
+
+/**
+ * IndependentEvaluationConfig
+ */
+export type IndependentEvaluationConfig = {
+    /**
+     * Environment Digest
+     */
+    environment_digest: string;
+    /**
+     * Evaluation Mode
+     */
+    evaluation_mode?: 'native_akquant';
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'independent_evaluation';
+    /**
+     * Independent Id
+     */
+    independent_id: string;
+    /**
+     * Max Runtime Seconds
+     */
+    max_runtime_seconds?: number;
+    /**
+     * Original Config Sha256
+     */
+    original_config_sha256: string;
+    /**
+     * Protocol Sha256
+     */
+    protocol_sha256: string;
+    /**
+     * Purpose
+     */
+    purpose: 'diagnostic' | 'controlled';
+    reconstruction_window: DateWindow;
+    research_capture?: CaptureConfig;
+    /**
+     * Research Image Digest
+     */
+    research_image_digest: string;
+    /**
+     * Rng Restore
+     */
+    rng_restore?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Runtime Observation Sha256
+     */
+    runtime_observation_sha256?: string | null;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.independent-evaluation.v1';
+    selected_contract?: NativeStrategyContract | null;
+    selected_strategy: VersionRef;
+    source: IndependentSourcePin;
+    source_config: RunConfig;
+    /**
+     * Source Config Sha256
+     */
+    source_config_sha256: string;
+    /**
+     * Source Run Id
+     */
+    source_run_id: string;
+    /**
+     * Split
+     */
+    split: 'train' | 'validation' | 'holdout';
+    /**
+     * State Policy
+     */
+    state_policy?: 'original_start_fresh_engine_with_original_warmup.v1';
+};
+
+/**
+ * IndependentEvaluationDetail
+ */
+export type IndependentEvaluationDetail = {
+    /**
+     * Active Attempt Id
+     */
+    active_attempt_id: string | null;
+    /**
+     * Attempts
+     */
+    attempts: Array<AttemptPublic>;
+    /**
+     * Config
+     */
+    config: IndependentEvaluationConfig | PortableIndependentEvaluationConfig;
+    /**
+     * Config Sha256
+     */
+    config_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string | null;
+    /**
+     * Experiment Id
+     */
+    experiment_id: string;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Independent Id
+     */
+    independent_id: string;
+    /**
+     * Next Event Seq
+     */
+    next_event_seq: number;
+    /**
+     * Purpose
+     */
+    purpose: 'diagnostic' | 'controlled';
+    request: DiagnosticReplayCreate;
+    /**
+     * Request Sha256
+     */
+    request_sha256: string;
+    result_pin: IndependentResultPin | null;
+    /**
+     * Result Ready
+     */
+    result_ready: boolean;
+    source: IndependentSourcePin;
+    /**
+     * Split Version Id
+     */
+    split_version_id: string;
+    /**
+     * Status
+     */
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * IndependentEvaluationPublic
+ */
+export type IndependentEvaluationPublic = {
+    /**
+     * Active Attempt Id
+     */
+    active_attempt_id: string | null;
+    /**
+     * Config
+     */
+    config: IndependentEvaluationConfig | PortableIndependentEvaluationConfig;
+    /**
+     * Config Sha256
+     */
+    config_sha256: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string | null;
+    /**
+     * Experiment Id
+     */
+    experiment_id: string;
+    /**
+     * Generation
+     */
+    generation: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Independent Id
+     */
+    independent_id: string;
+    /**
+     * Next Event Seq
+     */
+    next_event_seq: number;
+    /**
+     * Purpose
+     */
+    purpose: 'diagnostic' | 'controlled';
+    request: DiagnosticReplayCreate;
+    /**
+     * Request Sha256
+     */
+    request_sha256: string;
+    result_pin: IndependentResultPin | null;
+    /**
+     * Result Ready
+     */
+    result_ready: boolean;
+    source: IndependentSourcePin;
+    /**
+     * Split Version Id
+     */
+    split_version_id: string;
+    /**
+     * Status
+     */
+    status: 'queued' | 'preparing' | 'running' | 'finalizing' | 'pause_requested' | 'paused' | 'cancel_requested' | 'cancelled' | 'failed' | 'interrupted' | 'succeeded';
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * IndependentResultPin
+ */
+export type IndependentResultPin = {
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    /**
+     * Execution Attempt Id
+     */
+    execution_attempt_id: string;
+    /**
+     * Execution Config Sha256
+     */
+    execution_config_sha256: string;
+    /**
+     * Result Manifest Sha256
+     */
+    result_manifest_sha256: string;
+    /**
+     * Source Id
+     */
+    source_id: string;
+    /**
+     * Source Kind
+     */
+    source_kind?: 'strategy_version';
+    /**
+     * Trace Manifest Sha256
+     */
+    trace_manifest_sha256: string | null;
+};
+
+/**
+ * IndependentResultQuery
+ */
+export type IndependentResultQuery = {
+    /**
+     * Artifact Sha256
+     */
+    artifact_sha256: string;
+    /**
+     * Columns
+     */
+    columns: Array<string>;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    /**
+     * Evaluation Mode
+     */
+    evaluation_mode: 'native_akquant' | 'portable';
+    /**
+     * Execution Attempt Id
+     */
+    execution_attempt_id: string;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Metric Details
+     */
+    metric_details: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Metrics
+     */
+    metrics: {
+        [key: string]: unknown;
+    };
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Purpose
+     */
+    purpose: 'diagnostic' | 'controlled';
+    /**
+     * Result Trust
+     */
+    result_trust: string;
+    /**
+     * Reward Status
+     */
+    reward_status?: 'not_applicable';
+    /**
+     * Rows
+     */
+    rows: Array<unknown>;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Section
+     */
+    section: string;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+};
+
+/**
+ * IndependentSourcePin
+ */
+export type IndependentSourcePin = {
+    /**
+     * Code Sha256
+     */
+    code_sha256: string;
+    /**
+     * Evaluation Id
+     */
+    evaluation_id: string;
+    /**
+     * Execution Attempt Id
+     */
+    execution_attempt_id: string;
+    /**
+     * Result Manifest Sha256
+     */
+    result_manifest_sha256: string;
+    /**
+     * Source Id
+     */
+    source_id: string;
+    /**
+     * Source Kind
+     */
+    source_kind: 'strategy_version' | 'candidate';
+    /**
+     * Spec Revision
+     */
+    spec_revision?: number | null;
+    /**
+     * Spec Sha256
+     */
+    spec_sha256?: string | null;
+    /**
+     * Trace Manifest Sha256
+     */
+    trace_manifest_sha256: string | null;
 };
 
 /**
@@ -5820,6 +6679,89 @@ export type PortableFinalResultQuery = {
     window: {
         [key: string]: unknown;
     };
+};
+
+/**
+ * PortableIndependentEvaluationConfig
+ */
+export type PortableIndependentEvaluationConfig = {
+    /**
+     * Environment Digest
+     */
+    environment_digest: string;
+    /**
+     * Evaluation Mode
+     */
+    evaluation_mode?: 'portable';
+    /**
+     * Execution Mode
+     */
+    execution_mode?: 'independent_evaluation';
+    /**
+     * Independent Id
+     */
+    independent_id: string;
+    /**
+     * Max Runtime Seconds
+     */
+    max_runtime_seconds?: number;
+    /**
+     * Original Config Sha256
+     */
+    original_config_sha256: string;
+    /**
+     * Portable Policy Image Digest
+     */
+    portable_policy_image_digest: string;
+    /**
+     * Protocol Sha256
+     */
+    protocol_sha256: string;
+    /**
+     * Purpose
+     */
+    purpose: 'diagnostic' | 'controlled';
+    reconstruction_window: DateWindow;
+    research_capture?: CaptureConfig;
+    /**
+     * Research Image Digest
+     */
+    research_image_digest: string;
+    /**
+     * Rng Restore
+     */
+    rng_restore?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Runtime Observation Sha256
+     */
+    runtime_observation_sha256?: string | null;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'tradegrad.portable.independent-evaluation.v1';
+    selected_manifest: VersionRef;
+    selected_parameters: VersionRef;
+    selected_strategy: VersionRef;
+    source: IndependentSourcePin;
+    source_config: PortableRunConfig;
+    /**
+     * Source Config Sha256
+     */
+    source_config_sha256: string;
+    /**
+     * Source Run Id
+     */
+    source_run_id: string;
+    /**
+     * Split
+     */
+    split: 'train' | 'validation' | 'holdout';
+    /**
+     * State Policy
+     */
+    state_policy?: 'original_start_fresh_engine_with_original_warmup.v1';
 };
 
 /**
@@ -10070,7 +11012,7 @@ export type WorkbenchEvaluation = {
     /**
      * Run Kind
      */
-    run_kind: 'native_research' | 'native_final' | 'portable_research' | 'portable_final' | 'legacy';
+    run_kind: 'native_independent' | 'portable_independent' | 'native_research' | 'native_final' | 'portable_research' | 'portable_final' | 'legacy';
     /**
      * Run Schema Version
      */
@@ -10157,7 +11099,7 @@ export type WorkbenchSourceAssociation = {
     /**
      * Strategy Basis
      */
-    strategy_basis: 'saved_seed' | 'selected_final' | 'unavailable';
+    strategy_basis: 'saved_seed' | 'selected_final' | 'independent_selected' | 'unavailable';
     /**
      * Strategy Version Id
      */
@@ -10997,6 +11939,91 @@ export type ReadComparisonSectionResponses = {
 };
 
 export type ReadComparisonSectionResponse = ReadComparisonSectionResponses[keyof ReadComparisonSectionResponses];
+
+export type CreateControlledExperimentData = {
+    body: ControlledExperimentCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/controlled-experiments';
+};
+
+export type CreateControlledExperimentErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateControlledExperimentError = CreateControlledExperimentErrors[keyof CreateControlledExperimentErrors];
+
+export type CreateControlledExperimentResponses = {
+    /**
+     * Successful Response
+     */
+    202: ControlledExperimentPublic;
+};
+
+export type CreateControlledExperimentResponse = CreateControlledExperimentResponses[keyof CreateControlledExperimentResponses];
+
+export type ReadControlledExperimentData = {
+    body?: never;
+    path: {
+        /**
+         * Controlled Id
+         */
+        controlled_id: string;
+    };
+    query?: never;
+    url: '/api/v1/controlled-experiments/{controlled_id}';
+};
+
+export type ReadControlledExperimentErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadControlledExperimentError = ReadControlledExperimentErrors[keyof ReadControlledExperimentErrors];
+
+export type ReadControlledExperimentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ControlledExperimentPublic;
+};
+
+export type ReadControlledExperimentResponse = ReadControlledExperimentResponses[keyof ReadControlledExperimentResponses];
 
 export type ListDataUsageExposuresData = {
     body?: never;
@@ -12511,6 +13538,54 @@ export type ReadReplayMarketResponses = {
 
 export type ReadReplayMarketResponse = ReadReplayMarketResponses[keyof ReadReplayMarketResponses];
 
+export type CreateDiagnosticReplayData = {
+    body: DiagnosticReplayCreate;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/evaluations/{evaluation_id}/diagnostic-replays';
+};
+
+export type CreateDiagnosticReplayErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CreateDiagnosticReplayError = CreateDiagnosticReplayErrors[keyof CreateDiagnosticReplayErrors];
+
+export type CreateDiagnosticReplayResponses = {
+    /**
+     * Successful Response
+     */
+    202: IndependentEvaluationPublic;
+};
+
+export type CreateDiagnosticReplayResponse = CreateDiagnosticReplayResponses[keyof CreateDiagnosticReplayResponses];
+
 export type ReadReplayInstrumentsData = {
     body?: never;
     path: {
@@ -13639,6 +14714,420 @@ export type HealthReadyResponses = {
 };
 
 export type HealthReadyResponse = HealthReadyResponses[keyof HealthReadyResponses];
+
+export type IndependentCapabilityData = {
+    body: IndependentSourcePin;
+    path?: never;
+    query?: never;
+    url: '/api/v1/independent-evaluations/capability';
+};
+
+export type IndependentCapabilityErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type IndependentCapabilityError = IndependentCapabilityErrors[keyof IndependentCapabilityErrors];
+
+export type IndependentCapabilityResponses = {
+    /**
+     * Successful Response
+     */
+    200: IndependentCapability;
+};
+
+export type IndependentCapabilityResponse = IndependentCapabilityResponses[keyof IndependentCapabilityResponses];
+
+export type QueryIndependentResultData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query: {
+        /**
+         * Execution Attempt Id
+         */
+        execution_attempt_id: string;
+        /**
+         * Result Manifest Sha256
+         */
+        result_manifest_sha256: string;
+        /**
+         * Section
+         */
+        section?: string;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/independent-evaluations/evaluations/{evaluation_id}/result';
+};
+
+export type QueryIndependentResultErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type QueryIndependentResultError = QueryIndependentResultErrors[keyof QueryIndependentResultErrors];
+
+export type QueryIndependentResultResponses = {
+    /**
+     * Successful Response
+     */
+    200: IndependentResultQuery;
+};
+
+export type QueryIndependentResultResponse = QueryIndependentResultResponses[keyof QueryIndependentResultResponses];
+
+export type DownloadIndependentResultData = {
+    body?: never;
+    path: {
+        /**
+         * Evaluation Id
+         */
+        evaluation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/independent-evaluations/evaluations/{evaluation_id}/result/download';
+};
+
+export type DownloadIndependentResultErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type DownloadIndependentResultError = DownloadIndependentResultErrors[keyof DownloadIndependentResultErrors];
+
+export type DownloadIndependentResultResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type ReadIndependentEvaluationData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/independent-evaluations/{run_id}';
+};
+
+export type ReadIndependentEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadIndependentEvaluationError = ReadIndependentEvaluationErrors[keyof ReadIndependentEvaluationErrors];
+
+export type ReadIndependentEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    200: IndependentEvaluationDetail;
+};
+
+export type ReadIndependentEvaluationResponse = ReadIndependentEvaluationResponses[keyof ReadIndependentEvaluationResponses];
+
+export type CancelIndependentEvaluationData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/independent-evaluations/{run_id}/cancel';
+};
+
+export type CancelIndependentEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type CancelIndependentEvaluationError = CancelIndependentEvaluationErrors[keyof CancelIndependentEvaluationErrors];
+
+export type CancelIndependentEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    202: IndependentEvaluationPublic;
+};
+
+export type CancelIndependentEvaluationResponse = CancelIndependentEvaluationResponses[keyof CancelIndependentEvaluationResponses];
+
+export type ReadDiagnosticParityData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: {
+        /**
+         * Report Sha256
+         */
+        report_sha256?: string | null;
+    };
+    url: '/api/v1/independent-evaluations/{run_id}/parity';
+};
+
+export type ReadDiagnosticParityErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type ReadDiagnosticParityError = ReadDiagnosticParityErrors[keyof ReadDiagnosticParityErrors];
+
+export type ReadDiagnosticParityResponses = {
+    /**
+     * Successful Response
+     */
+    200: DiagnosticParityView;
+};
+
+export type ReadDiagnosticParityResponse = ReadDiagnosticParityResponses[keyof ReadDiagnosticParityResponses];
+
+export type QueryDiagnosticParityEventsData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query: {
+        /**
+         * Report Sha256
+         */
+        report_sha256: string;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/independent-evaluations/{run_id}/parity/events';
+};
+
+export type QueryDiagnosticParityEventsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type QueryDiagnosticParityEventsError = QueryDiagnosticParityEventsErrors[keyof QueryDiagnosticParityEventsErrors];
+
+export type QueryDiagnosticParityEventsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DiagnosticParityEventPage;
+};
+
+export type QueryDiagnosticParityEventsResponse = QueryDiagnosticParityEventsResponses[keyof QueryDiagnosticParityEventsResponses];
+
+export type PauseIndependentUnsupportedData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/independent-evaluations/{run_id}/pause';
+};
+
+export type PauseIndependentUnsupportedErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type PauseIndependentUnsupportedError = PauseIndependentUnsupportedErrors[keyof PauseIndependentUnsupportedErrors];
+
+export type PauseIndependentUnsupportedResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type RetryIndependentEvaluationData = {
+    body?: never;
+    headers: {
+        /**
+         * Idempotency-Key
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/independent-evaluations/{run_id}/retry';
+};
+
+export type RetryIndependentEvaluationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Conflict
+     */
+    409: ErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: ErrorResponse;
+};
+
+export type RetryIndependentEvaluationError = RetryIndependentEvaluationErrors[keyof RetryIndependentEvaluationErrors];
+
+export type RetryIndependentEvaluationResponses = {
+    /**
+     * Successful Response
+     */
+    202: IndependentEvaluationPublic;
+};
+
+export type RetryIndependentEvaluationResponse = RetryIndependentEvaluationResponses[keyof RetryIndependentEvaluationResponses];
 
 export type LoginAccessTokenData = {
     body: BodyLoginAccessToken;

@@ -29,10 +29,13 @@ from packages.research_trace.transport import (
     NativeCaptureDemultiplexer,
 )
 from packages.strategy_sdk import hash_json
+from packages.tradegrad_adapter.runtime_observation import capture_rng_state
 from runtimes.evaluator.runner import decode_result_protocol
 from runtimes.portable_policy.protocol import (
     decision_envelope,
+    engine_audit_envelope,
     observation_envelope,
+    policy_startup_envelope,
     read_frame,
     result_envelope,
     write_frame,
@@ -103,6 +106,10 @@ def test_real_pipe_trusted_capture_channel_is_separate_and_required(
                 )
             write_frame(
                 channels["engine"].writer,
+                engine_audit_envelope(fixture.EVALUATION, 1, fixture.empty_audit()),
+            )
+            write_frame(
+                channels["engine"].writer,
                 result_envelope(fixture.EVALUATION, 1, bundle),
             )
             channels["engine"].finish()
@@ -111,6 +118,10 @@ def test_real_pipe_trusted_capture_channel_is_separate_and_required(
 
     def policy():
         try:
+            write_frame(
+                channels["policy"].writer,
+                policy_startup_envelope(fixture.EVALUATION, capture_rng_state()),
+            )
             incoming = read_frame(channels["policy"].reader)
             if fault == "policy_injects_capture":
                 CaptureWriter(

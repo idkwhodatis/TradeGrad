@@ -80,6 +80,9 @@ def _key(value):
 
 def reject_comparison_key(session, owner_id, key):
     """Call after the existing owner submission lock in every ordinary Run path."""
+    from backend.app.independent_services import reject_control_key
+
+    reject_control_key(session, owner_id, key)
     if (
         session.scalar(
             select(ComparisonSubmission.comparison_id).where(
@@ -137,12 +140,18 @@ def owned_comparison(session, comparison_id, owner_id, *, lock=False):
 def _typed_config(run):
     from packages.tradegrad_adapter.config import RunConfig
     from packages.tradegrad_adapter.final_config import FinalEvaluationConfig
+    from packages.tradegrad_adapter.independent_config import (
+        IndependentEvaluationConfig,
+        PortableIndependentEvaluationConfig,
+    )
     from packages.tradegrad_adapter.portable_config import PortableRunConfig
     from packages.tradegrad_adapter.portable_final_config import (
         PortableFinalEvaluationConfig,
     )
 
     model = {
+        "tradegrad.independent-evaluation.v1": IndependentEvaluationConfig,
+        "tradegrad.portable.independent-evaluation.v1": PortableIndependentEvaluationConfig,
         "tradegrad.run.v1": RunConfig,
         "tradegrad.final-evaluation.v1": FinalEvaluationConfig,
         "tradegrad.portable.run.v1": PortableRunConfig,
@@ -159,7 +168,11 @@ def _typed_config(run):
 
 def common_configuration(result, config, namespace):
     """Full fixed policy, separate from strategy code and path-derived pre-state."""
-    source = getattr(config, "source_config", config)
+    source = (
+        config.effective_source()
+        if getattr(config, "execution_mode", None) == "independent_evaluation"
+        else getattr(config, "source_config", config)
+    )
     raw = source.model_dump(mode="json")
     portable = config.schema_version.startswith("tradegrad.portable.")
     engine = result.bundle["engine"]
@@ -477,8 +490,11 @@ def _quota(session, owner_id, settings):
 
 
 def submit_comparison(session, owner_id, body, idempotency_key, settings):
+    from backend.app.independent_services import reject_control_key
+
     _key(idempotency_key)
     advisory_lock(session, f"submit:{owner_id}")
+    reject_control_key(session, owner_id, idempotency_key)
     alias = session.get(ComparisonSubmission, (owner_id, idempotency_key))
     previous = session.scalar(
         select(ResearchRun).where(

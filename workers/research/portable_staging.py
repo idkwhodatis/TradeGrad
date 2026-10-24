@@ -155,6 +155,7 @@ def _write_portable_inputs(
     code,
     target,
     run_config_sha256,
+    replay_rng_state=None,
 ) -> PortableStagedInput:
     """Private serialization only; callers already validate execution authority.
 
@@ -186,6 +187,13 @@ def _write_portable_inputs(
     }
     if config.research_capture is not None:
         request["research_capture"] = config.research_capture.model_dump(mode="json")
+    replay_files = {}
+    if replay_rng_state is not None:
+        from packages.tradegrad_adapter.runtime_observation import validate_rng_state
+
+        replay_rng_state = validate_rng_state(replay_rng_state, include_numpy=False)
+        request["replay_rng_state"] = replay_rng_state
+        replay_files["replay-rng-state.json"] = canonical_json(replay_rng_state)
     target = Path(target)
     if any(path.is_symlink() for path in (target, *target.parents)):
         raise ValueError("Portable input path cannot traverse a symlink")
@@ -207,6 +215,7 @@ def _write_portable_inputs(
                 "manifest.json": canonical_json(
                     safe_policy_manifest(candidate_manifest)
                 ),
+                **replay_files,
             },
         ),
     ):

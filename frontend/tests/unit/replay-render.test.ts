@@ -296,7 +296,7 @@ describe("unavailable trace gating", () => {
         ),
       );
       expect(html).toContain("Capture disabled for this exact execution");
-      expect(html).toContain("Diagnostic replay unavailable");
+      expect(html).toContain("Inspect independent diagnostic capability");
       expect(html).not.toContain("Stale or mismatched");
       expect(html).not.toContain("replay-candidates-table");
       expect(noNetwork).not.toHaveBeenCalled();

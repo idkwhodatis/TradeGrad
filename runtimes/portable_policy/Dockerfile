@@ -7,6 +7,7 @@ WORKDIR /opt/tradegrad
 COPY runtimes/portable_policy/requirements.lock /tmp/requirements.lock
 RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements.lock && rm /tmp/requirements.lock
 COPY packages/strategy_sdk ./packages/strategy_sdk
+COPY packages/tradegrad_adapter/runtime_observation.py ./packages/tradegrad_adapter/runtime_observation.py
 COPY runtimes/portable_policy ./runtimes/portable_policy
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/opt/tradegrad
 USER 65532:65532

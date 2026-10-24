@@ -18,9 +18,16 @@ from packages.strategy_sdk.contracts import (
     parse_reply,
 )
 from packages.strategy_sdk.json import canonical_json, hash_json, parse_json
+from packages.tradegrad_adapter.runtime_observation import (
+    capture_rng_state,
+    restore_rng_state,
+    validate_rng_state,
+)
 from runtimes.portable_policy.protocol import (
     MAX_REPLY_BYTES,
+    MAX_STARTUP_BYTES,
     decision_envelope,
+    policy_startup_envelope,
     read_frame,
     validate_request,
     write_frame,
@@ -47,11 +54,40 @@ def main(input_dir=Path("/input")):
         raise ValueError("Policy source is not loadable")
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
+    evaluation_id = os.environ["TRADEGRAD_EVALUATION_ID"]
+    replay_path = input_dir / "replay-rng-state.json"
+    replay_rng_state = None
+    if replay_path.exists():
+        if (
+            replay_path.is_symlink()
+            or not replay_path.is_file()
+            or replay_path.stat().st_size > MAX_STARTUP_BYTES
+        ):
+            raise ValueError("Invalid portable replay RNG artifact")
+        replay_rng_state = validate_rng_state(
+            parse_json(replay_path.read_bytes()), include_numpy=False
+        )
+    # All trusted preparation is complete. Capture/restore the same seam before
+    # candidate import AND construction, without reseeding ordinary runs.
+    restored_from_sha256 = (
+        None if replay_rng_state is None else hash_json(replay_rng_state)
+    )
+    if replay_rng_state is not None:
+        restore_rng_state(replay_rng_state, include_numpy=False)
+    rng_state = capture_rng_state(include_numpy=False)
+    write_frame(
+        transport,
+        policy_startup_envelope(
+            evaluation_id,
+            rng_state,
+            restored_from_sha256=restored_from_sha256,
+        ),
+        MAX_STARTUP_BYTES,
+    )
     spec.loader.exec_module(module)
     policy = module.Policy(strategy_id=manifest.strategy_id, parameters=parameters)
     method = policy.decide if manifest.strategy_kind == "portfolio" else policy.on_event
     sequence = 0
-    evaluation_id = os.environ["TRADEGRAD_EVALUATION_ID"]
     while True:
         # EOF is ordinary only between frames, never within one.
         first = sys.stdin.buffer.peek(1)

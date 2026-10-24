@@ -287,7 +287,8 @@
               "005_settings",
               "006_provider_connections",
               "007_research_specs",
-              "008_comparisons"
+              "008_comparisons",
+              "009_independent_evaluations"
             ],
             "title": "Schema Revision",
             "type": "string"
@@ -2995,6 +2996,340 @@
         "title": "ConnectionSnapshot",
         "type": "object"
       },
+      "ControlledArmCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 900000,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "parameters": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameters"
+          },
+          "planned_change": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Change"
+          }
+        },
+        "required": [
+          "name",
+          "code"
+        ],
+        "title": "ControlledArmCreate",
+        "type": "object"
+      },
+      "ControlledArmPublic": {
+        "additionalProperties": false,
+        "properties": {
+          "changed_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Fields",
+            "type": "array"
+          },
+          "code_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Code Sha256",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "evaluation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluation Id"
+          },
+          "interpretation": {
+            "enum": [
+              "baseline",
+              "single_parameter_change_not_causal_proof",
+              "not_individually_validated",
+              "unchanged"
+            ],
+            "title": "Interpretation",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "parameters": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameters"
+          },
+          "planned_change": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Change"
+          },
+          "result_pin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IndependentResultPin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "preparing",
+              "running",
+              "finalizing",
+              "pause_requested",
+              "paused",
+              "cancel_requested",
+              "cancelled",
+              "failed",
+              "interrupted",
+              "succeeded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "strategy_version_id": {
+            "format": "uuid",
+            "title": "Strategy Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "planned_change",
+          "ordinal",
+          "name",
+          "strategy_version_id",
+          "code_sha256",
+          "run_id",
+          "status",
+          "evaluation_id",
+          "result_pin",
+          "changed_fields",
+          "interpretation",
+          "parameters",
+          "error"
+        ],
+        "title": "ControlledArmPublic",
+        "type": "object"
+      },
+      "ControlledExperimentCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "arms": {
+            "items": {
+              "$ref": "#/components/schemas/ControlledArmCreate"
+            },
+            "maxItems": 3,
+            "minItems": 2,
+            "title": "Arms",
+            "type": "array"
+          },
+          "hypothesis": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Hypothesis",
+            "type": "string"
+          },
+          "max_runtime_seconds": {
+            "default": 300,
+            "maximum": 3600.0,
+            "minimum": 1.0,
+            "title": "Max Runtime Seconds",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "planned_change": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Planned Change",
+            "type": "string"
+          },
+          "research_capture": {
+            "$ref": "#/components/schemas/CaptureConfig"
+          },
+          "source": {
+            "$ref": "#/components/schemas/IndependentSourcePin"
+          }
+        },
+        "required": [
+          "source",
+          "name",
+          "hypothesis",
+          "planned_change",
+          "arms"
+        ],
+        "title": "ControlledExperimentCreate",
+        "type": "object"
+      },
+      "ControlledExperimentPublic": {
+        "additionalProperties": false,
+        "properties": {
+          "arms": {
+            "items": {
+              "$ref": "#/components/schemas/ControlledArmPublic"
+            },
+            "title": "Arms",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "experiment_id": {
+            "format": "uuid",
+            "title": "Experiment Id",
+            "type": "string"
+          },
+          "exposure_snapshot": {
+            "$ref": "#/components/schemas/ExposureSnapshot"
+          },
+          "hypothesis": {
+            "title": "Hypothesis",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_experiment_id": {
+            "format": "uuid",
+            "title": "Parent Experiment Id",
+            "type": "string"
+          },
+          "planned_change": {
+            "title": "Planned Change",
+            "type": "string"
+          },
+          "protocol": {
+            "additionalProperties": true,
+            "title": "Protocol",
+            "type": "object"
+          },
+          "protocol_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Protocol Sha256",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ControlledExperimentCreate"
+          },
+          "request_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Request Sha256",
+            "type": "string"
+          },
+          "root_experiment_id": {
+            "format": "uuid",
+            "title": "Root Experiment Id",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/IndependentSourcePin"
+          },
+          "split_version_id": {
+            "format": "uuid",
+            "title": "Split Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request",
+          "id",
+          "experiment_id",
+          "split_version_id",
+          "parent_experiment_id",
+          "root_experiment_id",
+          "source",
+          "request_sha256",
+          "name",
+          "hypothesis",
+          "planned_change",
+          "protocol",
+          "protocol_sha256",
+          "arms",
+          "exposure_snapshot",
+          "created_at"
+        ],
+        "title": "ControlledExperimentPublic",
+        "type": "object"
+      },
       "CoveragePublic": {
         "additionalProperties": false,
         "properties": {
@@ -3615,6 +3950,467 @@
           "limit"
         ],
         "title": "DecisionPage",
+        "type": "object"
+      },
+      "DiagnosticEventPair": {
+        "additionalProperties": false,
+        "properties": {
+          "mapping": {
+            "enum": [
+              "verified_original_event",
+              "unverified_observed_pairing",
+              "unpaired",
+              "ambiguous"
+            ],
+            "title": "Mapping",
+            "type": "string"
+          },
+          "observation_status": {
+            "enum": [
+              "matched",
+              "mismatch",
+              "not_verifiable"
+            ],
+            "title": "Observation Status",
+            "type": "string"
+          },
+          "original_decision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Decision Id"
+          },
+          "original_pre_state_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Pre State Sha256"
+          },
+          "pairing_key": {
+            "maxItems": 5,
+            "minItems": 5,
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            ],
+            "title": "Pairing Key",
+            "type": "array"
+          },
+          "pre_state_status": {
+            "enum": [
+              "matched",
+              "mismatch",
+              "not_verifiable"
+            ],
+            "title": "Pre State Status",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "replay_decision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replay Decision Id"
+          },
+          "replay_pre_state_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replay Pre State Sha256"
+          }
+        },
+        "required": [
+          "pairing_key",
+          "original_decision_id",
+          "replay_decision_id",
+          "original_pre_state_sha256",
+          "replay_pre_state_sha256",
+          "pre_state_status",
+          "observation_status",
+          "mapping"
+        ],
+        "title": "DiagnosticEventPair",
+        "type": "object"
+      },
+      "DiagnosticParityCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "definition": {
+            "title": "Definition",
+            "type": "string"
+          },
+          "examples": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "maxItems": 20,
+            "title": "Examples",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "mismatch_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Mismatch Count",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "replay_count": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replay Count"
+          },
+          "source_count": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Count"
+          },
+          "status": {
+            "enum": [
+              "matched",
+              "mismatch",
+              "not_verifiable"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "status",
+          "definition"
+        ],
+        "title": "DiagnosticParityCheck",
+        "type": "object"
+      },
+      "DiagnosticParityEventPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DiagnosticEventPair"
+            },
+            "maxItems": 500,
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "report_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Report Sha256",
+            "type": "string"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "report_sha256",
+          "items",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "title": "DiagnosticParityEventPage",
+        "type": "object"
+      },
+      "DiagnosticParitySide": {
+        "additionalProperties": false,
+        "properties": {
+          "binding": {
+            "$ref": "#/components/schemas/EvaluationBinding"
+          },
+          "runtime_observation_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Observation Sha256"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "candidate",
+              "strategy_version"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "spec_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Revision"
+          },
+          "spec_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Sha256"
+          },
+          "trace_manifest_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Manifest Sha256"
+          }
+        },
+        "required": [
+          "binding",
+          "source_kind",
+          "source_id",
+          "spec_revision",
+          "spec_sha256",
+          "trace_manifest_sha256",
+          "runtime_observation_sha256"
+        ],
+        "title": "DiagnosticParitySide",
+        "type": "object"
+      },
+      "DiagnosticParityView": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm_version": {
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/DiagnosticParityCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "claim": {
+            "title": "Claim",
+            "type": "string"
+          },
+          "field_tolerances": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            "title": "Field Tolerances",
+            "type": "object"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "mapping_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Mapping Counts",
+            "type": "object"
+          },
+          "observation_scope": {
+            "additionalProperties": true,
+            "title": "Observation Scope",
+            "type": "object"
+          },
+          "original_event_count": {
+            "title": "Original Event Count",
+            "type": "integer"
+          },
+          "outcome": {
+            "enum": [
+              "matched",
+              "mismatch",
+              "not_verifiable"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "replay": {
+            "$ref": "#/components/schemas/DiagnosticParitySide"
+          },
+          "replay_event_count": {
+            "title": "Replay Event Count",
+            "type": "integer"
+          },
+          "report_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Report Sha256",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "tradegrad.diagnostic-parity.v1",
+            "default": "tradegrad.diagnostic-parity.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/DiagnosticParitySide"
+          },
+          "tolerance_version": {
+            "title": "Tolerance Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "report_sha256",
+          "algorithm_version",
+          "tolerance_version",
+          "source",
+          "replay",
+          "outcome",
+          "checks",
+          "original_event_count",
+          "replay_event_count",
+          "mapping_counts",
+          "observation_scope",
+          "field_tolerances",
+          "claim",
+          "limitations"
+        ],
+        "title": "DiagnosticParityView",
+        "type": "object"
+      },
+      "DiagnosticReplayCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "max_runtime_seconds": {
+            "default": 300,
+            "maximum": 3600.0,
+            "minimum": 1.0,
+            "title": "Max Runtime Seconds",
+            "type": "integer"
+          },
+          "research_capture": {
+            "$ref": "#/components/schemas/CaptureConfig"
+          },
+          "source": {
+            "$ref": "#/components/schemas/IndependentSourcePin"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "title": "DiagnosticReplayCreate",
         "type": "object"
       },
       "DifferenceValue": {
@@ -6432,6 +7228,878 @@
           "updated_at"
         ],
         "title": "ImportPublic",
+        "type": "object"
+      },
+      "IndependentCapability": {
+        "additionalProperties": false,
+        "properties": {
+          "can_control": {
+            "title": "Can Control",
+            "type": "boolean"
+          },
+          "can_execute": {
+            "title": "Can Execute",
+            "type": "boolean"
+          },
+          "control_unavailable_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Control Unavailable Reasons",
+            "type": "array"
+          },
+          "evaluation_mode": {
+            "enum": [
+              "native_akquant",
+              "portable"
+            ],
+            "title": "Evaluation Mode",
+            "type": "string"
+          },
+          "exposure_snapshot": {
+            "$ref": "#/components/schemas/ExposureSnapshot"
+          },
+          "fixed_conditions": {
+            "additionalProperties": true,
+            "title": "Fixed Conditions",
+            "type": "object"
+          },
+          "original_config": {
+            "additionalProperties": true,
+            "title": "Original Config",
+            "type": "object"
+          },
+          "original_config_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Original Config Sha256",
+            "type": "string"
+          },
+          "parity_prerequisites": {
+            "additionalProperties": true,
+            "title": "Parity Prerequisites",
+            "type": "object"
+          },
+          "protocol_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Protocol Sha256",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/IndependentSourcePin"
+          },
+          "source_code": {
+            "title": "Source Code",
+            "type": "string"
+          },
+          "source_parameters": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Parameters"
+          },
+          "source_run_id": {
+            "format": "uuid",
+            "title": "Source Run Id",
+            "type": "string"
+          },
+          "unavailable_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unavailable Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "source",
+          "source_run_id",
+          "original_config_sha256",
+          "original_config",
+          "evaluation_mode",
+          "can_execute",
+          "can_control",
+          "control_unavailable_reasons",
+          "unavailable_reasons",
+          "parity_prerequisites",
+          "fixed_conditions",
+          "protocol_sha256",
+          "source_code",
+          "source_parameters",
+          "exposure_snapshot"
+        ],
+        "title": "IndependentCapability",
+        "type": "object"
+      },
+      "IndependentEvaluationConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "environment_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Environment Digest",
+            "type": "string"
+          },
+          "evaluation_mode": {
+            "const": "native_akquant",
+            "default": "native_akquant",
+            "title": "Evaluation Mode",
+            "type": "string"
+          },
+          "execution_mode": {
+            "const": "independent_evaluation",
+            "default": "independent_evaluation",
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "independent_id": {
+            "format": "uuid",
+            "title": "Independent Id",
+            "type": "string"
+          },
+          "max_runtime_seconds": {
+            "default": 300,
+            "maximum": 3600.0,
+            "minimum": 1.0,
+            "title": "Max Runtime Seconds",
+            "type": "integer"
+          },
+          "original_config_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Original Config Sha256",
+            "type": "string"
+          },
+          "protocol_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Protocol Sha256",
+            "type": "string"
+          },
+          "purpose": {
+            "enum": [
+              "diagnostic",
+              "controlled"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "reconstruction_window": {
+            "$ref": "#/components/schemas/DateWindow"
+          },
+          "research_capture": {
+            "$ref": "#/components/schemas/CaptureConfig"
+          },
+          "research_image_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Research Image Digest",
+            "type": "string"
+          },
+          "rng_restore": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rng Restore"
+          },
+          "runtime_observation_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Observation Sha256"
+          },
+          "schema_version": {
+            "const": "tradegrad.independent-evaluation.v1",
+            "default": "tradegrad.independent-evaluation.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "selected_contract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NativeStrategyContract"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "selected_strategy": {
+            "$ref": "#/components/schemas/VersionRef"
+          },
+          "source": {
+            "$ref": "#/components/schemas/IndependentSourcePin"
+          },
+          "source_config": {
+            "$ref": "#/components/schemas/RunConfig"
+          },
+          "source_config_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Source Config Sha256",
+            "type": "string"
+          },
+          "source_run_id": {
+            "format": "uuid",
+            "title": "Source Run Id",
+            "type": "string"
+          },
+          "split": {
+            "enum": [
+              "train",
+              "validation",
+              "holdout"
+            ],
+            "title": "Split",
+            "type": "string"
+          },
+          "state_policy": {
+            "const": "original_start_fresh_engine_with_original_warmup.v1",
+            "default": "original_start_fresh_engine_with_original_warmup.v1",
+            "title": "State Policy",
+            "type": "string"
+          }
+        },
+        "required": [
+          "independent_id",
+          "purpose",
+          "source",
+          "source_run_id",
+          "original_config_sha256",
+          "source_config_sha256",
+          "selected_strategy",
+          "split",
+          "reconstruction_window",
+          "environment_digest",
+          "research_image_digest",
+          "protocol_sha256",
+          "source_config"
+        ],
+        "title": "IndependentEvaluationConfig",
+        "type": "object"
+      },
+      "IndependentEvaluationDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "active_attempt_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Attempt Id"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/AttemptPublic"
+            },
+            "title": "Attempts",
+            "type": "array"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IndependentEvaluationConfig"
+              },
+              {
+                "$ref": "#/components/schemas/PortableIndependentEvaluationConfig"
+              }
+            ],
+            "title": "Config"
+          },
+          "config_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Config Sha256",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "evaluation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluation Id"
+          },
+          "experiment_id": {
+            "format": "uuid",
+            "title": "Experiment Id",
+            "type": "string"
+          },
+          "generation": {
+            "title": "Generation",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "independent_id": {
+            "format": "uuid",
+            "title": "Independent Id",
+            "type": "string"
+          },
+          "next_event_seq": {
+            "title": "Next Event Seq",
+            "type": "integer"
+          },
+          "purpose": {
+            "enum": [
+              "diagnostic",
+              "controlled"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/DiagnosticReplayCreate"
+          },
+          "request_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Request Sha256",
+            "type": "string"
+          },
+          "result_pin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IndependentResultPin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result_ready": {
+            "title": "Result Ready",
+            "type": "boolean"
+          },
+          "source": {
+            "$ref": "#/components/schemas/IndependentSourcePin"
+          },
+          "split_version_id": {
+            "format": "uuid",
+            "title": "Split Version Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "preparing",
+              "running",
+              "finalizing",
+              "pause_requested",
+              "paused",
+              "cancel_requested",
+              "cancelled",
+              "failed",
+              "interrupted",
+              "succeeded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request",
+          "id",
+          "independent_id",
+          "status",
+          "generation",
+          "purpose",
+          "request_sha256",
+          "config_sha256",
+          "config",
+          "source",
+          "experiment_id",
+          "split_version_id",
+          "active_attempt_id",
+          "next_event_seq",
+          "evaluation_id",
+          "result_ready",
+          "result_pin",
+          "error",
+          "created_at",
+          "updated_at",
+          "attempts"
+        ],
+        "title": "IndependentEvaluationDetail",
+        "type": "object"
+      },
+      "IndependentEvaluationPublic": {
+        "additionalProperties": false,
+        "properties": {
+          "active_attempt_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Attempt Id"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IndependentEvaluationConfig"
+              },
+              {
+                "$ref": "#/components/schemas/PortableIndependentEvaluationConfig"
+              }
+            ],
+            "title": "Config"
+          },
+          "config_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Config Sha256",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "evaluation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluation Id"
+          },
+          "experiment_id": {
+            "format": "uuid",
+            "title": "Experiment Id",
+            "type": "string"
+          },
+          "generation": {
+            "title": "Generation",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "independent_id": {
+            "format": "uuid",
+            "title": "Independent Id",
+            "type": "string"
+          },
+          "next_event_seq": {
+            "title": "Next Event Seq",
+            "type": "integer"
+          },
+          "purpose": {
+            "enum": [
+              "diagnostic",
+              "controlled"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/DiagnosticReplayCreate"
+          },
+          "request_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Request Sha256",
+            "type": "string"
+          },
+          "result_pin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IndependentResultPin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result_ready": {
+            "title": "Result Ready",
+            "type": "boolean"
+          },
+          "source": {
+            "$ref": "#/components/schemas/IndependentSourcePin"
+          },
+          "split_version_id": {
+            "format": "uuid",
+            "title": "Split Version Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "preparing",
+              "running",
+              "finalizing",
+              "pause_requested",
+              "paused",
+              "cancel_requested",
+              "cancelled",
+              "failed",
+              "interrupted",
+              "succeeded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request",
+          "id",
+          "independent_id",
+          "status",
+          "generation",
+          "purpose",
+          "request_sha256",
+          "config_sha256",
+          "config",
+          "source",
+          "experiment_id",
+          "split_version_id",
+          "active_attempt_id",
+          "next_event_seq",
+          "evaluation_id",
+          "result_ready",
+          "result_pin",
+          "error",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "IndependentEvaluationPublic",
+        "type": "object"
+      },
+      "IndependentResultPin": {
+        "additionalProperties": false,
+        "properties": {
+          "code_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Code Sha256",
+            "type": "string"
+          },
+          "evaluation_id": {
+            "format": "uuid",
+            "title": "Evaluation Id",
+            "type": "string"
+          },
+          "execution_attempt_id": {
+            "format": "uuid",
+            "title": "Execution Attempt Id",
+            "type": "string"
+          },
+          "execution_config_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Execution Config Sha256",
+            "type": "string"
+          },
+          "result_manifest_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Result Manifest Sha256",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "const": "strategy_version",
+            "default": "strategy_version",
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "trace_manifest_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Manifest Sha256"
+          }
+        },
+        "required": [
+          "execution_config_sha256",
+          "evaluation_id",
+          "execution_attempt_id",
+          "result_manifest_sha256",
+          "trace_manifest_sha256",
+          "source_id",
+          "code_sha256"
+        ],
+        "title": "IndependentResultPin",
+        "type": "object"
+      },
+      "IndependentResultQuery": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Artifact Sha256",
+            "type": "string"
+          },
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "evaluation_id": {
+            "format": "uuid",
+            "title": "Evaluation Id",
+            "type": "string"
+          },
+          "evaluation_mode": {
+            "enum": [
+              "native_akquant",
+              "portable"
+            ],
+            "title": "Evaluation Mode",
+            "type": "string"
+          },
+          "execution_attempt_id": {
+            "format": "uuid",
+            "title": "Execution Attempt Id",
+            "type": "string"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "metric_details": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Metric Details",
+            "type": "array"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "purpose": {
+            "enum": [
+              "diagnostic",
+              "controlled"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "result_trust": {
+            "title": "Result Trust",
+            "type": "string"
+          },
+          "reward_status": {
+            "const": "not_applicable",
+            "default": "not_applicable",
+            "title": "Reward Status",
+            "type": "string"
+          },
+          "rows": {
+            "items": {},
+            "title": "Rows",
+            "type": "array"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "evaluation_id",
+          "run_id",
+          "purpose",
+          "artifact_sha256",
+          "evaluation_mode",
+          "metrics",
+          "metric_details",
+          "result_trust",
+          "section",
+          "columns",
+          "execution_attempt_id",
+          "rows",
+          "total",
+          "offset",
+          "limit",
+          "warnings"
+        ],
+        "title": "IndependentResultQuery",
+        "type": "object"
+      },
+      "IndependentSourcePin": {
+        "additionalProperties": false,
+        "properties": {
+          "code_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Code Sha256",
+            "type": "string"
+          },
+          "evaluation_id": {
+            "format": "uuid",
+            "title": "Evaluation Id",
+            "type": "string"
+          },
+          "execution_attempt_id": {
+            "format": "uuid",
+            "title": "Execution Attempt Id",
+            "type": "string"
+          },
+          "result_manifest_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Result Manifest Sha256",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "strategy_version",
+              "candidate"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "spec_revision": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Revision"
+          },
+          "spec_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Sha256"
+          },
+          "trace_manifest_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Manifest Sha256"
+          }
+        },
+        "required": [
+          "evaluation_id",
+          "execution_attempt_id",
+          "result_manifest_sha256",
+          "trace_manifest_sha256",
+          "source_kind",
+          "source_id",
+          "code_sha256"
+        ],
+        "title": "IndependentSourcePin",
         "type": "object"
       },
       "IndicatorPoint": {
@@ -10494,6 +12162,164 @@
           "exposure_snapshot"
         ],
         "title": "PortableFinalResultQuery",
+        "type": "object"
+      },
+      "PortableIndependentEvaluationConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "environment_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Environment Digest",
+            "type": "string"
+          },
+          "evaluation_mode": {
+            "const": "portable",
+            "default": "portable",
+            "title": "Evaluation Mode",
+            "type": "string"
+          },
+          "execution_mode": {
+            "const": "independent_evaluation",
+            "default": "independent_evaluation",
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "independent_id": {
+            "format": "uuid",
+            "title": "Independent Id",
+            "type": "string"
+          },
+          "max_runtime_seconds": {
+            "default": 300,
+            "maximum": 3600.0,
+            "minimum": 1.0,
+            "title": "Max Runtime Seconds",
+            "type": "integer"
+          },
+          "original_config_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Original Config Sha256",
+            "type": "string"
+          },
+          "portable_policy_image_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Portable Policy Image Digest",
+            "type": "string"
+          },
+          "protocol_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Protocol Sha256",
+            "type": "string"
+          },
+          "purpose": {
+            "enum": [
+              "diagnostic",
+              "controlled"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "reconstruction_window": {
+            "$ref": "#/components/schemas/DateWindow"
+          },
+          "research_capture": {
+            "$ref": "#/components/schemas/CaptureConfig"
+          },
+          "research_image_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Research Image Digest",
+            "type": "string"
+          },
+          "rng_restore": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rng Restore"
+          },
+          "runtime_observation_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Observation Sha256"
+          },
+          "schema_version": {
+            "const": "tradegrad.portable.independent-evaluation.v1",
+            "default": "tradegrad.portable.independent-evaluation.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "selected_manifest": {
+            "$ref": "#/components/schemas/VersionRef"
+          },
+          "selected_parameters": {
+            "$ref": "#/components/schemas/VersionRef"
+          },
+          "selected_strategy": {
+            "$ref": "#/components/schemas/VersionRef"
+          },
+          "source": {
+            "$ref": "#/components/schemas/IndependentSourcePin"
+          },
+          "source_config": {
+            "$ref": "#/components/schemas/PortableRunConfig"
+          },
+          "source_config_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Source Config Sha256",
+            "type": "string"
+          },
+          "source_run_id": {
+            "format": "uuid",
+            "title": "Source Run Id",
+            "type": "string"
+          },
+          "split": {
+            "enum": [
+              "train",
+              "validation",
+              "holdout"
+            ],
+            "title": "Split",
+            "type": "string"
+          },
+          "state_policy": {
+            "const": "original_start_fresh_engine_with_original_warmup.v1",
+            "default": "original_start_fresh_engine_with_original_warmup.v1",
+            "title": "State Policy",
+            "type": "string"
+          }
+        },
+        "required": [
+          "independent_id",
+          "purpose",
+          "source",
+          "source_run_id",
+          "original_config_sha256",
+          "source_config_sha256",
+          "selected_strategy",
+          "split",
+          "reconstruction_window",
+          "environment_digest",
+          "research_image_digest",
+          "protocol_sha256",
+          "source_config",
+          "selected_manifest",
+          "selected_parameters",
+          "portable_policy_image_digest"
+        ],
+        "title": "PortableIndependentEvaluationConfig",
         "type": "object"
       },
       "PortableObjectiveConfig": {
@@ -18729,6 +20555,8 @@
           },
           "run_kind": {
             "enum": [
+              "native_independent",
+              "portable_independent",
               "native_research",
               "native_final",
               "portable_research",
@@ -18932,6 +20760,7 @@
             "enum": [
               "saved_seed",
               "selected_final",
+              "independent_selected",
               "unavailable"
             ],
             "title": "Strategy Basis",
@@ -20627,6 +22456,173 @@
         "summary": "Section",
         "tags": [
           "comparisons"
+        ]
+      }
+    },
+    "/api/v1/controlled-experiments": {
+      "post": {
+        "operationId": "createControlledExperiment",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControlledExperimentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlledExperimentPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Controlled",
+        "tags": [
+          "independent-evaluations"
+        ]
+      }
+    },
+    "/api/v1/controlled-experiments/{controlled_id}": {
+      "get": {
+        "operationId": "readControlledExperiment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "controlled_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Controlled Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlledExperimentPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Controlled",
+        "tags": [
+          "independent-evaluations"
         ]
       }
     },
@@ -23967,6 +25963,105 @@
         ]
       }
     },
+    "/api/v1/evaluations/{evaluation_id}/diagnostic-replays": {
+      "post": {
+        "operationId": "createDiagnosticReplay",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiagnosticReplayCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndependentEvaluationPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Diagnostic",
+        "tags": [
+          "independent-evaluations"
+        ]
+      }
+    },
     "/api/v1/evaluations/{evaluation_id}/replay-instruments": {
       "get": {
         "operationId": "read_replay_instruments",
@@ -26256,6 +28351,814 @@
           }
         },
         "summary": "Health Ready"
+      }
+    },
+    "/api/v1/independent-evaluations/capability": {
+      "post": {
+        "operationId": "independentCapability",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IndependentSourcePin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndependentCapability"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Capability",
+        "tags": [
+          "independent-evaluations"
+        ]
+      }
+    },
+    "/api/v1/independent-evaluations/evaluations/{evaluation_id}/result": {
+      "get": {
+        "operationId": "queryIndependentResult",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "execution_attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Execution Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "result_manifest_sha256",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Result Manifest Sha256",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "section",
+            "required": false,
+            "schema": {
+              "default": "equity",
+              "maxLength": 64,
+              "title": "Section",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndependentResultQuery"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Query Result",
+        "tags": [
+          "independent-evaluations"
+        ]
+      }
+    },
+    "/api/v1/independent-evaluations/evaluations/{evaluation_id}/result/download": {
+      "get": {
+        "operationId": "downloadIndependentResult",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Download",
+        "tags": [
+          "independent-evaluations"
+        ]
+      }
+    },
+    "/api/v1/independent-evaluations/{run_id}": {
+      "get": {
+        "operationId": "readIndependentEvaluation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndependentEvaluationDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Detail",
+        "tags": [
+          "independent-evaluations"
+        ]
+      }
+    },
+    "/api/v1/independent-evaluations/{run_id}/cancel": {
+      "post": {
+        "operationId": "cancelIndependentEvaluation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndependentEvaluationPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Cancel",
+        "tags": [
+          "independent-evaluations"
+        ]
+      }
+    },
+    "/api/v1/independent-evaluations/{run_id}/parity": {
+      "get": {
+        "operationId": "readDiagnosticParity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "report_sha256",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Report Sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticParityView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Parity",
+        "tags": [
+          "independent-evaluations"
+        ]
+      }
+    },
+    "/api/v1/independent-evaluations/{run_id}/parity/events": {
+      "get": {
+        "operationId": "queryDiagnosticParityEvents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "report_sha256",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Report Sha256",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticParityEventPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Parity Events",
+        "tags": [
+          "independent-evaluations"
+        ]
+      }
+    },
+    "/api/v1/independent-evaluations/{run_id}/pause": {
+      "post": {
+        "operationId": "pauseIndependentUnsupported",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Pause",
+        "tags": [
+          "independent-evaluations"
+        ]
+      }
+    },
+    "/api/v1/independent-evaluations/{run_id}/retry": {
+      "post": {
+        "operationId": "retryIndependentEvaluation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndependentEvaluationPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Retry",
+        "tags": [
+          "independent-evaluations"
+        ]
       }
     },
     "/api/v1/login/access-token": {

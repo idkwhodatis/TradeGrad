@@ -216,7 +216,7 @@ export function DecisionReplay({
         {trace?.context.missing_reason && (
           <p className="notice">{trace.context.missing_reason}</p>
         )}
-        <DiagnosticUnavailable />
+        <DiagnosticUnavailable verified={verified} update={update} />
       </Panel>
     );
   const eventChoices = validEvents?.items ?? [];
@@ -432,7 +432,7 @@ export function DecisionReplay({
             />
           </div>
         )}
-        <DiagnosticUnavailable />
+        <DiagnosticUnavailable verified={verified} update={update} />
       </Panel>
       {selection.decision_id && (
         <div className="replay-zones">
@@ -728,15 +728,29 @@ function Mismatch({ label }: { label: string }) {
     </p>
   );
 }
-function DiagnosticUnavailable() {
+function DiagnosticUnavailable({
+  verified,
+  update,
+}: {
+  verified: boolean;
+  update: ReplayUpdate;
+}) {
   return (
     <div className="mt-3">
-      <Button disabled variant="outline" size="sm">
-        Diagnostic replay unavailable (I5 pending)
+      <Button
+        disabled={!verified}
+        variant="outline"
+        size="sm"
+        onClick={() => update({ tab: "verification" })}
+      >
+        {verified
+          ? "Inspect independent diagnostic capability"
+          : "Diagnostic replay unavailable until source admission"}
       </Button>
       <p className="text-xs muted">
-        No diagnostic task has been created. Existing evidence is immutable;
-        missing internal instrumentation cannot be reconstructed by this page.
+        Inspect frozen replay and RNG capability before creating a new
+        independent diagnostic. Existing evidence is immutable; missing internal
+        instrumentation cannot be reconstructed by this page.
       </p>
     </div>
   );

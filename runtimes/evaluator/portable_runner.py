@@ -37,9 +37,12 @@ from runtimes.portable_policy.protocol import (
     MAX_OBSERVATION_BYTES,
     MAX_REPLY_BYTES,
     MAX_RESULT_BYTES,
+    MAX_STARTUP_BYTES,
     decision_envelope,
     decode,
     frame,
+    validate_engine_audit,
+    validate_policy_startup,
     validate_request,
     validate_response,
     validate_result_frame,
@@ -92,14 +95,6 @@ def validate_inputs(engine_root, policy_root, expected_config_sha256=None):
         raise ValueError(
             "Engine mount accepts only request.json and market.json; never code"
         )
-    if {p.name for p in policy_root.iterdir()} != {
-        "policy.py",
-        "parameters.json",
-        "manifest.json",
-    }:
-        raise ValueError(
-            "Policy mount accepts only code, parameters and a safe manifest"
-        )
     if any(
         not p.is_file() for root in (engine_root, policy_root) for p in root.iterdir()
     ):
@@ -109,7 +104,7 @@ def validate_inputs(engine_root, policy_root, expected_config_sha256=None):
     request = parse_json((engine_root / "request.json").read_bytes())
     if (
         not isinstance(request, dict)
-        or set(request) - {"research_capture"}
+        or set(request) - {"research_capture", "replay_rng_state"}
         != {
             "schema_version",
             "manifest",
@@ -121,6 +116,23 @@ def validate_inputs(engine_root, policy_root, expected_config_sha256=None):
         or request["schema_version"] != "portable-engine-request.v1"
     ):
         raise ValueError("Invalid portable engine request")
+    policy_files = {"policy.py", "parameters.json", "manifest.json"}
+    if "replay_rng_state" in request:
+        from packages.tradegrad_adapter.runtime_observation import validate_rng_state
+
+        replay_rng_state = validate_rng_state(
+            request["replay_rng_state"], include_numpy=False
+        )
+        policy_files.add("replay-rng-state.json")
+        replay_path = policy_root / "replay-rng-state.json"
+        if not replay_path.is_file() or replay_path.stat().st_size > MAX_STARTUP_BYTES:
+            raise ValueError("Missing or oversized portable replay RNG artifact")
+        if parse_json(replay_path.read_bytes()) != replay_rng_state:
+            raise ValueError("Portable policy replay RNG state mismatch")
+    if {p.name for p in policy_root.iterdir()} != policy_files:
+        raise ValueError(
+            "Policy mount accepts only code, parameters, a safe manifest and requested RNG state"
+        )
     if "research_capture" in request:
         from packages.research_trace.contracts import CaptureConfig
 
@@ -611,6 +623,9 @@ class PortableDockerEvaluator(DockerEvaluator):
             MAX_COMPRESSED_BYTES,
             CaptureReceiver,
         )
+        from packages.tradegrad_adapter.runtime_observation import (
+            MAX_OBSERVATION_BYTES as MAX_RUNTIME_OBSERVATION_BYTES,
+        )
 
         capture_receiver = CaptureReceiver(
             output_dir,
@@ -618,10 +633,19 @@ class PortableDockerEvaluator(DockerEvaluator):
             source="engine_observed",
             compressed_limit=min(
                 MAX_COMPRESSED_BYTES,
-                max(0, self.output_bytes - MAX_RESULT_BYTES - 1_048_576),
+                max(
+                    0,
+                    self.output_bytes
+                    - MAX_RESULT_BYTES
+                    - MAX_RUNTIME_OBSERVATION_BYTES
+                    - 1_048_576,
+                ),
             ),
         )
         research_result = {}
+        policy_startup = {}
+        engine_audit = {}
+        runtime_result = {}
         self.bind_environment(manifest.engine_profile.environment_sha256)
         processes = {}
         created_ids = {}
@@ -715,6 +739,8 @@ class PortableDockerEvaluator(DockerEvaluator):
                 abort,
                 callback_started,
                 capture_receiver,
+                policy_startup,
+                engine_audit,
             )
             for role in ROLES:
                 state = self._inspect_role(evaluation_id, role, attempt_id=attempt_id)
@@ -756,8 +782,51 @@ class PortableDockerEvaluator(DockerEvaluator):
                 self._attachments.pop(evaluation_id, None)
         if status == "succeeded":
             from packages.tradegrad_adapter.portable_results import canonical_json_bytes
+            from packages.tradegrad_adapter.runtime_observation import (
+                canonical,
+                make_runtime_observation,
+                write_runtime_observation,
+            )
+            from runtimes.portable_engine.runtime import DATA_LIMITS
 
+            # Immutable, separate evidence after BOTH siblings' absence is
+            # confirmed. Do not widen the existing economic result envelope.
+            market_path = engine_root / "market.json"
+            if (
+                market_path.is_symlink()
+                or not market_path.is_file()
+                or market_path.stat().st_size > DATA_LIMITS.max_bytes
+            ):
+                raise ValueError("Portable observation market input is unsafe")
+            market_bytes = market_path.read_bytes()
+            if (
+                hashlib.sha256(market_bytes).hexdigest()
+                != request["input_identity"]["market_data_sha256"]
+            ):
+                raise ValueError("Portable observation market input changed")
+            market = parse_json(market_bytes, limits=DATA_LIMITS)
+            runtime_observation = make_runtime_observation(
+                runtime_kind="portable",
+                identity=bundle["identity"],
+                initialization={
+                    "policy": "reconstruct_from_original_start.v1",
+                    "window": {
+                        **request["window"],
+                        "warmup_start": market["sessions"][0]["session_date"],
+                    },
+                },
+                rng_state=policy_startup["rng_state"],
+                restored_from=request.get("replay_rng_state"),
+                audit=engine_audit,
+            )
             data = canonical_json_bytes(bundle)
+            remaining = (
+                self.output_bytes - len(data) - len(canonical(runtime_observation))
+            )
+            if remaining < 0:
+                raise ValueError("Portable output artifact budget exceeded")
+            _regular_tree(output_dir, maximum_bytes=remaining)
+            runtime_result = write_runtime_observation(output_dir, runtime_observation)
             fd = os.open(
                 output_dir / "portable-result.json",
                 os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
@@ -767,10 +836,12 @@ class PortableDockerEvaluator(DockerEvaluator):
                 stream.write(data)
                 stream.flush()
                 os.fsync(stream.fileno())
+            _regular_tree(output_dir, maximum_bytes=self.output_bytes)
         if status != "succeeded":
             capture_receiver.abort()
         return {
             **(research_result if status == "succeeded" else {}),
+            **(runtime_result if status == "succeeded" else {}),
             "status": status,
             "error": error,
             "bundle": bundle if status == "succeeded" else None,
@@ -805,6 +876,8 @@ class PortableDockerEvaluator(DockerEvaluator):
         abort,
         callback_started,
         capture_receiver=None,
+        policy_startup=None,
+        engine_audit=None,
     ):
         from packages.tradegrad_adapter.portable_results import validate_portable_result
 
@@ -817,12 +890,17 @@ class PortableDockerEvaluator(DockerEvaluator):
         expected_state = request["initial_state"]
         phase_deadline = min(deadline, time.monotonic() + self.decision_timeout)
         bundle = None
+        startup = None
+        audit = None
         try:
             for role, process in processes.items():
                 for name in ("stdin", "stdout", "stderr"):
                     stream = getattr(process, name)
                     os.set_blocking(stream.fileno(), False)
-                    if name != "stdin":
+                    # Do not consume engine observations until the reviewed
+                    # policy bootstrap's single startup record is accepted.
+                    # This also removes scheduling races for empty-result runs.
+                    if name == "stderr" or (name == "stdout" and role == "policy"):
                         selector.register(stream, selectors.EVENT_READ, (role, name))
 
             def enqueue(role, value, maximum):
@@ -854,6 +932,8 @@ class PortableDockerEvaluator(DockerEvaluator):
                 if all(code is not None for code in exits) and len(eof) == 4:
                     if (
                         bundle is None
+                        or startup is None
+                        or audit is None
                         or any(buffers.values())
                         or any(writes.values())
                         or outstanding is not None
@@ -898,11 +978,19 @@ class PortableDockerEvaluator(DockerEvaluator):
                             raise ValueError("Portable log budget exceeded")
                         target.extend(data)
                         continue
-                    if bundle is not None or (role == "policy" and outstanding is None):
+                    if bundle is not None or (
+                        role == "policy" and startup is not None and outstanding is None
+                    ):
                         raise ValueError("Unsolicited or trailing portable output")
                     buffers[role].extend(data)
-                    maximum = MAX_REPLY_BYTES if role == "policy" else MAX_RESULT_BYTES
                     while len(buffers[role]) >= 4:
+                        maximum = (
+                            MAX_STARTUP_BYTES
+                            if role == "policy" and startup is None
+                            else MAX_REPLY_BYTES
+                            if role == "policy"
+                            else MAX_RESULT_BYTES
+                        )
                         size = struct.unpack("!I", buffers[role][:4])[0]
                         if not 1 <= size <= maximum:
                             raise ValueError("Portable frame length exceeds budget")
@@ -916,7 +1004,7 @@ class PortableDockerEvaluator(DockerEvaluator):
                             from packages.research_trace.transport import WIRE_VERSION
 
                             if value.get("protocol_version") == WIRE_VERSION:
-                                if capture_receiver is None:
+                                if capture_receiver is None or audit is not None:
                                     raise ValueError(
                                         "Unexpected research capture channel"
                                     )
@@ -926,7 +1014,18 @@ class PortableDockerEvaluator(DockerEvaluator):
                                 raise ValueError(
                                     "Engine sent a second outstanding observation"
                                 )
+                            if value.get("kind") == "engine_audit":
+                                if audit is not None:
+                                    raise ValueError("Duplicate portable engine audit")
+                                audit = validate_engine_audit(
+                                    value, evaluation_id, sequence
+                                )
+                                if engine_audit is not None:
+                                    engine_audit.update(audit)
+                                continue
                             if value.get("kind") == "result":
+                                if audit is None:
+                                    raise ValueError("Missing portable engine audit")
                                 if capture_receiver is not None:
                                     capture_receiver.result()
                                 bundle = validate_portable_result(
@@ -963,6 +1062,10 @@ class PortableDockerEvaluator(DockerEvaluator):
                                     deadline, time.monotonic() + self.decision_timeout
                                 )
                             else:
+                                if audit is not None:
+                                    raise ValueError(
+                                        "Engine observation after final audit"
+                                    )
                                 validate_request(value, evaluation_id, sequence)
                                 if (
                                     sequence >= MAX_DECISIONS
@@ -980,6 +1083,29 @@ class PortableDockerEvaluator(DockerEvaluator):
                                     deadline, time.monotonic() + self.decision_timeout
                                 )
                         else:
+                            if startup is None:
+                                rng_state = validate_policy_startup(
+                                    value, evaluation_id
+                                )
+                                replay = request.get("replay_rng_state")
+                                if value["restored_from_sha256"] != (
+                                    None if replay is None else hash_json(replay)
+                                ) or (replay is not None and rng_state != replay):
+                                    raise ValueError(
+                                        "Portable policy RNG restoration mismatch"
+                                    )
+                                startup = value
+                                if policy_startup is not None:
+                                    policy_startup.update(value)
+                                selector.register(
+                                    processes["engine"].stdout,
+                                    selectors.EVENT_READ,
+                                    ("engine", "stdout"),
+                                )
+                                phase_deadline = min(
+                                    deadline, time.monotonic() + self.decision_timeout
+                                )
+                                continue
                             if outstanding is None:
                                 raise ValueError("Duplicate policy response")
                             pending, observation = outstanding

@@ -204,6 +204,14 @@ def load_result_aware_artifact(session, artifact, owner_id, settings):
         from backend.app.comparison_services import load_comparison_artifact
 
         return load_comparison_artifact(session, artifact, owner_id, settings)
+    if run.config.get("execution_mode") == "independent_evaluation":
+        from backend.app.independent_services import (
+            require_independent_admission,
+            validate_independent_inputs,
+        )
+
+        validate_independent_inputs(session, run, settings, execution=False)
+        require_independent_admission(session, run)
     match = re.fullmatch(r"evaluation-([0-9a-f-]{36})-(.+)", artifact.name)
     suffix = match[2] if match else artifact.name
     evaluation = session.get(Evaluation, UUID(match[1])) if match else None
@@ -224,7 +232,11 @@ def load_result_aware_artifact(session, artifact, owner_id, settings):
         "result-bundle.json",
         "portable-result.json",
     }:
-        if final:
+        if run.config.get("execution_mode") == "independent_evaluation":
+            from backend.app.independent_views import (
+                load_owned_independent_result as loader,
+            )
+        elif final:
             if schema == "tradegrad.final-evaluation.v1":
                 from backend.app.final_evaluation_views import (
                     load_owned_final_result as loader,
@@ -282,6 +294,44 @@ def load_result_aware_artifact(session, artifact, owner_id, settings):
             session, trace.result, owner_id, purpose="result_download"
         )
         return content
+    if evaluation is not None and suffix == "diagnostic-parity.json":
+        from backend.app.diagnostic_parity_views import load_owned_parity
+        from packages.research_trace.contracts import canonical_bytes
+
+        report, sha = load_owned_parity(
+            session, run.id, owner_id, settings, report_sha256=artifact.sha256
+        )
+        reference = (evaluation.payload or {}).get("diagnostic_parity", {})
+        if (
+            report.replay.binding.evaluation_id != evaluation.id
+            or reference.get("artifact_id") != str(artifact.id)
+            or reference.get("size_bytes") != artifact.size_bytes
+            or reference.get("sha256") != sha
+        ):
+            raise DomainError(
+                "diagnostic_parity_integrity",
+                "Parity artifact is not the admitted physical leaf report",
+                409,
+            )
+        return canonical_bytes(report)
+    if evaluation is not None and suffix == "runtime-observation.json":
+        from backend.app.independent_services import load_owned_runtime_observation
+        from backend.app.trace_services import load_owned_trace
+
+        result = load_owned_trace(session, evaluation.id, owner_id, settings).result
+        value, sha = load_owned_runtime_observation(session, result, settings)
+        if value is None or sha != artifact.sha256:
+            raise DomainError(
+                "runtime_observation_integrity",
+                "Runtime observation is not the admitted leaf sidecar",
+                409,
+            )
+        from packages.tradegrad_adapter.runtime_observation import canonical
+
+        record_verified_result_access(
+            session, result, owner_id, purpose="result_download"
+        )
+        return canonical(value)
     metadata_only = suffix in METADATA_NAMES | SOURCE_NAMES
     diagnostic = suffix in {
         "logs.txt",
@@ -290,7 +340,11 @@ def load_result_aware_artifact(session, artifact, owner_id, settings):
         "engine.log",
         "policy.log",
     }
-    if final and not metadata_only and not diagnostic:
+    if (
+        (final or run.config.get("execution_mode") == "independent_evaluation")
+        and not metadata_only
+        and not diagnostic
+    ):
         raise DomainError(
             "typed_final_result_required",
             "Use the verified final result download endpoint",

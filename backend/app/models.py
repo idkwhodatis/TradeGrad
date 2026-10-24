@@ -817,3 +817,73 @@ class ComparisonSubmission(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )
+
+
+class IndependentEvaluation(Base):
+    """Immutable original physical source and one separately queued execution."""
+
+    __tablename__ = "independent_evaluations"
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    run_id: Mapped[UUID] = mapped_column(ForeignKey("research_runs.id"), unique=True)
+    source_evaluation_id: Mapped[UUID] = mapped_column(
+        ForeignKey("research_evaluations.id")
+    )
+    purpose: Mapped[str] = mapped_column(String(20))
+    request_sha256: Mapped[str] = mapped_column(String(64))
+    request: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    source_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    source_snapshot_sha256: Mapped[str] = mapped_column(String(64))
+    protocol: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    protocol_sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    __table_args__ = (CheckConstraint("purpose IN ('diagnostic','controlled')"),)
+
+
+class ControlledExperiment(Base):
+    __tablename__ = "controlled_experiments"
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    experiment_id: Mapped[UUID] = mapped_column(
+        ForeignKey("experiments.id"), unique=True
+    )
+    split_version_id: Mapped[UUID] = mapped_column(ForeignKey("split_versions.id"))
+    source_evaluation_id: Mapped[UUID] = mapped_column(
+        ForeignKey("research_evaluations.id")
+    )
+    request_sha256: Mapped[str] = mapped_column(String(64))
+    request: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    protocol: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    protocol_sha256: Mapped[str] = mapped_column(String(64))
+    exposure_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    __table_args__ = (
+        UniqueConstraint("owner_id", "idempotency_key", name="uq_control_owner_key"),
+    )
+
+
+class ControlledArm(Base):
+    __tablename__ = "controlled_arms"
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    controlled_experiment_id: Mapped[UUID] = mapped_column(
+        ForeignKey("controlled_experiments.id"), index=True
+    )
+    independent_id: Mapped[UUID] = mapped_column(
+        ForeignKey("independent_evaluations.id"), unique=True
+    )
+    ordinal: Mapped[int] = mapped_column(Integer)
+    name: Mapped[str] = mapped_column(String(120))
+    planned_change: Mapped[str | None] = mapped_column(Text)
+    changed_fields: Mapped[list[str]] = mapped_column(JSONB)
+    interpretation: Mapped[str] = mapped_column(String(60))
+    __table_args__ = (
+        UniqueConstraint(
+            "controlled_experiment_id", "ordinal", name="uq_control_arm_ordinal"
+        ),
+        CheckConstraint("ordinal BETWEEN 0 AND 2"),
+    )

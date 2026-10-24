@@ -200,16 +200,16 @@ describe("five-tab workbench shell", () => {
     expect(html).toContain("Expected template flow, not an execution trace");
     expect(html).toContain("Algorithm references (not code parents)");
   });
-  it.each([
-    ["verification", "I5"],
-    ["notes", "I6"],
-  ])("keeps %s honestly pending", async (tab, phase) => {
-    const html = await renderWorkbench(tab);
-    expect(html).toContain(phase);
-    expect(html).toContain("pending: not implemented in this phase");
-    expect(html).toContain(`spec_sha256=${hashes.spec}`);
-    expect(html).not.toContain("Actual selected stage observations");
-  });
+  it.each([["notes", "I6"]])(
+    "keeps %s honestly pending",
+    async (tab, phase) => {
+      const html = await renderWorkbench(tab);
+      expect(html).toContain(phase);
+      expect(html).toContain("pending: not implemented in this phase");
+      expect(html).toContain(`spec_sha256=${hashes.spec}`);
+      expect(html).not.toContain("Actual selected stage observations");
+    },
+  );
 });
 
 it("opens real replay controls only after an actual leaf is selected", async () => {
@@ -226,4 +226,12 @@ it("opens actual comparison selectors without fabricating either source or resul
   expect(html.replaceAll("<!-- -->", "")).toContain("Left saved strategy");
   expect(html).toContain("Choose both sources");
   expect(html).not.toContain("I4 immutable version comparison is pending");
+});
+
+it("replaces the pending I5 tab with source-admitted independent verification", async () => {
+  const html = await renderWorkbench("verification");
+  expect(html).toContain("Independent diagnostics and manual controls");
+  expect(html).toContain("Select an admitted successful physical leaf");
+  expect(html).not.toContain("pending: not implemented");
+  expect(html).not.toContain("Create independent diagnostic replay");
 });
